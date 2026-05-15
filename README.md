@@ -6,3 +6,11 @@
 박정은<br>
 이민정<br>
 노채민<br>
+
+
+<b>기술 스택</b><br>
+FrontEnd: React <br>
+BackEnd: Spring Boot<br>
+SQL: Maria DB<br>
+
+
