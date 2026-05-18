@@ -12,7 +12,7 @@
 FrontEnd: React <br>
 BackEnd: Spring Boot<br>
 SQL: Maria DB<br>
-## Git Branch Strategy
+## 깃 브랜치 전략
 
 ```text
 main
