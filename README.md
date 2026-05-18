@@ -20,3 +20,17 @@ develop = main으로 넘기기 전 코드들 합치고, 검수하는 부분 <br>
 frontend = frontend 작업 <br>
 backend = backend 작업 <br>
 ERD_SQL = ERD 및 쿼리 작업 <br>
+
+
+main
+ └ develop
+    ├ frontend
+    │   ├ feat-login
+    │   ├ feat-cart
+    │   └ fix-header
+    │
+    ├ backend
+    │   ├ feat-auth-api
+    │   └ feat-order-api
+    │
+    └ ERD_SQL
