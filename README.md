@@ -12,16 +12,9 @@
 FrontEnd: React <br>
 BackEnd: Spring Boot<br>
 SQL: Maria DB<br>
+## Git Branch Strategy
 
-
-<b>브랜치 구조</b> <br>
-main = 최종본, 릴리즈 단계 출시본 <br>
-develop = main으로 넘기기 전 코드들 합치고, 검수하는 부분 <br>
-frontend = frontend 작업 <br>
-backend = backend 작업 <br>
-ERD_SQL = ERD 및 쿼리 작업 <br>
-
-
+```text
 main
  └ develop
     ├ frontend
@@ -34,3 +27,27 @@ main
     │   └ feat-order-api
     │
     └ ERD_SQL
+```
+
+### Branch Description
+
+- `main`
+  - 최종 배포 및 안정화 브랜치
+
+- `develop`
+  - 통합 개발 브랜치
+
+- `frontend`
+  - 프론트엔드 개발 브랜치
+
+- `backend`
+  - 백엔드 개발 브랜치
+
+- `ERD_SQL`
+  - DB / ERD / SQL 관리 브랜치
+
+- `feat-*`
+  - 기능 단위 개발 브랜치
+
+- `fix-*`
+  - 버그 수정 브랜치
