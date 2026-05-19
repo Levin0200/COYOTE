@@ -216,3 +216,33 @@ CREATE TABLE ai_recommendations (
         REFERENCES meetings(meeting_id)
         ON DELETE CASCADE
 );
+
+
+-- ------------------------------------------ 
+-- 여기서부턴 테스팅 쿼리
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

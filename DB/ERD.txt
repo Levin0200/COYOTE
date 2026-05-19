@@ -1,0 +1,274 @@
+/*
+기본적으로 제1정규형과 제2정규형을 만족하도록 설계했고,
+주요 테이블은 함수 종속성을 고려하여 제3정규형 수준으로 구성.
+다만 일부 컬럼은 구현 편의성과 성능을 고려해 실무형으로 타협
+*/
+
+
+// 유저 가입 정보 테이블
+Table users {
+  user_id bigint [pk, increment]
+  email varchar(100) [not null, unique]
+  password varchar(255) [not null]
+  name varchar(50) [not null]
+  home_address varchar(255)
+
+  latitude decimal(10,6)
+  // 위도 (실시간 위치 기반 장소 추천 및 거리 계산용)
+
+  longitude decimal(10,6)
+  // 경도 (실시간 위치 기반 장소 추천 및 거리 계산용)
+
+  created_at timestamp
+}
+
+
+// 생성된 모임의 제목, 카테고리, 상태 등 모임 기본 정보 저장 테이블
+Table meetings {
+  meeting_id bigint [pk, increment]
+  host_id bigint [not null]
+
+  title varchar(100) [not null]
+  category varchar(50)
+  description text
+
+  status enum('OPEN', 'CONFIRMED', 'CLOSED') [default: 'OPEN']
+  // OPEN = 조율중
+  // CONFIRMED = 모임 확정
+  // CLOSED = 모임 종료
+
+  created_at timestamp
+}
+
+
+// 모임 참여자 및 초대 인원 정보를 관리하는 테이블
+Table meeting_members {
+  member_id bigint [pk, increment]
+
+  meeting_id bigint [not null]
+  user_id bigint
+
+  guest_name varchar(50)
+  guest_email varchar(100)
+
+  join_status enum('PENDING', 'ACCEPTED', 'REJECTED') [default: 'PENDING']
+  // PENDING = 응답 대기
+  // ACCEPTED = 참여 수락
+  // REJECTED = 참여 거절
+
+  start_location varchar(255)
+
+  latitude decimal(10,6)
+  longitude decimal(10,6)
+
+  created_at timestamp
+}
+
+
+// 사용자의 개인 일정 및 가능 시간 정보를 저장하는 테이블
+Table personal_schedules {
+  schedule_id bigint [pk, increment]
+
+  user_id bigint [not null]
+  meeting_id bigint
+
+  start_time timestamp [not null]
+  end_time timestamp [not null]
+
+  description varchar(100)
+
+  is_available boolean
+  // true = 가능
+  // false = 불가능
+
+}
+
+
+// 시스템(AI)이 추천한 모임 시간 후보를 저장하는 테이블
+Table meeting_time_options {
+  time_option_id bigint [pk, increment]
+
+  meeting_id bigint [not null]
+
+  start_time timestamp [not null]
+  end_time timestamp [not null]
+
+  recommendation_score float
+  // AI 추천 점수
+
+  ai_reason text
+  // 추천 이유
+
+  is_selected boolean [default: false]
+  // 최종 선택 여부
+}
+
+
+// 참여자들이 시간 후보에 대해 응답한 결과를 저장하는 테이블
+Table votes {
+  vote_id bigint [pk, increment]
+  meeting_id bigint [not null]
+  member_id bigint [not null]
+  time_option_id bigint [not null]
+
+  response enum('YES', 'NO','MAYBE') [default: 'NO']
+  // YES = 참여 가능
+  // NO = 참여 불가능
+  // NULL = 아직 응답 안 함(미응답자)
+
+  created_at timestamp
+
+    indexes {
+    (member_id, time_option_id) [unique]
+  }
+}
+
+
+// 추천된 모임 장소 후보와 관련 정보를 저장하는 테이블
+Table places {
+  place_id bigint [pk, increment]
+
+  meeting_id bigint [not null]
+
+  place_name varchar(100) [not null]
+
+  address varchar(255)
+  category varchar(50)
+
+  rating float
+  // 장소 평점
+
+  latitude decimal(10,6)
+  longitude decimal(10,6)
+
+  recommendation_score float
+  // AI 추천 점수
+
+  ai_reason text
+  // 추천 이유
+
+  is_selected boolean [default: false]
+  // 최종 선택 여부
+}
+
+
+// 최종 확정된 모임 시간과 장소를 저장하는 테이블
+Table meeting_results {
+  result_id bigint [pk, increment]
+
+  meeting_id bigint [not null, unique]
+
+  selected_time_option_id bigint
+  place_id bigint
+
+  finalized_at timestamp
+}
+
+
+// 초대, 확정, 리마인드 등 알림 정보를 저장하는 테이블
+Table notifications {
+  notification_id bigint [pk, increment]
+
+  user_id bigint
+  meeting_id bigint [not null]
+
+  content text
+
+  type enum('INVITE', 'CONFIRMED', 'REMINDER')
+  // INVITE = 초대 알림
+  // CONFIRMED = 확정 알림
+  // REMINDER = 리마인드 알림
+
+  is_read boolean [default: false]
+  // true = 읽음
+  // false = 읽지 않음
+
+  created_at timestamp
+}
+
+
+// AI 추천 요청 내역 및 처리 상태를 관리하는 테이블
+Table ai_requests {
+  ai_request_id bigint [pk, increment]
+
+  meeting_id bigint [not null]
+  user_id bigint
+
+  request_type enum('TIME', 'PLACE', 'AUTO_DECISION')
+  // TIME = 시간 추천 요청
+  // PLACE = 장소 추천 요청
+  // AUTO_DECISION = 자동 의사결정 요청
+
+  model_name varchar(100)
+  // 사용된 AI 모델명
+
+  status enum('REQUESTED', 'DONE', 'FAIL') [default: 'REQUESTED']
+  // REQUESTED = 요청됨
+  // DONE = 처리 완료
+  // FAIL = 처리 실패
+
+  created_at timestamp
+  completed_at timestamp
+}
+
+
+// AI가 생성한 시간·장소 추천 결과를 저장하는 테이블
+Table ai_recommendations {
+  recommendation_id bigint [pk, increment]
+
+  ai_request_id bigint [not null]
+  meeting_id bigint [not null]
+
+  recommendation_type enum('TIME', 'PLACE', 'SUMMARY')
+  // TIME = 시간 추천 결과
+  // PLACE = 장소 추천 결과
+  // SUMMARY = 통합 요약 결과
+
+  result_json json
+  // AI 원본 응답 데이터(JSON)
+ 
+  score float
+  // 추천 점수
+
+  reason text
+  // 추천 이유
+
+  is_selected boolean [default: false]
+  // 최종 선택 여부
+
+  created_at timestamp
+}
+
+
+// =========================
+// 관계 정의(FK)
+// =========================
+
+Ref: users.user_id < meetings.host_id [delete: cascade]
+
+Ref: meetings.meeting_id < meeting_members.meeting_id [delete: cascade]
+Ref: users.user_id < meeting_members.user_id [delete: set null]
+
+Ref: users.user_id < personal_schedules.user_id [delete: cascade]
+Ref: meetings.meeting_id < personal_schedules.meeting_id [delete: cascade]
+
+Ref: meetings.meeting_id < meeting_time_options.meeting_id [delete: cascade]
+
+Ref: meetings.meeting_id < votes.meeting_id [delete: cascade]
+Ref: meeting_members.member_id < votes.member_id [delete: cascade]
+Ref: meeting_time_options.time_option_id < votes.time_option_id [delete: cascade]
+
+Ref: meetings.meeting_id < places.meeting_id [delete: cascade]
+
+Ref: meetings.meeting_id < meeting_results.meeting_id [delete: cascade]
+Ref: meeting_time_options.time_option_id < meeting_results.selected_time_option_id [delete: set null]
+Ref: places.place_id < meeting_results.place_id [delete: set null]
+
+Ref: users.user_id < notifications.user_id [delete: cascade]
+Ref: meetings.meeting_id < notifications.meeting_id [delete: cascade]
+
+Ref: meetings.meeting_id < ai_requests.meeting_id [delete: cascade]
+Ref: users.user_id < ai_requests.user_id [delete: set null]
+
+Ref: ai_requests.ai_request_id < ai_recommendations.ai_request_id [delete: cascade]
+Ref: meetings.meeting_id < ai_recommendations.meeting_id [delete: cascade]
