@@ -16,7 +16,7 @@ CREATE TABLE meetings (
     meeting_id BIGINT AUTO_INCREMENT PRIMARY KEY,
     host_id BIGINT NOT NULL,
     title VARCHAR(100) NOT NULL,
-    category VARCHAR(50),
+    category VARCHAR(50), -- 프론트쪽에서 키워드 제한 걸기 Enum이나 테이블 따로 뺴는것도 가능 하겠지만 이정도에서 타협
     description TEXT,
     status ENUM('OPEN','CONFIRMED','CLOSED') DEFAULT 'OPEN',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -28,9 +28,9 @@ CREATE TABLE meetings (
 );
 
 CREATE TABLE meeting_members (
-    member_id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    meeting_id BIGINT NOT NULL,
-    user_id BIGINT,
+    member_id BIGINT AUTO_INCREMENT PRIMARY KEY, -- 참여자 기록 자체의 고유번호
+    meeting_id BIGINT NOT NULL, -- 어느 모임에 속한 멤버인지 구분 짓는 번호
+    user_id BIGINT, -- users 테이블의 user_id 저장 값
     guest_name VARCHAR(50),
     guest_email VARCHAR(100),
     join_status ENUM('PENDING', 'ACCEPTED', 'REJECTED') DEFAULT 'PENDING',
@@ -75,9 +75,9 @@ CREATE TABLE meeting_time_options (
     meeting_id BIGINT NOT NULL,
     start_time TIMESTAMP NOT NULL,
     end_time TIMESTAMP NOT NULL,
-    recommendation_score FLOAT,
-    ai_reason TEXT,
-    is_selected BOOLEAN DEFAULT FALSE,
+    recommendation_score FLOAT, -- ai 추천 점수
+    ai_reason TEXT, -- ai 추천 이유
+    is_selected BOOLEAN DEFAULT FALSE, -- 최종 선택 여부
 
     CONSTRAINT fk_time_options_meeting
         FOREIGN KEY (meeting_id)
@@ -216,33 +216,4 @@ CREATE TABLE ai_recommendations (
         REFERENCES meetings(meeting_id)
         ON DELETE CASCADE
 );
-
-
--- ------------------------------------------ 
--- 여기서부턴 테스팅 쿼리
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
