@@ -7,6 +7,7 @@ import lombok.Setter;
 import java.time.LocalDateTime;
 
 //이 클래스는 DB의 meetings 테이블을 자바 객체로 표현한 클래스입니다.
+// DB 저장용 객체
 
 
 //이 클래스는 DB 테이블이라는 어노테이션 표시
