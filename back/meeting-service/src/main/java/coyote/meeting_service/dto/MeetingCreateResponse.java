@@ -32,9 +32,8 @@ import lombok.Getter;
 //이 클래스가 해주는 일은 JSON 데이터를 MeetingRequset가 받고, 서비스에서 객체를 생성 후 프론트에게 반환해주는 값을 얘가 담당함
 //처리 결과 데이터를 보내줄때 얘를 쓴다. / 모임 생성 후 프론트에게 반환할 응답 데이터를 담는 DTO다.
 
+//Create 전용 dto
 @AllArgsConstructor
-
-
 public class MeetingCreateResponse {
 
     private Long meetingId;
