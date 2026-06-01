@@ -7,12 +7,19 @@ function CreateMeetingPage() {
   const [category, setCategory] = useState("");
   const [description, setDescription] = useState("");
 
+  //함수 선언 및 asyc 비동기 함수로 내부에서 await 사용이 가능함 / fetch()는 서버에 http 요청 보내는 애임, 주소는 내가 만든 서버 주소
+  //method 방식이 POST임 CRUD = POST, GET, PUT, DLETE
+  //headers: 내가 보내는 데이터가 JSON 형식이다 라는걸 알려주는 역할
+  //리액트는 jsx를 씀 그리고 얘 구조를 대충 보면 펑선 안에 js 구사하고 리턴부에 html을 사용함 물론 jsx니까 html+js 같이 사용 가능함
+
   const createMeeting = async () => {
     const response = await fetch("http://localhost:8080/api/meetings", {
       method: "POST",
       headers: {
         "Content-Type":"application/json",
       },
+      // JSON 데이터 -> 문자열로 변환 = stringify
+
       body: JSON.stringify({
         hostId: 1,
         title,
