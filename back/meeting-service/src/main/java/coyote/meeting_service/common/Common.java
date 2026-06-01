@@ -22,32 +22,19 @@ package coyote.meeting_service.common;
  *
  *
  * 전반적인 전체 그림
- *
- React 모임 생성 페이지
-
- ↓
- MeetingController
-
- ↓
- MeetingRequest
-
- ↓
- MeetingService
-
- ↓
- Meeting Entity 생성
-
- ↓
- MeetingRepository
-
- ↓
- MariaDB meetings 테이블 저장
-
- ↓
- MeetingCreateResponse
-
- ↓
- React
+ *React
+ * ↓
+ * Controller
+ * ↓
+ * MeetingCreateRequest DTO
+ * ↓
+ * Service
+ * ↓
+ * Meeting Entity
+ * ↓
+ * Repository (DAO)
+ * ↓
+ * MariaDB
  *
  *
  *
