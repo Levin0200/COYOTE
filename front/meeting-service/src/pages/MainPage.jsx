@@ -1,8 +1,10 @@
+// 얘가 페이지 이동 담당함
 import { useNavigate } from "react-router-dom";
 
 // 디자인 개쩌는 페이지 Keep!
 
 function MainPage() {
+  // 페이지 이동 담당할 수 있게 해주는 함수
   const navigate = useNavigate();
 
   return (
