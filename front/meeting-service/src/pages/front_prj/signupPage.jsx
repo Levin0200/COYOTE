@@ -1,0 +1,275 @@
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+
+function SignupPage() {
+  const navigate = useNavigate();
+
+  const [step, setStep] = useState(1);
+
+  return (
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center px-6">
+
+      <div
+        className="
+          w-full
+          max-w-md
+          bg-white
+          rounded-3xl
+          border
+          border-gray-100
+          p-8
+          shadow-sm
+        "
+      >
+
+        {/* 로고 */}
+
+        <div className="text-center mb-8">
+
+          <div className="text-[#4F7DF3] font-bold text-xl mb-2">
+            모여ON
+          </div>
+
+          <h2 className="text-3xl font-bold mb-2">
+            회원가입
+          </h2>
+
+          <p className="text-gray-500 text-sm">
+            몇 단계만 거치면 바로 시작할 수 있어요.
+          </p>
+
+        </div>
+
+        {/* 진행바 */}
+
+        <div className="mb-8 flex justify-center">
+
+          <div className="w-40 bg-slate-100 h-1.5 rounded-full">
+
+            <div
+              className="
+                bg-[#4F7DF3]
+                h-1.5
+                rounded-full
+                transition-all
+                duration-500
+              "
+              style={{
+                width: `${step * 25}%`,
+              }}
+            />
+
+          </div>
+
+        </div>
+
+        {/* STEP 1 */}
+
+        {step === 1 && (
+          <>
+            <h3 className="font-semibold text-lg mb-4">
+              이용약관 동의
+            </h3>
+
+            <label className="flex items-center gap-3 mb-3">
+              <input type="checkbox" />
+              <span>서비스 이용약관 동의 (필수)</span>
+            </label>
+
+            <label className="flex items-center gap-3 mb-6">
+              <input type="checkbox" />
+              <span>개인정보 수집 동의 (필수)</span>
+            </label>
+
+            <button
+              onClick={() => setStep(2)}
+              className="
+                w-full
+                bg-[#4F7DF3]
+                text-white
+                py-3
+                rounded-xl
+                hover:bg-[#3D6BE5]
+                transition
+              "
+            >
+              다음
+            </button>
+          </>
+        )}
+
+        {/* STEP 2 */}
+
+        {step === 2 && (
+          <>
+            <h3 className="font-semibold text-lg mb-4">
+              이메일 입력
+            </h3>
+
+            <input
+              type="email"
+              placeholder="이메일"
+              className="
+                w-full
+                border
+                border-gray-200
+                rounded-xl
+                p-3
+                mb-4
+                focus:outline-none
+                focus:ring-2
+                focus:ring-[#4F7DF3]
+              "
+            />
+
+            <button
+              onClick={() => setStep(3)}
+              className="
+                w-full
+                bg-[#4F7DF3]
+                text-white
+                py-3
+                rounded-xl
+                hover:bg-[#3D6BE5]
+                transition
+              "
+            >
+              인증번호 발송
+            </button>
+          </>
+        )}
+
+        {/* STEP 3 */}
+
+        {step === 3 && (
+          <>
+            <h3 className="font-semibold text-lg mb-4">
+              이메일 인증
+            </h3>
+
+            <input
+              type="text"
+              placeholder="인증번호 입력"
+              className="
+                w-full
+                border
+                border-gray-200
+                rounded-xl
+                p-3
+                mb-4
+                focus:outline-none
+                focus:ring-2
+                focus:ring-[#4F7DF3]
+              "
+            />
+
+            <button
+              onClick={() => setStep(4)}
+              className="
+                w-full
+                bg-[#4F7DF3]
+                text-white
+                py-3
+                rounded-xl
+                hover:bg-[#3D6BE5]
+                transition
+              "
+            >
+              인증 완료
+            </button>
+          </>
+        )}
+
+        {/* STEP 4 */}
+
+        {step === 4 && (
+          <>
+            <h3 className="font-semibold text-lg mb-4">
+              계정 정보 입력
+            </h3>
+
+            <input
+              type="text"
+              placeholder="이름"
+              className="
+                w-full
+                border
+                border-gray-200
+                rounded-xl
+                p-3
+                mb-4
+                focus:outline-none
+                focus:ring-2
+                focus:ring-[#4F7DF3]
+              "
+            />
+
+            <input
+              type="password"
+              placeholder="비밀번호"
+              className="
+                w-full
+                border
+                border-gray-200
+                rounded-xl
+                p-3
+                mb-4
+                focus:outline-none
+                focus:ring-2
+                focus:ring-[#4F7DF3]
+              "
+            />
+
+            <input
+              type="password"
+              placeholder="비밀번호 확인"
+              className="
+                w-full
+                border
+                border-gray-200
+                rounded-xl
+                p-3
+                mb-6
+                focus:outline-none
+                focus:ring-2
+                focus:ring-[#4F7DF3]
+              "
+            />
+
+            <button
+              onClick={() => navigate("/preferences")}
+              className="
+                w-full
+                bg-[#4F7DF3]
+                text-white
+                py-3
+                rounded-xl
+                hover:bg-[#3D6BE5]
+                transition
+              "
+            >
+              가입 완료
+            </button>
+          </>
+        )}
+
+        {/* 로그인 이동 */}
+
+        <div className="text-center mt-6">
+
+          <button
+            onClick={() => navigate("/login")}
+            className="text-sm text-gray-500 hover:text-[#4F7DF3]"
+          >
+
+          </button>
+
+        </div>
+
+      </div>
+
+    </div>
+  );
+}
+
+export default SignupPage;
