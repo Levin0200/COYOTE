@@ -2,6 +2,7 @@
 import { useNavigate } from "react-router-dom";
 
 // 디자인 개쩌는 페이지 Keep!
+// 삭제될 수 있는 페이지
 
 function MainPage() {
   // 페이지 이동 담당할 수 있게 해주는 함수
@@ -63,7 +64,7 @@ function MainPage() {
           <section className="relative">
             <div className="absolute -inset-4 bg-blue-500/20 blur-3xl rounded-full" />
 
-            <div className="relative bg-white/10 backdrop-blur-2xl border border-white/10 rounded-[2rem] p-7 shadow-2xl">
+            <div className="relative bg-white/10 backdrop-blur-2xl border border-white/10 rounded-4xl p-7 shadow-2xl">
               <div className="bg-[#111827] rounded-3xl p-5 mb-5 border border-white/10">
                 <p className="text-sm text-slate-400 mb-2">
                   New meeting
