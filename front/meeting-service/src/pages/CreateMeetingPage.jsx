@@ -1,39 +1,33 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 function CreateMeetingPage() {
+  const navigate = useNavigate();
 
-  // const [현재값, 값을 변경하는 함수] = useState(초기값); 얘가 화면을 다시 그리는 애임
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState("");
   const [description, setDescription] = useState("");
 
-  //함수 선언 및 asyc 비동기 함수로 내부에서 await 사용이 가능함 / fetch()는 서버에 http 요청 보내는 애임, 주소는 내가 만든 서버 주소
-  //method 방식이 POST임 CRUD = POST, GET, PUT, DLETE
-  //headers: 내가 보내는 데이터가 JSON 형식이다 라는걸 알려주는 역할
-  //리액트는 jsx를 씀 그리고 얘 구조를 대충 보면 펑선 안에 js 구사하고 리턴부에 html을 사용함 물론 jsx니까 html+js 같이 사용 가능함
+  const saveDraftAndNext = () => {
+    if (!title.trim()) {
+      alert("모임 제목을 입력해주세요.");
+      return;
+    }
 
-  const createMeeting = async () => {
-    const response = await fetch("http://localhost:8080/api/meetings", {
-      method: "POST",
-      headers: {
-        "Content-Type":"application/json",
-      },
-      // JSON 데이터 -> 문자열로 변환 = stringify
+    const meetingDraft = {
+      hostId: 1,
+      title,
+      category,
+      description,
+    };
 
-      body: JSON.stringify({
-        hostId: 1,
-        title,
-        category,
-        description,
-      }),
-    });
+    sessionStorage.setItem(
+      "meetingDraft",
+      JSON.stringify(meetingDraft)
+    );
 
-    const data = await response.json();
-    console.log(data);
-    alert("모임 생성 완료!");
-  }
-  
-
+    navigate("/meeting/setup/time-options");
+  };
 
   return (
     <div className="min-h-screen bg-[#0B1020] text-white overflow-hidden">
@@ -48,7 +42,7 @@ function CreateMeetingPage() {
             모임 생성
           </h1>
           <p className="text-slate-300">
-            모임 정보를 입력하고 초대 링크 생성을 시작하세요.
+            모임 정보를 입력하고 다음 단계로 이동하세요.
           </p>
         </header>
 
@@ -60,7 +54,6 @@ function CreateMeetingPage() {
                 onChange={(e) => setTitle(e.target.value)}
                 className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 outline-none focus:ring-2 focus:ring-blue-400 placeholder:text-slate-400"
                 placeholder="모임 제목"
-                
               />
 
               <input
@@ -77,11 +70,11 @@ function CreateMeetingPage() {
                 placeholder="모임 설명"
               />
 
-              <button 
-              className="w-full bg-blue-500 hover:bg-blue-400 transition py-4 rounded-2xl font-bold shadow-lg shadow-blue-500/25"
-              onClick={createMeeting}
+              <button
+                onClick={saveDraftAndNext}
+                className="w-full bg-blue-500 hover:bg-blue-400 transition py-4 rounded-2xl font-bold shadow-lg shadow-blue-500/25"
               >
-                생성하기
+                다음 단계로
               </button>
             </div>
           </section>
@@ -90,7 +83,7 @@ function CreateMeetingPage() {
             <h2 className="text-lg font-bold mb-5">생성 흐름</h2>
 
             <div className="space-y-4">
-              {["정보 입력", "초대 링크 공유", "AI 추천 준비"].map(
+              {["정보 입력", "시간 후보 등록", "장소 후보 등록", "최종 확인"].map(
                 (text, index) => (
                   <div key={text} className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-xl bg-blue-500/20 text-blue-300 flex items-center justify-center font-bold">
