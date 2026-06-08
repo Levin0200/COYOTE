@@ -1,6 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 /* 1. 전체 배경: 화면에 딱 고정하여 스크롤이 생기지 않도록 차단 */
+/* 머징하다가 height값이랑 overflow가 스크롤되는 메인페이지를 막아서 임의로 오토값과 민 헤이트 값으로 변경했습니다.*/
 html, body {
   margin: 0;
   padding: 0;
