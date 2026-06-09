@@ -55,7 +55,7 @@ function SignupPage() {
                 duration-500
               "
               style={{
-                width: `${step * 25}%`,
+                width: `${step * 100 / 4}%`,
               }}
             />
 
@@ -185,7 +185,7 @@ function SignupPage() {
         {step === 4 && (
           <>
             <h3 className="font-semibold text-lg mb-4">
-              계정 정보 입력
+              개인정보 입력
             </h3>
 
             <input
@@ -223,6 +223,22 @@ function SignupPage() {
             <input
               type="password"
               placeholder="비밀번호 확인"
+              className="
+                w-full
+                border
+                border-gray-200
+                rounded-xl
+                p-3
+                mb-6
+                focus:outline-none
+                focus:ring-2
+                focus:ring-[#4F7DF3]
+              "
+            />
+
+            <input
+              type="text"
+              placeholder="집주소 (선택)"
               className="
                 w-full
                 border

@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useNavigate } from "react-router-dom";
 
 function MainPage() {
-  // ① 기본 테마 상태를 false로 변경하여 컴포넌트가 '라이트 모드(화이트)'로 시작하도록 수정
   const [isDarkMode, setIsDarkMode] = useState(false); 
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('all');
@@ -16,19 +15,15 @@ function MainPage() {
     navigate = (path) => console.log("이동 경로:", path);
   }
 
-  // ========================================================
-  // 🎨 화이트/라이트 테마를 위한 색상 팰럿 최적화 교정
-  // ========================================================
   const theme = {
-    bg: isDarkMode ? '#0B1020' : '#FFFFFF', // 화이트 모드 시 순수 흰색 바탕 구현
-    cardBg: isDarkMode ? 'rgba(255,255,255,0.03)' : '#F8FAFC', // 깔끔한 그레이 화이트 카드
-    cardBorder: isDarkMode ? 'rgba(255,255,255,0.08)' : '#E2E8F0', // 부드러운 테두리 경계선
-    innerBoxBg: isDarkMode ? '#0a0d1a' : '#F1F5F9', // 내부 박스는 가독성을 위해 살짝 어두운 톤 배치
-    popupBg: isDarkMode ? '#0f1425' : '#FFFFFF', // 팝업창도 깔끔한 순백색으로 통일
-    textMain: isDarkMode ? '#ffffff' : '#334155', // 본문 글씨 진한 차콜색 변경 (가독성 확보)
+    bg: isDarkMode ? '#0B1020' : '#FFFFFF',
+    cardBg: isDarkMode ? 'rgba(255,255,255,0.03)' : '#F8FAFC',
+    cardBorder: isDarkMode ? 'rgba(255,255,255,0.08)' : '#E2E8F0',
+    innerBoxBg: isDarkMode ? '#0a0d1a' : '#F1F5F9',
+    popupBg: isDarkMode ? '#0f1425' : '#FFFFFF',
+    textMain: isDarkMode ? '#ffffff' : '#334155',
     textSub: isDarkMode ? '#94a3b8' : '#64748b',
-    textTitle: isDarkMode ? '#f8fafc' : '#0F172A', // 제목은 확실한 블랙 계열 처리
-    // 배경 그라데이션 역시 화이트 테마에 맞춰 투명도와 색상 톤 대폭 다운
+    textTitle: isDarkMode ? '#f8fafc' : '#0F172A',
     gradient: isDarkMode 
       ? 'radial-gradient(circle at top left, rgba(59,130,246,0.18), transparent 45%), radial-gradient(circle at bottom right, rgba(168,85,247,0.12), transparent 45%)'
       : 'radial-gradient(circle at top left, rgba(59,130,246,0.05), transparent 50%), radial-gradient(circle at bottom right, rgba(168,85,247,0.03), transparent 50%)',
@@ -69,21 +64,26 @@ function MainPage() {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: theme.bg, color: theme.textMain, position: 'relative', overflow: 'hidden', fontFamily: 'sans-serif', transition: 'background-color 0.3s, color 0.3s' }}>
       
-      {/* 백그라운드 디자인 그라데이션 */}
       <div style={{ position: 'absolute', inset: 0, backgroundImage: theme.gradient, pointerEvents: 'none' }} />
 
       <div style={{ position: 'relative', maxWidth: '1200px', margin: '0 auto', padding: '32px 24px' }}>
         
-        {/* 상단 헤더 영역 */}
         <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '48px', position: 'relative', zIndex: 100 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }} onClick={() => navigate("/")}>
-            <div style={{ width: '38px', height: '38px', borderRadius: '12px', backgroundColor: '#3b82f6', display: 'flex', alignItems: 'center', justifycontent: 'center', fontWeight: '900', boxShadow: '0 4px 12px rgba(59,130,246,0.2)', color: '#fff' }}>C</div>
-            <h1 style={{ fontSize: '22px', fontWeight: '900', letterSpacing: '-0.05em', margin: 0, background: isDarkMode ? 'linear-gradient(to right, #ffffff, #93c5fd)' : 'linear-gradient(to right, #0f172a, #3b82f6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>COYOTE</h1>
+            <div className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-xl bg-blue-500 font-black text-white shadow-[0_4px_12px_rgba(59,130,246,0.2)]">
+              C
+            </div>
+
+            <h1
+              className={`whitespace-nowrap text-[22px] font-black tracking-[-0.05em] ${
+                isDarkMode ? "text-white" : "text-slate-900"
+              }`}
+            >
+              COYOTE
+            </h1>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px', position: 'relative' }}>
-            
-            {/* 토글 스위치 버튼 */}
             <button
               onClick={() => setIsDarkMode(!isDarkMode)}
               style={{
@@ -105,7 +105,6 @@ function MainPage() {
               {isDarkMode ? '☀️ 라이트 모드' : '🌙 다크 모드'}
             </button>
 
-            {/* 종 모양 알림 버튼 */}
             <button 
               onClick={() => setIsNotificationOpen(!isNotificationOpen)}
               style={{ position: 'relative', backgroundColor: theme.cardBg, border: `1px solid ${theme.cardBorder}`, color: theme.textMain, width: '44px', height: '44px', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', cursor: 'pointer' }}
@@ -114,7 +113,6 @@ function MainPage() {
               <span style={{ position: 'absolute', top: '12px', right: '12px', width: '7px', height: '7px', backgroundColor: '#ef4444', borderRadius: '50%', boxShadow: '0 0 8px #ef4444' }} />
             </button>
 
-            {/* 알림 팝업 레이어 */}
             {isNotificationOpen && (
               <div style={{ position: 'absolute', top: '56px', right: 0, width: '360px', backgroundColor: theme.popupBg, border: `1px solid ${theme.cardBorder}`, borderRadius: '24px', padding: '20px', boxShadow: '0 20px 40px rgba(15,23,42,0.08)', zIndex: 110, backdropFilter: 'blur(20px)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
@@ -155,7 +153,6 @@ function MainPage() {
               </div>
             )}
 
-            {/* 마이페이지 버튼 */}
             <button 
               onClick={() => navigate("/mypage")}
               style={{ backgroundColor: theme.cardBg, border: `1px solid ${theme.cardBorder}`, color: theme.textMain, padding: '10px 18px', borderRadius: '14px', fontWeight: '600', fontSize: '13px', cursor: 'pointer' }}
@@ -165,7 +162,6 @@ function MainPage() {
           </div>
         </header>
 
-        {/* 대시보드 인트로 배너 */}
         <section style={{ marginBottom: '48px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '20px' }}>
             <div>
@@ -181,7 +177,6 @@ function MainPage() {
           </div>
         </section>
 
-        {/* 대시보드 필터 컨트롤러 */}
         <section style={{ marginBottom: '28px' }}>
           <div style={{ display: 'flex', gap: '12px', borderBottom: `1px solid ${theme.cardBorder}`, paddingBottom: '12px' }}>
             {[
@@ -210,7 +205,6 @@ function MainPage() {
           </div>
         </section>
 
-        {/* 큼직한 이미지 카드 컴포넌트 그리드 */}
         <section style={{ marginBottom: '64px' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '28px' }}>
             {filteredMeetings.map((meeting) => (
@@ -238,7 +232,6 @@ function MainPage() {
 
                 <h3 style={{ fontSize: '20px', fontWeight: '800', margin: '0 0 16px 0', color: theme.textTitle }}>{meeting.title}</h3>
 
-                {/* 거대 시각화 보드 존 */}
                 <div style={{ 
                   height: '140px', 
                   backgroundColor: theme.innerBoxBg, 
@@ -266,7 +259,6 @@ function MainPage() {
                   </div>
                 </div>
 
-                {/* 카드 내부 데이터 박스 */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', backgroundColor: isDarkMode ? 'rgba(0,0,0,0.15)' : '#FFFFFF', padding: '14px', borderRadius: '16px', border: `1px solid ${theme.cardBorder}`, transition: 'background-color 0.3s' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
                     <span style={{ color: theme.textSub }}>🗓️ 만날 날짜</span>
@@ -290,7 +282,6 @@ function MainPage() {
           </div>
         </section>
 
-        {/* 상세 파생 팝업 모달 */}
         {selectedMeeting && (
           <div style={{ position: 'fixed', bottom: '24px', right: '24px', maxWidth: 'calc(100vw - 48px)', width: '380px', backgroundColor: theme.popupBg, border: '2px solid #3b82f6', borderRadius: '24px', padding: '24px', boxShadow: '0 20px 40px rgba(15,23,42,0.15)', zIndex: 200 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>

@@ -125,7 +125,7 @@ function OnboardingPage() {
         {/* 저장 */}
 
         <button
-          onClick={() => navigate("/main")}
+          onClick={() => navigate("/preferences")}
           className="
             w-full
             bg-[#4F7DF3]
@@ -144,7 +144,7 @@ function OnboardingPage() {
         {/* 건너뛰기 */}
 
         <button
-          onClick={() => navigate("/main")}
+          onClick={() => navigate("/preferences")}
           className="
             w-full
             border

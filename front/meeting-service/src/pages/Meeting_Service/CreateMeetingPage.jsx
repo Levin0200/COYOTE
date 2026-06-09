@@ -21,82 +21,81 @@ function CreateMeetingPage() {
       description,
     };
 
-    sessionStorage.setItem(
-      "meetingDraft",
-      JSON.stringify(meetingDraft)
-    );
+    sessionStorage.setItem("meetingDraft", JSON.stringify(meetingDraft));
 
     navigate("/meeting/setup/time-options");
   };
 
   return (
-    <div className="min-h-screen bg-[#0B1020] text-white overflow-hidden">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.25),transparent_35%),radial-gradient(circle_at_bottom_right,rgba(168,85,247,0.18),transparent_35%)]" />
+    <div className="min-h-screen bg-white text-gray-900 overflow-hidden">
+      <section className="min-h-screen flex flex-col justify-center px-6">
+        <div className="max-w-5xl mx-auto w-full">
+          <header className="mb-14">
+            <p className="text-[#4F7DF3] font-semibold mb-3">
+              Create new meeting
+            </p>
 
-      <div className="relative max-w-5xl mx-auto px-6 py-8">
-        <header className="mb-14">
-          <p className="text-sm text-blue-300 font-semibold mb-3">
-            Create new meeting
-          </p>
-          <h1 className="text-4xl font-black tracking-tight mb-3">
-            모임 생성
-          </h1>
-          <p className="text-slate-300">
-            모임 정보를 입력하고 다음 단계로 이동하세요.
-          </p>
-        </header>
+            <h1 className="text-5xl font-black tracking-tight mb-4">
+              모임 생성
+            </h1>
 
-        <main className="grid lg:grid-cols-3 gap-8">
-          <section className="lg:col-span-2 bg-white/10 backdrop-blur-2xl border border-white/10 rounded-[2rem] p-8 shadow-2xl">
-            <div className="space-y-5">
-              <input
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 outline-none focus:ring-2 focus:ring-blue-400 placeholder:text-slate-400"
-                placeholder="모임 제목"
-              />
+            <p className="text-gray-500 text-lg">
+              모임 정보를 입력하고 다음 단계로 이동하세요.
+            </p>
+          </header>
 
-              <input
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 outline-none focus:ring-2 focus:ring-blue-400 placeholder:text-slate-400"
-                placeholder="카테고리"
-              />
+          <main className="grid lg:grid-cols-3 gap-8">
+            <section className="lg:col-span-2 bg-white border border-gray-100 rounded-[2rem] p-8 shadow-xl">
+              <div className="space-y-5">
+                <input
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  className="w-full bg-slate-50 border border-gray-200 rounded-2xl px-5 py-4 outline-none focus:ring-2 focus:ring-[#4F7DF3] placeholder:text-gray-400"
+                  placeholder="모임 제목"
+                />
 
-              <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 h-40 outline-none focus:ring-2 focus:ring-blue-400 resize-none placeholder:text-slate-400"
-                placeholder="모임 설명"
-              />
+                <input
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  className="w-full bg-slate-50 border border-gray-200 rounded-2xl px-5 py-4 outline-none focus:ring-2 focus:ring-[#4F7DF3] placeholder:text-gray-400"
+                  placeholder="카테고리"
+                />
 
-              <button
-                onClick={saveDraftAndNext}
-                className="w-full bg-blue-500 hover:bg-blue-400 transition py-4 rounded-2xl font-bold shadow-lg shadow-blue-500/25"
-              >
-                다음 단계로
-              </button>
-            </div>
-          </section>
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  className="w-full bg-slate-50 border border-gray-200 rounded-2xl px-5 py-4 h-40 outline-none focus:ring-2 focus:ring-[#4F7DF3] resize-none placeholder:text-gray-400"
+                  placeholder="모임 설명"
+                />
 
-          <aside className="bg-white/5 border border-white/10 rounded-[2rem] p-6">
-            <h2 className="text-lg font-bold mb-5">생성 흐름</h2>
+                <button
+                  onClick={saveDraftAndNext}
+                  className="w-full bg-[#4F7DF3] hover:bg-[#3D6BE5] transition py-4 rounded-2xl text-white font-bold shadow-lg shadow-blue-200"
+                >
+                  다음 단계로
+                </button>
+              </div>
+            </section>
 
-            <div className="space-y-4">
-              {["정보 입력", "시간 후보 등록", "장소 후보 등록", "최종 확인"].map(
-                (text, index) => (
-                  <div key={text} className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-xl bg-blue-500/20 text-blue-300 flex items-center justify-center font-bold">
-                      {index + 1}
+            <aside className="bg-slate-50 border border-gray-100 rounded-[2rem] p-6 shadow-sm">
+              <h2 className="text-lg font-black mb-5">생성 흐름</h2>
+
+              <div className="space-y-4">
+                {["정보 입력", "시간 후보 등록", "장소 후보 등록", "최종 확인"].map(
+                  (text, index) => (
+                    <div key={text} className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-xl bg-blue-50 text-[#4F7DF3] flex items-center justify-center font-black">
+                        {index + 1}
+                      </div>
+                      <p className="text-gray-700 font-bold">{text}</p>
                     </div>
-                    <p className="text-slate-200">{text}</p>
-                  </div>
-                )
-              )}
-            </div>
-          </aside>
-        </main>
-      </div>
+                  )
+                )}
+              </div>
+            </aside>
+          </main>
+        </div>
+      </section>
     </div>
   );
 }

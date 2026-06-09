@@ -7,11 +7,12 @@ import SignupPage from "./pages/front_prj/signupPage";
 import OnboardingPage from "./pages/front_prj/onboardingPage";
 
 // UserPreferences
-import UserPreferencesPage
-from "./pages/UserPreferences/App";
+import UserPreferencesPage from "./pages/UserPreferences/App";
 
-// meeting-service
-import MainPage from "./pages/Meeting_Service/MainPage";
+// Main_Service
+import MainPage from "./pages/Main_Service/MainPage";
+
+// Meeting_Service
 import CreateMeetingPage from "./pages/Meeting_Service/CreateMeetingPage";
 import MeetingDetailPage from "./pages/Meeting_Service/MeetingDetailPage";
 import MeetingPlacesPage from "./pages/Meeting_Service/MeetingPlacesPage";
@@ -23,27 +24,25 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-
-        {/* Landing */}
+        {/* front_prj */}
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/onboarding" element={<OnboardingPage />} />
 
-        {/* Preferences */}
+        {/* UserPreferences */}
         <Route path="/preferences" element={<UserPreferencesPage />} />
 
-        {/* Main */}
+        {/* Main_Service */}
         <Route path="/main" element={<MainPage />} />
 
-        {/* Meeting */}
+        {/* Meeting_Service */}
         <Route path="/create-meeting" element={<CreateMeetingPage />} />
         <Route path="/meeting/:meetingId" element={<MeetingDetailPage />} />
         <Route path="/meeting/setup/time-options" element={<MeetingTimeOptionsPage />} />
         <Route path="/meeting/setup/places" element={<MeetingPlacesPage />} />
         <Route path="/meeting/setup/vote" element={<MeetingVotePage />} />
         <Route path="/meeting/setup/result" element={<MeetingResultPage />} />
-
       </Routes>
     </BrowserRouter>
   );
