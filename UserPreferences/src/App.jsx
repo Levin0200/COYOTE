@@ -38,7 +38,7 @@ function App() {
     if (isLogin) {
       if (!preferences.TIME || !preferences.PLACE || !preferences.DISTANCE || 
           !preferences.CATEGORY || !preferences.BUDGET || !preferences.TRANSPORT) {
-        alert('회원 맞춤 추천을 위해 6가지 항목을 모두 선택해주세요! 📋');
+        alert('회원 맞춤 추천을 위해 6가지 항목을 모두 선택해주세요!');
         return;
       }
 
@@ -56,15 +56,15 @@ function App() {
           `http://localhost:8080/api/preferences/register?userId=${userId}`, 
           requestData
         );
-        alert('🎉 회원 맞춤 데이터가 안전하게 DB에 저장되었습니다!'); 
+        alert('회원 취향 정보가 성공적으로 등록되었습니다!'); 
       } catch (error) {
         console.error('서버 저장 에러:', error);
-        alert('서버 에러가 발생했습니다. 백엔드가 켜져있는지 확인해주세요!');
+        alert('서버 에러가 발생했습니다.');
       }
 
     } else {
       if (!preferences.TIME || !preferences.PLACE || !preferences.DISTANCE) {
-        alert('기본 피드 추천을 위해 3가지 항목을 모두 선택해주세요! 💡');
+        alert('기본 피드 추천을 위해 3가지 항목을 모두 선택해주세요!');
         return;
       }
 
@@ -75,7 +75,7 @@ function App() {
       };
 
       sessionStorage.setItem('guestPreferences', JSON.stringify(guestData));
-      alert('🎈 비회원 임시 선호도가 브라우저 세션에 성공적으로 적용되었습니다!');
+      alert('비회원 임시 정보가 성공적으로 적용되었습니다!');
     }
   };
 
@@ -114,7 +114,7 @@ function App() {
           </div>
 
           <div className="brand-logo">모여ON</div>
-          <h2 className="main-title">취향 분석 사전 조사 🎯</h2>
+          <h2 className="main-title">취향 분석 사전 조사</h2>
           <p className="description-text">
             {isLogin 
               ? "회원가입을 환영합니다! 정밀한 피드 분석을 위해 6가지 항목을 선택해 주세요." 
@@ -126,31 +126,31 @@ function App() {
           
           {/* 1. 선호 시간대 */}
           <div className="form-group">
-            <label className="group-label">⏰ 선호 시간대</label>
+            <label className="group-label">선호 시간대</label>
             {renderOptionButtons('TIME', [
-              { value: '오전', label: '🌅 오전' },
-              { value: '오후', label: '☀️ 오후' },
-              { value: '저녁', label: '🌙 저녁' }
+              { value: '오전', label: '오전' },
+              { value: '오후', label: '오후' },
+              { value: '저녁', label: '저녁' }
             ])}
           </div>
 
           {/* 2. 활동 공간 */}
           <div className="form-group">
-            <label className="group-label">📍 활동 공간</label>
+            <label className="group-label">활동 공간</label>
             {renderOptionButtons('PLACE', [
-              { value: '실내', label: '🏠 실내형' },
-              { value: '실외', label: '🌳 실외형' },
-              { value: '상관없음', label: '🔄 올라운더' }
+              { value: '실내', label: '실내형' },
+              { value: '실외', label: '실외형' },
+              { value: '상관없음', label: '올라운더' }
             ])}
           </div>
 
           {/* 3. 활동 반경 */}
           <div className="form-group">
-            <label className="group-label">🚗 활동 반경</label>
+            <label className="group-label">활동 반경</label>
             {renderOptionButtons('DISTANCE', [
-              { value: '5km 이내', label: '🏃 가깝게' },
-              { value: '10km 이내', label: '🚌 적당히' },
-              { value: '30km 이내', label: '✈️ 멀리멀리' }
+              { value: '5km 이내', label: '가깝게' },
+              { value: '10km 이내', label: '적당히' },
+              { value: '30km 이내', label: '멀리멀리' }
             ])}
           </div>
 
@@ -159,31 +159,31 @@ function App() {
             <div className="member-only-section">
               {/* 4. 관심사 카테고리 */}
               <div className="form-group">
-                <label className="group-label">🎭 관심사 카테고리</label>
+                <label className="group-label">관심사 카테고리</label>
                 {renderOptionButtons('CATEGORY', [
-                  { value: '문화', label: '🎬 문화·예술' },
-                  { value: '맛집', label: '🍕 맛집 탐방' },
-                  { value: '힐링', label: '🌿 자연 힐링' }
+                  { value: '문화', label: '문화·예술' },
+                  { value: '맛집', label: '맛집 탐방' },
+                  { value: '힐링', label: '자연 힐링' }
                 ])}
               </div>
 
               {/* 5. 소비 성향 */}
               <div className="form-group">
-                <label className="group-label">💰 소비 성향</label>
+                <label className="group-label">소비 성향</label>
                 {renderOptionButtons('BUDGET', [
-                  { value: '가성비', label: '🪙 알뜰 지향' },
-                  { value: '평범', label: '💵 일반 기본' },
-                  { value: '럭셔리', label: '💎 플렉스형' }
+                  { value: '가성비', label: '가성비' },
+                  { value: '평범', label: '일반 기본' },
+                  { value: '럭셔리', label: '플렉스형' }
                 ])}
               </div>
 
               {/* 6. 주요 교통수단 */}
               <div className="form-group">
-                <label className="group-label">🚲 주요 교통수단</label>
+                <label className="group-label">주요 교통수단</label>
                 {renderOptionButtons('TRANSPORT', [
-                  { value: '도보', label: '🚶 도보/자전거' },
-                  { value: '대중교통', label: '🚌 대중교통' },
-                  { value: '자차', label: '🚗 자가용' }
+                  { value: '도보', label: '도보/자전거' },
+                  { value: '대중교통', label: '대중교통' },
+                  { value: '자차', label: '자가용' }
                 ])}
               </div>
             </div>
