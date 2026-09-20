@@ -20,6 +20,7 @@ const createAiRecommendation = (draft) => {
   const times = (draft.timeOptions || []).map(({ date, time }) => `${date} ${time}`);
   const places = draft.places || [];
   const combinations = [];
+  const maxCardCount = Math.min(3, times.length, places.length);
 
   const addCandidate = (schedule, place, reason) => {
     if (!schedule || !place) return;
@@ -35,23 +36,27 @@ const createAiRecommendation = (draft) => {
     });
   };
 
-  addCandidate(votedTime, votedPlace, "참여자의 최종 선택을 모두 반영한 가장 안정적인 조합이에요.");
-
-  for (let index = 0; index < Math.max(times.length, places.length) && combinations.length < 3; index += 1) {
+  if (maxCardCount > 0) {
     addCandidate(
-      times[index % Math.max(times.length, 1)],
-      places[index % Math.max(places.length, 1)],
-      index === 0
-        ? "등록 순서와 현재 선호도를 함께 고려한 균형 잡힌 조합이에요."
-        : "다른 후보를 선호할 때 선택할 수 있는 대안 조합이에요.",
+      votedTime,
+      votedPlace,
+      "참여자의 최종 선택을 모두 반영한 가장 안정적인 조합이에요.",
     );
   }
 
-  for (const schedule of times) {
-    for (const place of places) {
-      if (combinations.length >= 3) break;
-      addCandidate(schedule, place, "일정과 장소 후보를 교차 분석해 만든 대안 조합이에요.");
-    }
+  const remainingTimes = times.filter((time) => time !== votedTime);
+  const remainingPlaces = places.filter((place) => place !== votedPlace);
+
+  for (
+    let index = 0;
+    index < Math.min(remainingTimes.length, remainingPlaces.length) && combinations.length < maxCardCount;
+    index += 1
+  ) {
+    addCandidate(
+      remainingTimes[index],
+      remainingPlaces[index],
+      "입력한 다른 일정과 장소 후보를 묶은 대안 조합이에요.",
+    );
   }
 
   return {
@@ -208,17 +213,23 @@ function MeetingResultPage() {
           {aiResult ? (
             <div aria-live="polite">
               <p className="text-slate-600 mb-5 leading-relaxed">{aiResult.summary}</p>
-              <div className="grid lg:grid-cols-3 gap-4">
-                {aiResult.recommendations.map((recommendation) => (
-                  <RecommendationCard
-                    key={recommendation.id}
-                    recommendation={recommendation}
-                    meeting={draft}
-                    selected={selectedRecommendationId === recommendation.id}
-                    onSelect={() => setSelectedRecommendationId(recommendation.id)}
-                  />
-                ))}
-              </div>
+              {aiResult.recommendations.length > 0 ? (
+                <div className="grid lg:grid-cols-3 gap-4">
+                  {aiResult.recommendations.map((recommendation) => (
+                    <RecommendationCard
+                      key={recommendation.id}
+                      recommendation={recommendation}
+                      meeting={draft}
+                      selected={selectedRecommendationId === recommendation.id}
+                      onSelect={() => setSelectedRecommendationId(recommendation.id)}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-dashed border-slate-200 bg-white/70 p-6 text-center text-sm text-slate-500">
+                  일정과 장소 후보가 각각 1개 이상 있어야 추천 카드를 만들 수 있어요.
+                </div>
+              )}
               <p className="mt-4 text-xs text-slate-400">
                 현재는 등록된 후보와 투표 결과를 이용한 임시 추천입니다. 서버 연결 후 실제 AI 분석으로 전환됩니다.
               </p>
