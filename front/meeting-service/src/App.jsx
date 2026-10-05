@@ -1,10 +1,10 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
-import LandingPage from "./pages/front_prj/LandingPage";
-import LoginPage from "./pages/front_prj/LoginPage";
-import SignupPage from "./pages/front_prj/signupPage";
-import OnboardingPage from "./pages/front_prj/onboardingPage";
+import LandingPage from "./pages/home/LandingPage";
+import LoginPage from "./pages/auth/LoginPage";
+import SignupPage from "./pages/auth/SignupPage";
+import OnboardingPage from "./pages/auth/OnboardingPage";
 import UserPreferencesPage from "./pages/UserPreferences/UserPreferencesPage";
-import MainPage from "./pages/Main_Service/MainPage";
+import MainPage from "./pages/home/MainPage";
 import CreateMeetingPage from "./pages/Meeting_Service/CreateMeetingPage";
 import MeetingDetailPage from "./pages/Meeting_Service/MeetingDetailPage";
 import MeetingPlacesPage from "./pages/Meeting_Service/MeetingPlacesPage";
