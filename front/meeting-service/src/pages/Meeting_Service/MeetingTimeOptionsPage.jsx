@@ -1,111 +1,55 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
+import AvailabilityCalendar from "../../components/meeting/AvailabilityCalendar";
+import { formatSelectedDate } from "../../utils/dateFormat";
+import { getMeetingByInviteToken } from "../../services/meetingStorage";
+
+const readJson = (key) => { try { return JSON.parse(sessionStorage.getItem(key) || "{}"); } catch { return {}; } };
 
 function MeetingTimeOptionsPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { inviteToken } = useParams();
+  const isGuest = location.pathname.startsWith("/invite/");
+  const key = isGuest ? `coyoteGuestDraft_${inviteToken}` : "coyoteMeetingDraft";
+  const draft = readJson(key);
+  const meeting = isGuest ? getMeetingByInviteToken(inviteToken) : null;
+  const candidateStartDate = draft.candidateStartDate || meeting?.candidateStartDate;
+  const candidateEndDate = draft.candidateEndDate || meeting?.candidateEndDate;
+  const [selectedDates, setSelectedDates] = useState(() => (draft.selectedDates || []).filter((date) =>
+    (!candidateStartDate || date >= candidateStartDate) &&
+    (!candidateEndDate || date <= candidateEndDate)
+  ));
 
-  const [date, setDate] = useState("");
-  const [time, setTime] = useState("");
-  const [timeOptions, setTimeOptions] = useState([]);
-
-  const addTimeOption = () => {
-    if (!date || !time) {
-      alert("날짜와 시간을 입력해주세요.");
-      return;
-    }
-
-    const newOption = {
-      date,
-      time,
-    };
-
-    setTimeOptions([...timeOptions, newOption]);
-
-    setDate("");
-    setTime("");
+  const handleSelectedDatesChange = (dates) => {
+    const datesInRange = dates.filter((date) =>
+      (!candidateStartDate || date >= candidateStartDate) &&
+      (!candidateEndDate || date <= candidateEndDate)
+    );
+    setSelectedDates(datesInRange);
   };
 
   const saveAndNext = () => {
-    const draft = JSON.parse(sessionStorage.getItem("meetingDraft"));
-
-    // sessionStorage 데이터 부재 시 런타임 에러 방지 방어 코드
-    const updatedDraft = draft ? { ...draft, timeOptions } : { timeOptions };
-
-    sessionStorage.setItem("meetingDraft", JSON.stringify(updatedDraft));
-
-    navigate("/meeting/setup/places");
+    if (!selectedDates.length) return alert("가능한 날짜를 한 개 이상 선택해주세요.");
+    sessionStorage.setItem(key, JSON.stringify({ ...draft, candidateStartDate, candidateEndDate, selectedDates }));
+    navigate(isGuest ? `/invite/${inviteToken}/place` : "/meeting/setup/place");
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800 px-6 py-10">
-      <div className="max-w-5xl mx-auto">
-        <header className="mb-10">
-          <p className="text-sm text-blue-600 font-semibold mb-3">
-            Time Option
-          </p>
-          <h1 className="text-4xl font-black mb-3 text-slate-950">
-            시간 후보 등록
-          </h1>
-          <p className="text-slate-500">
-            모임 가능한 날짜와 시간을 후보로 추가해주세요.
-          </p>
-        </header>
-
-        <main className="grid lg:grid-cols-3 gap-8">
-          <section className="lg:col-span-2 bg-white border border-slate-200 shadow-sm rounded-[2rem] p-8">
-            <div className="space-y-5">
-              <input
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-2xl px-5 py-4 outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-              />
-
-              <input
-                type="time"
-                value={time}
-                onChange={(e) => setTime(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-2xl px-5 py-4 outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-              />
-
-              <button
-                onClick={addTimeOption}
-                className="w-full bg-slate-100 hover:bg-slate-200 text-slate-800 transition py-4 rounded-2xl font-bold border border-slate-200"
-              >
-                시간 후보 추가
-              </button>
-
-              <button
-                onClick={saveAndNext}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white transition py-4 rounded-2xl font-bold shadow-sm"
-              >
-                다음 단계로
-              </button>
-            </div>
+    <div className="min-h-screen bg-slate-50 px-6 py-10 text-slate-800">
+      <div className="mx-auto max-w-5xl">
+        <header className="mb-10"><p className="mb-3 text-sm font-semibold text-blue-600">Availability</p><h1 className="mb-3 text-4xl font-black text-slate-950">가능한 날짜 선택</h1><p className="text-slate-500">참여할 수 있는 날짜를 모두 눌러주세요. 다시 누르면 선택이 해제됩니다.</p></header>
+        <main className="grid gap-8 lg:grid-cols-3">
+          <section className="lg:col-span-2">
+            {candidateStartDate && candidateEndDate && <p className="mb-4 text-sm font-semibold text-slate-600">선택 가능 기간: {candidateStartDate} ~ {candidateEndDate}</p>}
+            <AvailabilityCalendar selectedDates={selectedDates} onChange={handleSelectedDatesChange} minDate={candidateStartDate} maxDate={candidateEndDate} />
           </section>
-
-          <aside className="bg-white border border-slate-200 shadow-sm rounded-[2rem] p-6">
-            <h2 className="text-lg font-bold mb-5 text-slate-900">추가된 시간 후보</h2>
-
-            <div className="space-y-3">
-              {timeOptions.length === 0 ? (
-                <p className="text-slate-400 text-sm">
-                  아직 추가된 시간이 없습니다.
-                </p>
-              ) : (
-                timeOptions.map((option, index) => (
-                  <div
-                    key={index}
-                    className="bg-slate-50 border border-slate-100 rounded-2xl p-4"
-                  >
-                    <p className="font-bold text-slate-800">{option.date}</p>
-                    <p className="text-blue-600 font-medium">{option.time}</p>
-                  </div>
-                ))
-              )}
-            </div>
+          <aside className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="mb-5 flex items-center justify-between"><h2 className="text-lg font-bold text-slate-900">선택한 날짜</h2><span className="rounded-full bg-blue-50 px-3 py-1 text-sm font-bold text-blue-600">{selectedDates.length}일</span></div>
+            <div className="space-y-3">{selectedDates.length ? selectedDates.map((date) => <div key={date} className="rounded-2xl border border-blue-100 bg-blue-50 p-4 font-bold text-blue-800">{formatSelectedDate(date)}</div>) : <p className="text-sm leading-6 text-slate-400">아직 선택한 날짜가 없습니다.<br />캘린더에서 가능한 날짜를 선택하세요.</p>}</div>
           </aside>
         </main>
+        <div className="mt-8 flex gap-4"><button onClick={() => navigate(-1)} className="w-1/3 rounded-2xl border border-slate-200 bg-white py-4 font-bold text-slate-700 hover:bg-slate-100">이전으로</button><button onClick={saveAndNext} className="w-2/3 rounded-2xl bg-blue-600 py-4 font-bold text-white shadow-sm hover:bg-blue-700">장소 응답하기</button></div>
       </div>
     </div>
   );

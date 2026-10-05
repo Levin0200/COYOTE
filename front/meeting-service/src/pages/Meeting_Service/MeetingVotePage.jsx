@@ -1,128 +1,67 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { formatSelectedDate } from "../../utils/dateFormat";
+import { createId, getMeetingById, getMeetingByInviteToken, getParticipantByGuestId, getParticipants, getResponseByParticipant, isMeetingClosed, saveMeeting, saveParticipant, saveResponse } from "../../services/meetingStorage";
+
+const readDraft = (key) => { try { return JSON.parse(sessionStorage.getItem(key) || "{}"); } catch { return {}; } };
+const placeLabel = (draft) => draft.placeMode === "SKIP" ? "PASS · 나중에 정하기" : draft.placeMode === "RECOMMEND" ? `${draft.placePreference} · 추천 요청` : draft.placePreference;
 
 function MeetingVotePage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { inviteToken } = useParams();
+  const isGuest = location.pathname.startsWith("/invite/");
+  const draftKey = isGuest ? `coyoteGuestDraft_${inviteToken}` : "coyoteMeetingDraft";
+  const draft = readDraft(draftKey);
+  const isHostEditing = !isGuest && Boolean(draft.editingMeetingId);
 
-  const draft = JSON.parse(sessionStorage.getItem("meetingDraft"));
-
-  const timeOptions = draft?.timeOptions || [];
-  const places = draft?.places || [];
-
-  const [selectedTime, setSelectedTime] = useState("");
-  const [selectedPlace, setSelectedPlace] = useState("");
-
-  const saveVoteAndNext = () => {
-    if (!selectedTime || !selectedPlace) {
-      alert("시간과 장소를 선택해주세요.");
+  const submit = () => {
+    if (!draft.selectedDates?.length || !draft.placeMode) return alert("날짜와 장소 응답을 먼저 입력해주세요.");
+    if (isGuest) {
+      const meeting = getMeetingByInviteToken(inviteToken);
+      if (!meeting) return alert("초대 정보를 찾을 수 없습니다.");
+      if (isMeetingClosed(meeting)) return alert("응답이 마감되어 수정할 수 없습니다.");
+      const existingParticipant = getParticipantByGuestId(meeting.meetingId, draft.guestId);
+      const participant = existingParticipant || { participantId: createId(), meetingId: meeting.meetingId, nickname: draft.nickname, role: "GUEST", guestId: draft.guestId, createdAt: new Date().toISOString() };
+      saveParticipant({ ...participant, nickname: draft.nickname });
+      const existingResponse = getResponseByParticipant(meeting.meetingId, participant.participantId);
+      saveResponse({ responseId: existingResponse?.responseId || createId(), meetingId: meeting.meetingId, participantId: participant.participantId, selectedDates: draft.selectedDates, placeMode: draft.placeMode, region: draft.region || "", placePreference: draft.placePreference || "", latitude: null, longitude: null, createdAt: existingResponse?.createdAt || new Date().toISOString(), updatedAt: new Date().toISOString() });
+      sessionStorage.removeItem(draftKey);
+      navigate(`/invite/${inviteToken}/status`);
       return;
     }
 
-    // draft 객체가 없을 경우를 대비한 안전한 할당 구조
-    const updatedDraft = draft ? { ...draft } : {};
-    updatedDraft.votes = [
-      {
-        selectedTime,
-        selectedPlace,
-      },
-    ];
+    if (draft.editingMeetingId) {
+      const meeting = getMeetingById(draft.editingMeetingId);
+      if (!meeting) return alert("수정할 모임을 찾을 수 없습니다.");
+      if (isMeetingClosed(meeting)) return alert("응답이 마감되어 수정할 수 없습니다.");
+      const hostParticipant = getParticipants(meeting.meetingId).find((participant) => participant.role === "HOST");
+      if (!hostParticipant) return alert("호스트 참여 정보를 찾을 수 없습니다.");
+      const existingResponse = getResponseByParticipant(meeting.meetingId, hostParticipant.participantId);
+      if (!existingResponse) return alert("수정할 호스트 응답을 찾을 수 없습니다.");
+      saveResponse({ ...existingResponse, selectedDates: draft.selectedDates, placeMode: draft.placeMode, region: draft.region || "", placePreference: draft.placePreference || "", updatedAt: new Date().toISOString() });
+      sessionStorage.removeItem(draftKey);
+      navigate(`/meeting/${meeting.meetingId}/status`);
+      return;
+    }
 
-    sessionStorage.setItem("meetingDraft", JSON.stringify(updatedDraft));
-
-    navigate("/meeting/setup/result");
+    const meetingId = createId();
+    const token = createId();
+    const participantId = createId();
+    saveMeeting({ meetingId, inviteToken: token, title: draft.title, description: draft.description, candidateStartDate: draft.candidateStartDate, candidateEndDate: draft.candidateEndDate, responseDeadline: draft.responseDeadline || draft.responseDueDate, linkExpirationDate: draft.linkExpirationDate, status: "COLLECTING", manuallyClosed: false, createdAt: new Date().toISOString() });
+    saveParticipant({ participantId, meetingId, nickname: "호스트", role: "HOST", guestId: null, createdAt: new Date().toISOString() });
+    saveResponse({ responseId: createId(), meetingId, participantId, selectedDates: draft.selectedDates, placeMode: draft.placeMode, region: draft.region || "", placePreference: draft.placePreference || "", latitude: null, longitude: null, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
+    sessionStorage.removeItem(draftKey);
+    navigate(`/meeting/${meetingId}/status`);
   };
 
+  if (!draft.selectedDates) return <div className="flex min-h-screen items-center justify-center bg-slate-50 px-6"><div className="rounded-3xl bg-white p-8 text-center shadow-sm"><h1 className="text-2xl font-black">확인할 응답이 없습니다.</h1><button onClick={() => navigate(isGuest ? `/invite/${inviteToken}/availability` : "/create-meeting")} className="mt-5 rounded-2xl bg-blue-600 px-6 py-3 font-bold text-white">처음부터 입력하기</button></div></div>;
+
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800 px-6 py-10">
-      <div className="max-w-5xl mx-auto">
-        <header className="mb-10">
-          <p className="text-sm text-blue-600 font-semibold mb-3">
-            Vote
-          </p>
-
-          <h1 className="text-4xl font-black mb-3 text-slate-950">
-            모임 투표
-          </h1>
-
-          <p className="text-slate-500">
-            원하는 시간과 장소를 선택해주세요.
-          </p>
-        </header>
-
-        <main className="grid lg:grid-cols-2 gap-8">
-          {/* 시간 선택 섹션 */}
-          <section className="bg-white border border-slate-200 shadow-sm rounded-[2rem] p-8">
-            <h2 className="text-xl font-bold mb-5 text-slate-900">시간 선택</h2>
-
-            <div className="space-y-3">
-              {timeOptions.length === 0 ? (
-                <p className="text-slate-400 text-sm">등록된 시간 후보가 없습니다.</p>
-              ) : (
-                timeOptions.map((option, index) => {
-                  const value = `${option.date} ${option.time}`;
-                  const isSelected = selectedTime === value;
-
-                  return (
-                    <button
-                      key={index}
-                      onClick={() => setSelectedTime(value)}
-                      className={`w-full text-left rounded-2xl p-4 border transition ${
-                        isSelected
-                          ? "bg-blue-50 border-blue-500 ring-1 ring-blue-500"
-                          : "bg-slate-50 border-slate-200 hover:bg-slate-100 text-slate-800"
-                      }`}
-                    >
-                      <p className={`font-bold ${isSelected ? "text-blue-900" : "text-slate-800"}`}>
-                        {option.date}
-                      </p>
-                      <p className={`font-medium ${isSelected ? "text-blue-600" : "text-blue-500"}`}>
-                        {option.time}
-                      </p>
-                    </button>
-                  );
-                })
-              )}
-            </div>
-          </section>
-
-          {/* 장소 선택 섹션 */}
-          <section className="bg-white border border-slate-200 shadow-sm rounded-[2rem] p-8">
-            <h2 className="text-xl font-bold mb-5 text-slate-900">장소 선택</h2>
-
-            <div className="space-y-3">
-              {places.length === 0 ? (
-                <p className="text-slate-400 text-sm">등록된 장소 후보가 없습니다.</p>
-              ) : (
-                places.map((place, index) => {
-                  const isSelected = selectedPlace === place;
-
-                  return (
-                    <button
-                      key={index}
-                      onClick={() => setSelectedPlace(place)}
-                      className={`w-full text-left rounded-2xl p-4 border transition font-medium ${
-                        isSelected
-                          ? "bg-blue-50 border-blue-500 ring-1 ring-blue-500 text-blue-900"
-                          : "bg-slate-50 border-slate-200 hover:bg-slate-100 text-slate-800"
-                      }`}
-                    >
-                      {place}
-                    </button>
-                  );
-                })
-              )}
-            </div>
-          </section>
-        </main>
-
-        <button
-          onClick={saveVoteAndNext}
-          className="mt-8 w-full bg-blue-600 hover:bg-blue-700 text-white transition py-4 rounded-2xl font-bold shadow-sm"
-        >
-          결과 확인하기
-        </button>
-      </div>
-    </div>
+    <div className="min-h-screen bg-slate-50 px-6 py-10 text-slate-800"><div className="mx-auto max-w-4xl"><header className="mb-10"><p className="mb-3 text-sm font-semibold text-blue-600">Response review</p><h1 className="mb-3 text-4xl font-black text-slate-950">{isGuest || isHostEditing ? "내 응답 확인" : "모임 생성 확인"}</h1><p className="text-slate-500">제출하기 전 선택한 내용을 확인해 주세요.</p></header>
+      {!isGuest && <section className="mb-6 rounded-[2rem] border border-slate-200 bg-white p-7 shadow-sm"><p className="text-sm font-bold text-slate-400">모임 정보</p><h2 className="mt-2 text-2xl font-black text-slate-900">{draft.title}</h2><p className="mt-2 text-slate-500">{draft.description || "작성된 설명이 없습니다."}</p><p className="mt-4 text-sm font-semibold text-blue-600">응답 마감 · {new Date(draft.responseDeadline || draft.responseDueDate).toLocaleString("ko-KR")}</p></section>}
+      <div className="grid gap-6 md:grid-cols-2"><section className="rounded-[2rem] border border-slate-200 bg-white p-7 shadow-sm"><div className="flex items-center justify-between"><h2 className="text-xl font-black text-slate-900">내가 선택한 날짜</h2><span className="rounded-full bg-blue-50 px-3 py-1 text-sm font-bold text-blue-600">{draft.selectedDates.length}일</span></div><div className="mt-5 space-y-3">{draft.selectedDates.map((date) => <div key={date} className="rounded-2xl bg-slate-50 p-4 font-bold">📅 {formatSelectedDate(date)}</div>)}</div></section><section className="rounded-[2rem] border border-slate-200 bg-white p-7 shadow-sm"><h2 className="text-xl font-black text-slate-900">장소 응답</h2><div className="mt-5 rounded-2xl bg-blue-50 p-5"><p className="text-xs font-bold text-blue-500">{draft.placeMode}</p><p className="mt-2 text-lg font-black text-blue-900">📍 {placeLabel(draft)}</p>{draft.region && <p className="mt-2 text-sm text-blue-600">기준 지역: {draft.region}</p>}</div></section></div>
+      <div className="mt-8 flex gap-4"><button onClick={() => navigate(-1)} className="w-1/3 rounded-2xl border border-slate-200 bg-white py-4 font-bold">이전으로</button><button onClick={submit} className="w-2/3 rounded-2xl bg-blue-600 py-4 font-black text-white shadow-md hover:bg-blue-700">{isGuest || isHostEditing ? "응답 수정 완료" : "모임 생성하기"}</button></div>
+    </div></div>
   );
 }
 
