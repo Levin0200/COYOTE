@@ -1,5 +1,9 @@
 HELP.md
 .gradle
+
+### Local data / secrets ###
+data/
+.env
 build/
 !gradle/wrapper/gradle-wrapper.jar
 !**/src/main/**/build/
