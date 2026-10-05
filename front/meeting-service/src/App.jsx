@@ -3,7 +3,7 @@ import LandingPage from "./pages/front_prj/LandingPage";
 import LoginPage from "./pages/front_prj/LoginPage";
 import SignupPage from "./pages/front_prj/signupPage";
 import OnboardingPage from "./pages/front_prj/onboardingPage";
-import UserPreferencesPage from "./pages/UserPreferences/App";
+import UserPreferencesPage from "./pages/UserPreferences/UserPreferencesPage";
 import MainPage from "./pages/Main_Service/MainPage";
 import CreateMeetingPage from "./pages/Meeting_Service/CreateMeetingPage";
 import MeetingDetailPage from "./pages/Meeting_Service/MeetingDetailPage";
@@ -49,3 +49,4 @@ function App() {
 }
 
 export default App;
+
