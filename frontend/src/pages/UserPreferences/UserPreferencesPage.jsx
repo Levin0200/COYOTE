@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import "./src/App.css"; // 스타일에 맞춘 CSS 연동
+import "./UserPreferencesPage.css"; // 스타일에 맞춘 CSS 연동
 
 function App() {
   const [isLogin, setIsLogin] = useState(true);
