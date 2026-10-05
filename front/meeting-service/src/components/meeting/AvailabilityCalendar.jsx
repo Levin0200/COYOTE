@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 const toDateKey = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 
-function AvailabilityCalendar({ selectedDates = [], onChange }) {
+function AvailabilityCalendar({ selectedDates = [], onChange, minDate, maxDate }) {
   const [visibleMonth, setVisibleMonth] = useState(() => {
     const initial = selectedDates[0] ? new Date(`${selectedDates[0]}T00:00:00`) : new Date();
     return new Date(initial.getFullYear(), initial.getMonth(), 1);
@@ -16,7 +16,7 @@ function AvailabilityCalendar({ selectedDates = [], onChange }) {
   const todayKey = toDateKey(new Date());
   const toggleDate = (date) => {
     const key = toDateKey(date);
-    if (key < todayKey) return;
+    if (key < todayKey || (minDate && key < minDate) || (maxDate && key > maxDate)) return;
     onChange(selectedDates.includes(key) ? selectedDates.filter((item) => item !== key) : [...selectedDates, key].sort());
   };
 
@@ -33,7 +33,7 @@ function AvailabilityCalendar({ selectedDates = [], onChange }) {
           if (!date) return <div key={`empty-${index}`} />;
           const key = toDateKey(date);
           const selected = selectedDates.includes(key);
-          const disabled = key < todayKey;
+          const disabled = key < todayKey || (minDate && key < minDate) || (maxDate && key > maxDate);
           return <button key={key} type="button" disabled={disabled} onClick={() => toggleDate(date)} aria-pressed={selected} className={`aspect-square rounded-2xl text-sm font-bold transition ${selected ? "bg-blue-600 text-white shadow-md shadow-blue-200" : disabled ? "cursor-not-allowed text-slate-300" : "bg-slate-50 text-slate-700 hover:bg-blue-50 hover:text-blue-600"}`}>{date.getDate()}</button>;
         })}
       </div>

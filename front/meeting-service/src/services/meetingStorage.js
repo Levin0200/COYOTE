@@ -39,7 +39,11 @@ export const saveResponse = (response) => saveList(KEYS.responses, [...readList(
 export const getFinalResult = (meetingId) => readList(KEYS.results).find((item) => item.meetingId === meetingId);
 export const saveFinalResult = (result) => saveList(KEYS.results, [...readList(KEYS.results).filter((item) => item.meetingId !== result.meetingId), result]);
 
-export const isMeetingClosed = (meeting) => meeting?.status !== "COLLECTING" || new Date(meeting.responseDueDate).getTime() <= Date.now();
+export const getResponseDeadline = (meeting) => meeting?.responseDeadline || meeting?.responseDueDate;
+export const isMeetingClosed = (meeting) => {
+  const deadline = new Date(getResponseDeadline(meeting)).getTime();
+  return meeting?.status !== "COLLECTING" || (Number.isFinite(deadline) && deadline <= Date.now());
+};
 
 export const createMockFinalResult = (meetingId) => {
   const responses = getResponses(meetingId);

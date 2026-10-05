@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { createId, getMeetingByInviteToken, getParticipantByGuestId, getResponseByParticipant } from "../../services/meetingStorage";
+import { createId, getMeetingByInviteToken, getParticipantByGuestId, getResponseByParticipant, getResponseDeadline } from "../../services/meetingStorage";
 
 function NicknamePage() {
   const navigate = useNavigate();
@@ -14,7 +14,9 @@ function NicknamePage() {
   const [now, setNow] = useState(0);
   useEffect(() => { const id = window.setTimeout(() => setNow(Date.now()), 0); return () => window.clearTimeout(id); }, []);
   const expired = meeting?.linkExpirationDate && new Date(meeting.linkExpirationDate).getTime() <= now;
-  const closed = meeting && (meeting.status !== "COLLECTING" || new Date(meeting.responseDueDate).getTime() <= now);
+  const responseDeadline = getResponseDeadline(meeting);
+  const responseDeadlineTime = new Date(responseDeadline).getTime();
+  const closed = meeting && (meeting.status !== "COLLECTING" || (Number.isFinite(responseDeadlineTime) && responseDeadlineTime <= now));
 
   const continueFlow = () => {
     if (!meeting) return alert("유효하지 않은 초대 링크입니다.");
@@ -23,8 +25,8 @@ function NicknamePage() {
     if (!nickname.trim()) return alert("닉네임을 입력해주세요.");
     const guestId = savedGuestId || createId();
     localStorage.setItem(guestKey, guestId);
-    sessionStorage.setItem(`coyoteGuestDraft_${inviteToken}`, JSON.stringify({ ...(existingResponse || {}), guestId, inviteToken, nickname: nickname.trim() }));
-    if (existingResponse && (meeting.status !== "COLLECTING" || new Date(meeting.responseDueDate).getTime() <= Date.now())) navigate(`/invite/${inviteToken}/status`);
+    sessionStorage.setItem(`coyoteGuestDraft_${inviteToken}`, JSON.stringify({ ...(existingResponse || {}), guestId, inviteToken, nickname: nickname.trim(), candidateStartDate: meeting.candidateStartDate, candidateEndDate: meeting.candidateEndDate }));
+    if (existingResponse && (meeting.status !== "COLLECTING" || (Number.isFinite(responseDeadlineTime) && responseDeadlineTime <= Date.now()))) navigate(`/invite/${inviteToken}/status`);
     else navigate(`/invite/${inviteToken}/availability`);
   };
 
