@@ -6,6 +6,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingRequestHeaderException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
@@ -33,6 +35,17 @@ public class GlobalExceptionHandler {
 	@ExceptionHandler(HttpMessageNotReadableException.class)
 	ResponseEntity<ErrorResponse> handleUnreadable(HttpMessageNotReadableException e) {
 		return ResponseEntity.badRequest().body(new ErrorResponse("INVALID_REQUEST", "요청 본문을 읽을 수 없습니다."));
+	}
+
+	@ExceptionHandler(MissingRequestHeaderException.class)
+	ResponseEntity<ErrorResponse> handleMissingHeader(MissingRequestHeaderException e) {
+		String code = "X-Guest-Id".equalsIgnoreCase(e.getHeaderName()) ? "INVALID_GUEST_ID" : "INVALID_REQUEST";
+		return ResponseEntity.badRequest().body(new ErrorResponse(code, e.getHeaderName() + " 헤더가 필요합니다."));
+	}
+
+	@ExceptionHandler(MethodArgumentTypeMismatchException.class)
+	ResponseEntity<ErrorResponse> handleTypeMismatch(MethodArgumentTypeMismatchException e) {
+		return ResponseEntity.badRequest().body(new ErrorResponse("INVALID_REQUEST", "잘못된 요청 값입니다: " + e.getName()));
 	}
 
 	@ExceptionHandler(NoResourceFoundException.class)
