@@ -1,18 +1,18 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
-import LandingPage from "./pages/front_prj/LandingPage";
-import LoginPage from "./pages/front_prj/LoginPage";
-import SignupPage from "./pages/front_prj/signupPage";
-import OnboardingPage from "./pages/front_prj/onboardingPage";
-import UserPreferencesPage from "./pages/UserPreferences/App";
-import MainPage from "./pages/Main_Service/MainPage";
-import CreateMeetingPage from "./pages/Meeting_Service/CreateMeetingPage";
-import MeetingDetailPage from "./pages/Meeting_Service/MeetingDetailPage";
-import MeetingPlacesPage from "./pages/Meeting_Service/MeetingPlacesPage";
-import MeetingTimeOptionsPage from "./pages/Meeting_Service/MeetingTimeOptionsPage";
-import MeetingVotePage from "./pages/Meeting_Service/MeetingVotePage";
-import MeetingResultPage from "./pages/Meeting_Service/MeetingResultPage";
-import NicknamePage from "./pages/Meeting_Service/NicknamePage";
-import MeetingStatusPage from "./pages/Meeting_Service/MeetingStatusPage";
+import LandingPage from "./pages/home/LandingPage";
+import LoginPage from "./pages/auth/LoginPage";
+import SignupPage from "./pages/auth/SignupPage";
+import OnboardingPage from "./pages/auth/OnboardingPage";
+import UserPreferencesPage from "./pages/UserPreferences/UserPreferencesPage";
+import MainPage from "./pages/home/MainPage";
+import CreateMeetingPage from "./pages/meeting/CreateMeetingPage";
+import MeetingDetailPage from "./pages/meeting/MeetingDetailPage";
+import MeetingPlacesPage from "./pages/meeting/MeetingPlacesPage";
+import MeetingTimeOptionsPage from "./pages/meeting/MeetingTimeOptionsPage";
+import MeetingVotePage from "./pages/meeting/MeetingVotePage";
+import MeetingResultPage from "./pages/meeting/MeetingResultPage";
+import NicknamePage from "./pages/meeting/NicknamePage";
+import MeetingStatusPage from "./pages/meeting/MeetingStatusPage";
 
 function App() {
   return (
@@ -49,3 +49,4 @@ function App() {
 }
 
 export default App;
+
