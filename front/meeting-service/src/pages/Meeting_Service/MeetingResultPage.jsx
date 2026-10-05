@@ -1,272 +1,50 @@
-import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { FiCalendar, FiCheck, FiMapPin, FiShare2, FiStar, FiUsers } from "react-icons/fi";
+import { createMockFinalResult, getFinalResult, getMeetingById, getMeetingByInviteToken, saveFinalResult, updateMeeting } from "../../services/meetingStorage";
+import { formatSelectedDate } from "../../utils/dateFormat";
 
 function MeetingResultPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { meetingId, inviteToken } = useParams();
+  const isGuest = location.pathname.startsWith("/invite/");
+  const [meeting, setMeeting] = useState(() => isGuest ? getMeetingByInviteToken(inviteToken) : getMeetingById(meetingId));
+  const [result, setResult] = useState(() => meeting ? getFinalResult(meeting.meetingId) : null);
+  const [progress, setProgress] = useState(18);
 
-  const [aiResult, setAiResult] = useState("");
-  const [loading, setLoading] = useState(false);
+  useEffect(() => {
+    if (!meeting || meeting.status !== "CLOSED") return undefined;
+    const id = window.setTimeout(() => setMeeting(updateMeeting(meeting.meetingId, { status: "ANALYZING" })), 150);
+    return () => window.clearTimeout(id);
+  }, [meeting]);
 
-  const draft = JSON.parse(sessionStorage.getItem("meetingDraft"));
+  useEffect(() => {
+    if (!meeting || meeting.status !== "ANALYZING") return undefined;
+    const progressId = window.setInterval(() => setProgress((value) => Math.min(value + 16, 92)), 250);
+    const resultId = window.setTimeout(() => {
+      const created = createMockFinalResult(meeting.meetingId);
+      saveFinalResult(created);
+      setResult(created);
+      setProgress(100);
+      setMeeting(updateMeeting(meeting.meetingId, { status: "COMPLETED" }));
+    }, 1600);
+    return () => { window.clearInterval(progressId); window.clearTimeout(resultId); };
+  }, [meeting]);
 
-  if (!draft) {
-    return (
-      <div className="min-h-screen bg-slate-50 text-slate-800 flex items-center justify-center px-6">
-        <div className="bg-white border border-slate-200 shadow-sm rounded-3xl p-8 max-w-md w-full text-center">
-          <h1 className="text-2xl font-bold mb-4 text-slate-900">
-            저장된 모임 정보가 없습니다.
-          </h1>
-          <button
-            onClick={() => navigate("/create-meeting")}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-2xl font-bold transition shadow-sm"
-          >
-            모임 생성으로 이동
-          </button>
-        </div>
-      </div>
-    );
-  }
+  if (!meeting) return <div className="flex min-h-screen items-center justify-center bg-slate-50"><div className="rounded-3xl bg-white p-8 text-center shadow-sm"><h1 className="text-2xl font-black">모임을 찾을 수 없습니다.</h1></div></div>;
 
-  const requestAiRecommendation = async () => {
-    setLoading(true);
-    setAiResult("");
-
-    try {
-      const response = await fetch("http://localhost:8080/api/ai/meeting-report", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(draft),
-      });
-
-      const data = await response.text();
-
-      if (!response.ok) {
-        try {
-          const errorJson = JSON.parse(data);
-          setAiResult(
-            errorJson.message ||
-              "AI 추천 요청 중 오류가 발생했습니다."
-          );
-        } catch {
-          setAiResult(data || "AI 추천 요청 중 오류가 발생했습니다.");
-        }
-        return;
-      }
-
-      setAiResult(data);
-    } catch (error) {
-      console.error(error);
-      setAiResult("서버와 연결할 수 없습니다. 백엔드 서버가 실행 중인지 확인해주세요.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const createMeeting = async () => {
-    try {
-      const response = await fetch("http://localhost:8080/api/meetings", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          hostId: draft.hostId,
-          title: draft.title,
-          category: draft.category,
-          description: draft.description,
-        }),
-      });
-
-      const data = await response.text();
-
-      if (!response.ok) {
-        try {
-          const errorJson = JSON.parse(data);
-          alert(errorJson.message || "모임 생성에 실패했습니다.");
-        } catch {
-          alert(data || "모임 생성에 실패했습니다.");
-        }
-        return;
-      }
-
-      const result = JSON.parse(data);
-
-      sessionStorage.removeItem("meetingDraft");
-      alert("모임 생성 완료!");
-      navigate(`/meeting/${result.meetingId}`);
-    } catch (error) {
-      console.error(error);
-      alert("서버와 연결할 수 없습니다. 백엔드 서버가 실행 중인지 확인해주세요.");
-    }
-  };
+  const completed = meeting.status === "COMPLETED" && result;
+  const copyResultLink = async () => { try { await navigator.clipboard.writeText(window.location.href); alert("결과 링크를 복사했습니다."); } catch { window.prompt("결과 링크를 복사해 주세요.", window.location.href); } };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800 px-6 py-10">
-      <div className="max-w-6xl mx-auto">
-        <header className="mb-10">
-          <p className="text-sm text-blue-600 font-semibold mb-3">
-            Final Check
-          </p>
-          <h1 className="text-5xl font-black mb-4 text-slate-950">
-            최종 확인
-          </h1>
-          <p className="text-slate-500">
-            입력한 모임 정보를 확인하고 AI 추천을 받아보세요.
-          </p>
-        </header>
-
-        <main className="grid lg:grid-cols-3 gap-6">
-          <section className="lg:col-span-2 bg-white border border-slate-200 shadow-sm rounded-[2rem] p-8">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
-              <div>
-                <p className="text-sm text-slate-400 mb-2">
-                  모임 기본 정보
-                </p>
-                <h2 className="text-4xl font-black text-slate-900">
-                  {draft.title}
-                </h2>
-              </div>
-              <span className="self-start sm:self-center text-sm bg-blue-50 text-blue-600 border border-blue-100 px-4 py-2 rounded-full font-medium">
-                카테고리 : {draft.category}
-              </span>
-            </div>
-
-            <div className="grid sm:grid-cols-2 gap-4 mb-6">
-              <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4">
-                <p className="text-sm text-slate-400 mb-1">카테고리</p>
-                <p className="font-bold text-lg text-slate-800">
-                  {draft.category}
-                </p>
-              </div>
-
-              <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4">
-                <p className="text-sm text-slate-400 mb-1">모임 생성자</p>
-                <p className="font-bold text-lg text-slate-800">
-                  사용자 #{draft.hostId}
-                </p>
-              </div>
-            </div>
-
-            <div className="bg-slate-50 border border-slate-100 rounded-2xl p-5">
-              <p className="text-sm text-slate-400 mb-2">모임 설명</p>
-              <p className="text-slate-700 leading-relaxed">
-                {draft.description}
-              </p>
-            </div>
-          </section>
-
-          <section className="bg-blue-600 text-white rounded-[2rem] p-8 shadow-md">
-            <p className="text-blue-200 text-sm mb-3 font-medium">선택 결과</p>
-            <h2 className="text-2xl font-black mb-6">최종 선택</h2>
-
-            {draft.votes?.length === 0 || !draft.votes ? (
-              <p className="text-blue-200 text-sm">
-                선택된 투표 정보가 없습니다.
-              </p>
-            ) : (
-              draft.votes.map((vote, index) => (
-                <div
-                  key={index}
-                  className="bg-white/10 rounded-2xl p-5 border border-white/10"
-                >
-                  <p className="text-sm text-blue-100 mb-2">선택 시간</p>
-                  <p className="font-bold text-lg mb-4 text-white">
-                    {vote.selectedTime}
-                  </p>
-                  <p className="text-sm text-blue-100 mb-2">선택 장소</p>
-                  <p className="font-bold text-lg text-white">
-                    {vote.selectedPlace}
-                  </p>
-                </div>
-              ))
-            )}
-          </section>
-
-          <section className="bg-white border border-slate-200 shadow-sm rounded-[2rem] p-8">
-            <h3 className="text-2xl font-bold mb-5 text-slate-900">
-              시간 후보
-            </h3>
-            <div className="space-y-3">
-              {draft.timeOptions?.map((option, index) => (
-                <div
-                  key={index}
-                  className="bg-slate-50 border border-slate-100 rounded-2xl p-4"
-                >
-                  <p className="font-bold text-slate-800">{option.date}</p>
-                  <p className="text-blue-600 font-medium">{option.time}</p>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          <section className="lg:col-span-2 bg-white border border-slate-200 shadow-sm rounded-[2rem] p-8">
-            <h3 className="text-2xl font-bold mb-5 text-slate-900">
-              장소 후보
-            </h3>
-            <div className="grid sm:grid-cols-2 gap-3">
-              {draft.places?.map((place, index) => (
-                <div
-                  key={index}
-                  className="bg-slate-50 border border-slate-100 rounded-2xl p-4 text-slate-800 font-medium"
-                >
-                  {place}
-                </div>
-              ))}
-            </div>
-          </section>
-        </main>
-
-        <section className="mt-8 bg-white border border-slate-200 shadow-sm rounded-[2rem] p-8">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-            <div>
-              <p className="text-sm text-purple-600 font-semibold mb-2">
-                AI Meeting Report
-              </p>
-              <h2 className="text-3xl font-black text-slate-900">
-                AI 조율 리포트
-              </h2>
-            </div>
-
-            <button
-              onClick={requestAiRecommendation}
-              disabled={loading}
-              className="bg-purple-600 hover:bg-purple-700 disabled:bg-purple-200 disabled:text-purple-400 text-white transition px-6 py-3 rounded-2xl font-bold whitespace-nowrap shadow-sm"
-            >
-              {loading ? "AI 분석 중..." : "AI 추천 받기"}
-            </button>
-          </div>
-
-          {aiResult ? (
-            <pre className="whitespace-pre-wrap text-slate-700 bg-slate-50 border border-slate-200 rounded-2xl p-5 leading-relaxed font-sans">
-              {aiResult}
-            </pre>
-          ) : (
-            <p className="text-slate-400 text-sm">
-              AI 추천 받기를 누르면 시간 후보, 장소 후보, 투표 정보를 기반으로 조율 리포트를 생성합니다.
-            </p>
-          )}
-        </section>
-
-        <div className="mt-8 flex gap-4">
-          <button
-            onClick={() => navigate("/meeting/setup/vote")}
-            className="w-1/3 bg-slate-100 hover:bg-slate-200 text-slate-800 transition py-4 rounded-2xl font-bold border border-slate-200"
-          >
-            이전으로
-          </button>
-
-          <button
-            onClick={createMeeting}
-            className="w-2/3 bg-blue-600 hover:bg-blue-700 text-white transition py-4 rounded-2xl font-black shadow-md shadow-blue-600/10"
-          >
-            최종 생성하기
-          </button>
-        </div>
-      </div>
-    </div>
+    <div className="min-h-screen bg-slate-50 px-6 py-10 text-slate-800"><div className="mx-auto max-w-5xl"><header className="mb-10"><p className="mb-3 flex items-center gap-2 text-sm font-semibold text-purple-600"><FiStar /> AI Meeting Report</p><h1 className="mb-4 text-5xl font-black text-slate-950">{completed ? "최종 결과" : "결과 분석 중"}</h1><p className="text-slate-500">{meeting.title}</p></header>
+      {!completed ? <section className="overflow-hidden rounded-[2rem] border border-purple-100 bg-gradient-to-br from-white via-purple-50/50 to-blue-50 p-10 text-center shadow-sm"><div className="mx-auto flex h-20 w-20 animate-pulse items-center justify-center rounded-3xl bg-purple-100 text-4xl">✨</div><h2 className="mt-6 text-3xl font-black text-slate-900">응답이 마감되었습니다</h2><p className="mt-4 leading-7 text-slate-600">참여자 응답을 취합하고 있습니다.<br />최종 날짜와 장소를 분석하고 있어요.</p><div className="mx-auto mt-8 max-w-xl"><div className="mb-2 flex justify-between text-xs font-bold text-purple-600"><span>MOCK ANALYSIS</span><span>{progress}%</span></div><div className="h-3 overflow-hidden rounded-full bg-purple-100"><div className="h-full rounded-full bg-gradient-to-r from-purple-500 to-blue-500 transition-all duration-300" style={{ width: `${progress}%` }} /></div></div></section> : <><section className="overflow-hidden rounded-[2rem] border border-purple-100 bg-gradient-to-br from-white via-purple-50/40 to-blue-50 p-8 shadow-sm"><div className="mb-7 flex items-center justify-between"><div><span className="rounded-full bg-purple-600 px-4 py-2 text-xs font-black text-white">BEST PICK</span><h2 className="mt-4 text-3xl font-black text-slate-950">모임 최종 결정</h2></div><span className="flex h-12 w-12 items-center justify-center rounded-full bg-white text-xl text-emerald-500 shadow-sm"><FiCheck /></span></div><div className="grid gap-5 md:grid-cols-2"><ResultCard icon={<FiCalendar />} label="최종 일정" value={result.selectedDate.includes("-") ? formatSelectedDate(result.selectedDate) : result.selectedDate} /><ResultCard icon={<FiMapPin />} label="최종 장소" value={result.selectedPlace} /></div><div className="mt-5 rounded-2xl border border-white bg-white/80 p-6"><p className="text-sm font-bold text-purple-600">선정 이유 · {result.decisionType}</p><p className="mt-3 leading-7 text-slate-600">{result.reason}</p><p className="mt-4 flex items-center gap-2 text-xs font-semibold text-slate-400"><FiUsers /> 현재는 프론트 Mock 집계 결과입니다.</p></div></section><button onClick={copyResultLink} className="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-blue-600 py-4 font-black text-white hover:bg-blue-700"><FiShare2 /> 결과 링크 복사</button></>}
+      <button onClick={() => navigate(isGuest ? `/invite/${inviteToken}/status` : `/meeting/${meeting.meetingId}/status`)} className="mt-4 w-full rounded-2xl border border-slate-200 bg-white py-4 font-bold hover:bg-slate-100">진행 상태로 돌아가기</button>
+    </div></div>
   );
 }
+
+function ResultCard({ icon, label, value }) { return <div className="rounded-3xl bg-white p-6 shadow-sm"><span className="flex h-11 w-11 items-center justify-center rounded-xl bg-purple-50 text-xl text-purple-600">{icon}</span><p className="mt-5 text-sm font-bold text-slate-400">{label}</p><p className="mt-2 text-2xl font-black text-slate-900">{value}</p></div>; }
 
 export default MeetingResultPage;
