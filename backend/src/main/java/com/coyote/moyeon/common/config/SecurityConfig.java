@@ -2,13 +2,18 @@ package com.coyote.moyeon.common.config;
 
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
 import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.List;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.Profiles;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -29,15 +34,28 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 @Configuration
 public class SecurityConfig {
 
+	private static final Logger log = LoggerFactory.getLogger(SecurityConfig.class);
+
 	private final SecretKey jwtKey;
 	private final List<String> allowedOrigins;
 
 	public SecurityConfig(
-			@Value("${app.jwt.secret}") String jwtSecret,
-			@Value("${app.cors.allowed-origins}") String allowedOrigins) {
-		byte[] keyBytes = jwtSecret.getBytes(StandardCharsets.UTF_8);
-		if (keyBytes.length < 32) {
-			throw new IllegalStateException("app.jwt.secret must be at least 32 bytes for HS256");
+			@Value("${app.jwt.secret:}") String jwtSecret,
+			@Value("${app.cors.allowed-origins}") String allowedOrigins,
+			Environment environment) {
+		byte[] keyBytes;
+		if (jwtSecret.isBlank()) {
+			if (!environment.acceptsProfiles(Profiles.of("dev", "test"))) {
+				throw new IllegalStateException("JWT_SECRET must be set outside the dev/test profiles");
+			}
+			keyBytes = new byte[32];
+			new SecureRandom().nextBytes(keyBytes);
+			log.warn("JWT_SECRET is not set; using a random key for this run. Issued tokens become invalid on restart.");
+		} else {
+			keyBytes = jwtSecret.getBytes(StandardCharsets.UTF_8);
+			if (keyBytes.length < 32) {
+				throw new IllegalStateException("JWT_SECRET must be at least 32 bytes for HS256");
+			}
 		}
 		this.jwtKey = new SecretKeySpec(keyBytes, "HmacSHA256");
 		this.allowedOrigins = Arrays.stream(allowedOrigins.split(",")).map(String::trim).toList();
