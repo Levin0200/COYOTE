@@ -25,7 +25,7 @@ function LoginPage() {
 
       alert("로그인되었습니다.");
 
-      navigate("/main");
+            navigate("/mypage");
     } else {
       alert("이메일 또는 비밀번호가 일치하지 않습니다.");
     }

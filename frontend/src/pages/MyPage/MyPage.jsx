@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import AppHeader from "../../components/AppHeader";
 
 function MainPage() {
   const navigate = useNavigate();
@@ -18,7 +19,6 @@ function MainPage() {
   const [showMeetingDetail, setShowMeetingDetail] = useState(false);
 
   // 투표 요청을 보낸 사람
-  const [remindedMembers, setRemindedMembers] = useState([]);
 
   // 지도 확대 팝업
   const [showMapModal, setShowMapModal] = useState(false);
@@ -329,18 +329,6 @@ const nextMeeting =
   };
 
   // --------------------------------------------------
-  // 투표 요청 보내기
-  // --------------------------------------------------
-
-  const sendVoteReminder = (member) => {
-    if (remindedMembers.includes(member)) {
-      return;
-    }
-
-    setRemindedMembers((prev) => [...prev, member]);
-  };
-
-  // --------------------------------------------------
   // 로그아웃
   // --------------------------------------------------
 
@@ -407,80 +395,7 @@ const nextMeeting =
           HEADER
       ================================================== */}
 
-      <header
-        style={{
-          height: "92px",
-          backgroundColor: "#FFFFFF",
-          borderBottom: "1px solid #E8EDF3",
-          boxShadow: "0 2px 8px rgba(15, 23, 42, 0.04)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          padding: "0 32px",
-        }}
-      >
-
-        {/* 로고 */}
-
-        <div
-          onClick={() => navigate("main")}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "12px",
-            cursor: "pointer",
-          }}
-        >
-
-          <div
-            style={{
-              width: "42px",
-              height: "42px",
-              borderRadius: "12px",
-              backgroundColor: "#3B82F6",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "#FFFFFF",
-              fontSize: "20px",
-              fontWeight: "800",
-              boxShadow: "0 4px 10px rgba(59,130,246,0.2)",
-            }}
-          >
-            M
-          </div>
-
-          <span
-            style={{
-              fontSize: "24px",
-              fontWeight: "900",
-              color: "#0F172A",
-              letterSpacing: "-1px",
-            }}
-          >
-            모여ON
-          </span>
-
-        </div>
-
-
-        {/* 메인으로 돌아가기 */}
-
-        <button
-          onClick={() => navigate("/")}
-          style={{
-            border: "none",
-            background: "transparent",
-            color: "#64748B",
-            fontSize: "14px",
-            fontWeight: "600",
-            cursor: "pointer",
-          }}
-        >
-          ← 메인으로 돌아가기
-        </button>
-
-      </header>
+      <AppHeader />
 
 
       {/* ==================================================
@@ -709,7 +624,8 @@ const nextMeeting =
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "repeat(7, 1fr)",
+                gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
+                gridAutoRows: "125px",
                 borderLeft: "1px solid #E6ECF2",
               }}
             >
@@ -732,7 +648,9 @@ const nextMeeting =
                       }
                     }}
                     style={{
-                      height: "105px",
+                      height: "100%",
+                      minWidth: 0,
+                      boxSizing: "border-box",
                       padding: "10px",
                       borderRight: "1px solid #E6ECF2",
                       borderBottom: "1px solid #E6ECF2",
@@ -794,6 +712,9 @@ const nextMeeting =
                           color: "#3B82F6",
                           fontSize: "11px",
                           fontWeight: "700",
+                          display: "block",
+                          maxWidth: "100%",
+                          minWidth: 0,
                           overflow: "hidden",
                           whiteSpace: "nowrap",
                           textOverflow: "ellipsis",
@@ -1087,7 +1008,7 @@ const nextMeeting =
         width: "18px",
         height: "18px",
         borderRadius: "50%",
-        backgroundColor: "#3B82F6",
+        backgroundColor: "#4F7DF3",
         border: "4px solid #FFFFFF",
         boxShadow: "0 2px 8px rgba(15,23,42,0.2)",
       }}
@@ -1135,7 +1056,7 @@ const nextMeeting =
           whiteSpace: "nowrap",
           padding: "6px 9px",
           borderRadius: "8px",
-          backgroundColor: "#3B82F6",
+          backgroundColor: "#4F7DF3",
           color: "#FFFFFF",
           fontSize: "10px",
           fontWeight: "700",
@@ -1152,7 +1073,7 @@ const nextMeeting =
           width: "30px",
           height: "30px",
           borderRadius: "50% 50% 50% 0",
-          backgroundColor: "#3B82F6",
+          backgroundColor: "#4F7DF3",
           transform: "rotate(-45deg)",
           border: "3px solid #FFFFFF",
           boxShadow: "0 3px 8px rgba(15,23,42,0.18)",
@@ -1473,7 +1394,7 @@ const nextMeeting =
                 onClick={openMeetingDetail}
                 style={{
                   border: "none",
-                  backgroundColor: "#3B82F6",
+                  backgroundColor: "#4F7DF3",
                   color: "#FFFFFF",
                   borderRadius: "13px",
                   padding: "13px",
@@ -1816,8 +1737,7 @@ const nextMeeting =
                       </div>
 
 
-                      {hasVoted ? (
-
+                      {hasVoted && (
                         <div
                           style={{
                             display: "flex",
@@ -1843,43 +1763,6 @@ const nextMeeting =
                           ))}
 
                         </div>
-
-                      ) : (
-
-                        <button
-                          onClick={() =>
-                            sendVoteReminder(vote.member)
-                          }
-                          style={{
-                            marginTop: "10px",
-                            width: "100%",
-                            border: "none",
-                            backgroundColor: remindedMembers.includes(
-                              vote.member
-                            )
-                              ? "#E2E8F0"
-                              : "#FFF1F2",
-                            color: remindedMembers.includes(
-                              vote.member
-                            )
-                              ? "#64748B"
-                              : "#EF4444",
-                            borderRadius: "10px",
-                            padding: "9px",
-                            fontSize: "12px",
-                            fontWeight: "700",
-                            cursor: remindedMembers.includes(
-                              vote.member
-                            )
-                              ? "default"
-                              : "pointer",
-                          }}
-                        >
-                          {remindedMembers.includes(vote.member)
-                            ? "✓ 투표 요청을 보냈습니다"
-                            : "🔔 투표 요청 보내기"}
-                        </button>
-
                       )}
 
                     </div>
@@ -2110,7 +1993,7 @@ const nextMeeting =
               width: "28px",
               height: "28px",
               borderRadius: "50%",
-              backgroundColor: "#3B82F6",
+              backgroundColor: "#4F7DF3",
               border: "5px solid #FFFFFF",
               boxShadow:
                 "0 4px 12px rgba(15,23,42,0.2)",
@@ -2160,7 +2043,7 @@ const nextMeeting =
                 whiteSpace: "nowrap",
                 padding: "8px 12px",
                 borderRadius: "9px",
-                backgroundColor: "#3B82F6",
+                backgroundColor: "#4F7DF3",
                 color: "#FFFFFF",
                 fontSize: "12px",
                 fontWeight: "800",
@@ -2178,7 +2061,7 @@ const nextMeeting =
                 width: "42px",
                 height: "42px",
                 borderRadius: "50% 50% 50% 0",
-                backgroundColor: "#3B82F6",
+                backgroundColor: "#4F7DF3",
                 transform: "rotate(-45deg)",
                 border: "4px solid #FFFFFF",
                 boxShadow:

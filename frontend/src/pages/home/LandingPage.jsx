@@ -27,6 +27,84 @@ function FeaturePreview({ type }) {
   return <div className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-5 shadow-sm"><span className="text-xs font-bold text-[#4169e1]">우리 모임 취향</span><div className="mt-4 flex flex-wrap gap-2"><span className="rounded-full bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700">조용한 카페</span><span className="rounded-full bg-violet-50 px-3 py-2 text-xs font-semibold text-violet-700">대중교통 편리</span><span className="rounded-full bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700">새로운 장소</span></div></div>;
 }
 
+function StoryPreview({ type }) {
+  if (type === "invite") {
+    return (
+      <div className="flex h-full flex-col justify-between rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+        <div>
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-[10px] font-bold tracking-[0.12em] text-blue-600">NEW MEETING</span>
+            <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-bold text-emerald-700">모임 생성 완료</span>
+          </div>
+          <h3 className="mt-2 text-base font-extrabold text-slate-900 sm:text-lg">캡스톤 프로젝트 회식</h3>
+          <p className="mt-1 text-xs text-slate-500">모임 링크를 공유하고 함께 날짜를 정해보세요.</p>
+        </div>
+        <div className="mt-4 rounded-xl bg-slate-50 p-3 sm:p-4">
+          <p className="text-[11px] font-bold text-slate-600">게스트 초대 링크</p>
+          <div className="mt-2 flex min-w-0 items-center gap-2 rounded-lg border border-slate-200 bg-white p-2">
+            <span className="min-w-0 flex-1 truncate px-1 text-[10px] text-slate-500 sm:text-xs">moyeo.on/invite/capstone-dinner</span>
+            <span className="shrink-0 rounded-md bg-blue-600 px-2.5 py-1.5 text-[10px] font-bold text-white">링크 복사</span>
+          </div>
+          <div className="mt-3 flex items-center justify-between text-[10px] text-slate-400"><span>참여 응답</span><span className="font-semibold text-slate-600">4명 초대 · 2명 응답</span></div>
+          <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-slate-200"><div className="h-full w-1/2 rounded-full bg-blue-500" /></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (type === "schedule") {
+    const dates = ["", "", "", "", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31"];
+    return (
+      <div className="grid h-full grid-cols-1 gap-3 sm:grid-cols-[1.2fr_.8fr] sm:gap-4">
+        <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
+          <div className="mb-3 flex items-center justify-between"><span className="text-xs font-bold text-slate-800 sm:text-sm">2026년 10월</span><span className="text-[10px] font-semibold text-slate-400">가능한 날짜를 선택하세요</span></div>
+          <div className="grid grid-cols-7 gap-1 text-center text-[9px] font-semibold text-slate-400 sm:gap-1.5 sm:text-[10px]">
+            {["일", "월", "화", "수", "목", "금", "토"].map((day) => <span key={day} className="py-1">{day}</span>)}
+            {dates.map((day, index) => <span key={index} className={`grid aspect-square place-items-center rounded-md ${[15, 17, 22].includes(index) ? "bg-blue-600 font-bold text-white shadow-sm" : day ? "bg-slate-50 text-slate-600" : "text-transparent"}`}>{day || "·"}</span>)}
+          </div>
+        </div>
+        <div className="flex flex-col justify-between rounded-xl border border-blue-100 bg-blue-50 p-3 sm:p-4">
+          <div><span className="rounded-full bg-white px-2 py-1 text-[9px] font-bold text-blue-700">AI 추천</span><p className="mt-3 text-[10px] font-semibold text-slate-500">가장 많은 사람이 가능한 날</p><p className="mt-1 text-base font-black text-slate-900 sm:text-lg">10월 12일 <span className="text-xs font-semibold text-slate-500">월요일</span></p></div>
+          <div className="mt-3 border-t border-blue-100 pt-3"><div className="flex -space-x-1.5"><span className="grid h-6 w-6 place-items-center rounded-full border-2 border-blue-50 bg-amber-200 text-[9px] font-bold text-amber-800">민</span><span className="grid h-6 w-6 place-items-center rounded-full border-2 border-blue-50 bg-rose-200 text-[9px] font-bold text-rose-800">수</span><span className="grid h-6 w-6 place-items-center rounded-full border-2 border-blue-50 bg-cyan-200 text-[9px] font-bold text-cyan-800">현</span><span className="grid h-6 w-6 place-items-center rounded-full border-2 border-blue-50 bg-violet-200 text-[9px] font-bold text-violet-800">준</span></div><p className="mt-2 text-[10px] font-semibold text-blue-800">4명 모두 가능한 일정</p></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (type === "map") {
+    return (
+      <div className="grid h-full grid-cols-1 gap-3 sm:grid-cols-[.9fr_1.1fr] sm:gap-4">
+        <div className="flex flex-col rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
+          <div className="flex items-center justify-between"><h3 className="text-xs font-extrabold text-slate-900 sm:text-sm">추천 장소</h3><span className="rounded-full bg-blue-50 px-2 py-1 text-[9px] font-bold text-blue-700">가까운 순</span></div>
+          <p className="mt-1 text-[10px] text-slate-500">인천 송림동 주변</p>
+          <div className="mt-3 space-y-2">
+            {[['센트럴파크 뷰 카페', '0.8km', '분위기 좋은 카페'], ['트리플스트리트 라운지', '1.2km', '대화하기 좋은 장소']].map(([name, distance, note], index) => <div key={name} className={`rounded-lg border p-2.5 ${index === 0 ? "border-blue-200 bg-blue-50/70" : "border-slate-100 bg-white"}`}><div className="flex items-center justify-between gap-2"><span className="truncate text-[10px] font-bold text-slate-800 sm:text-xs">{name}</span><span className="shrink-0 text-[9px] font-semibold text-slate-400">{distance}</span></div><p className="mt-1 text-[9px] text-slate-500">{note}</p></div>)}
+          </div>
+        </div>
+        <div className="relative min-h-[150px] overflow-hidden rounded-xl border border-slate-200 bg-[#edf3ed] shadow-sm" style={{ backgroundImage: "linear-gradient(25deg, transparent 42%, #fff 43%, #fff 47%, transparent 48%), linear-gradient(155deg, transparent 28%, #fff 29%, #fff 34%, transparent 35%), linear-gradient(95deg, transparent 62%, #fff 63%, #fff 68%, transparent 69%), linear-gradient(135deg, #e9f0e7 0%, #f5f3e8 48%, #e5eef0 100%)" }}>
+          <span className="absolute left-[28%] top-[25%] h-8 w-8 rounded-full bg-emerald-200/70" /><span className="absolute bottom-[12%] right-[12%] h-12 w-12 rounded-full bg-emerald-200/70" />
+          <span className="absolute left-[58%] top-[43%] grid h-9 w-9 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border-[3px] border-white bg-blue-600 text-sm text-white shadow-lg">●</span>
+          <span className="absolute left-[58%] top-[20%] -translate-x-1/2 rounded-lg bg-white px-2.5 py-1.5 text-[9px] font-bold text-slate-700 shadow-md">센트럴파크 뷰 카페</span>
+          <span className="absolute bottom-2 left-2 rounded-md bg-white/90 px-2 py-1 text-[9px] font-semibold text-slate-500">지도에서 위치 확인</span>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid h-full grid-cols-1 gap-3 sm:grid-cols-[1fr_.9fr] sm:gap-4">
+      <div className="flex flex-col justify-between rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+        <div><div className="flex items-center justify-between gap-2"><span className="text-[10px] font-bold tracking-wide text-slate-400">지난 모임 기록</span><span className="text-xs tracking-wider text-amber-400">★★★★★</span></div><h3 className="mt-2 text-sm font-extrabold text-slate-900 sm:text-base">성수에서 만난 토요일</h3><p className="mt-1 text-[10px] text-slate-500">2026년 9월 19일 · 5명 참석</p></div>
+        <div className="mt-3 rounded-lg bg-slate-50 p-3"><p className="text-[10px] leading-5 text-slate-600">“조용해서 대화하기 좋았어요. 다음에도 여기 오고 싶어요.”</p></div>
+      </div>
+      <div className="flex flex-col justify-between rounded-xl border border-blue-100 bg-blue-50/70 p-4 sm:p-5">
+        <div><span className="text-[10px] font-bold tracking-wide text-blue-700">우리 모임 취향</span><p className="mt-2 text-sm font-extrabold text-slate-900 sm:text-base">다음 모임도 더 잘 맞게</p><p className="mt-1 text-[10px] text-slate-500">지난 기록에서 발견한 선호예요.</p></div>
+        <div className="mt-3 flex flex-wrap gap-1.5"><span className="rounded-full bg-white px-2.5 py-1.5 text-[9px] font-semibold text-slate-600">조용한 장소</span><span className="rounded-full bg-white px-2.5 py-1.5 text-[9px] font-semibold text-slate-600">대중교통 편리</span><span className="rounded-full bg-white px-2.5 py-1.5 text-[9px] font-semibold text-slate-600">재방문 선호</span></div>
+      </div>
+    </div>
+  );
+}
+
 const problems = [
   ["01", "단톡방에서 끝없는 일정 조율", "누가 언제 가능한지 계속 물어보느라 약속 잡기가 어려워요."],
   ["02", "장소 검색과 비교의 번거로움", "취향과 위치를 고려해 모두가 만족할 장소를 찾기 힘들어요."],
@@ -41,7 +119,7 @@ const stories = [
     title: "링크 하나로\n모임을 시작해요",
     desc: "모임을 만든 뒤 초대 링크만 공유하세요. 참여자는 링크를 통해 모임에 들어와 일정과 장소를 함께 정할 수 있어요.",
     sub: "초대와 안내를 한 번에, 모임 준비는 간편하게.",
-    img: "/images/feature1.png",
+    preview: "invite",
     points: ["간편한 모임 생성", "초대 링크 공유", "참여 현황 한눈에 확인"],
   },
   {
@@ -50,7 +128,7 @@ const stories = [
     title: "가능한 날짜를 모아\nAI가 최종 일정을 골라요",
     desc: "캘린더에서 각자 가능한 날짜를 선택하면, 모여ON이 응답을 모아 여러 후보를 비교하고 가장 적합한 날짜를 추천해요.",
     sub: "흩어진 일정을 한곳에 모아 최적의 날짜를 찾아요.",
-    img: "/images/feature2.png",
+    preview: "schedule",
     points: ["캘린더에서 가능 날짜 선택", "후보 일정 자동 정리", "AI의 최종 날짜 추천"],
   },
   {
@@ -59,7 +137,7 @@ const stories = [
     title: "정해진 장소를\n지도에서 바로 확인해요",
     desc: "모임 장소가 정해지면 지도 미리보기와 위치 정보를 함께 제공해요. 참여자 모두가 장소와 주변 위치를 쉽게 확인할 수 있어요.",
     sub: "장소 이름만 공유하지 않고, 위치까지 한눈에.",
-    img: "/images/location.png",
+    preview: "map",
     points: ["선택한 장소 정보 확인", "지도에서 위치 미리보기", "참여자와 장소 정보 공유"],
   },
   {
@@ -68,7 +146,7 @@ const stories = [
     title: "경험이 쌓일수록\n모임은 더 좋아져요",
     desc: "장소와 피드백을 모임 기록으로 남기면, 다음에는 우리에게 더 잘 맞는 모임을 만들 수 있어요.",
     sub: "모임의 순간이 다음 만남의 힌트가 됩니다.",
-    img: "/images/feature3.png",
+    preview: "history",
     points: ["모임 기록과 피드백", "취향 데이터 축적", "더 나은 추천 경험"],
   },
 ];
@@ -87,6 +165,14 @@ function LandingPage() {
     }, 5000);
     return () => window.clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return undefined;
+    const timer = window.setTimeout(() => {
+      setActiveStory((current) => (current + 1) % stories.length);
+    }, 5000);
+    return () => window.clearTimeout(timer);
+  }, [activeStory]);
 
   return (
     <main className="overflow-hidden bg-white text-slate-950">
@@ -142,7 +228,7 @@ function LandingPage() {
               </div>
             </div>
           </div>
-          <style>{`@keyframes moyeoDemoEnter { from { opacity: .4; transform: translateY(7px); } to { opacity: 1; transform: translateY(0); } } @keyframes moyeoCursorMove { 0%, 9% { left: 13%; top: 17%; transform: scale(1); } 43% { left: var(--cursor-x); top: var(--cursor-y); transform: scale(1); } 49% { left: var(--cursor-x); top: var(--cursor-y); transform: scale(.82); } 56%, 100% { left: var(--cursor-x); top: var(--cursor-y); transform: scale(1); } } @keyframes moyeoClickPulse { 0%, 43%, 100% { opacity: 0; transform: translate(-50%, -50%) scale(.25); } 47% { opacity: .75; transform: translate(-50%, -50%) scale(.65); } 58% { opacity: 0; transform: translate(-50%, -50%) scale(1.35); } } @media (prefers-reduced-motion: reduce) { .moyeo-cursor, .moyeo-click-pulse { display: none !important; } }`}</style>
+          <style>{`@keyframes moyeoDemoEnter { from { opacity: .4; transform: translateY(7px); } to { opacity: 1; transform: translateY(0); } } @keyframes moyeoStoryEnter { from { opacity: .55; transform: translateY(5px) scale(.99); } to { opacity: 1; transform: translateY(0) scale(1); } } @keyframes moyeoCursorMove { 0%, 9% { left: 13%; top: 17%; transform: scale(1); } 43% { left: var(--cursor-x); top: var(--cursor-y); transform: scale(1); } 49% { left: var(--cursor-x); top: var(--cursor-y); transform: scale(.82); } 56%, 100% { left: var(--cursor-x); top: var(--cursor-y); transform: scale(1); } } @keyframes moyeoClickPulse { 0%, 43%, 100% { opacity: 0; transform: translate(-50%, -50%) scale(.25); } 47% { opacity: .75; transform: translate(-50%, -50%) scale(.65); } 58% { opacity: 0; transform: translate(-50%, -50%) scale(1.35); } } @media (prefers-reduced-motion: reduce) { .moyeo-cursor, .moyeo-click-pulse { display: none !important; } .moyeo-story-preview { animation: none !important; } }`}</style>
           <div className="mt-4 flex items-center justify-center gap-2.5" role="tablist" aria-label="모임 사용 흐름">
             {demoScreens.map((screen, index) => <button key={screen.src} type="button" role="tab" onClick={() => setActiveDemo(index)} aria-label={`${index + 1}단계: ${screen.name}`} aria-selected={activeDemo === index} className={`h-2 rounded-full transition-all duration-300 ${activeDemo === index ? "w-8 bg-[#4169e1]" : "w-2 bg-slate-300 hover:bg-slate-400"}`} />)}
           </div>
@@ -155,7 +241,7 @@ function LandingPage() {
         <div className="relative z-20 mx-auto max-w-7xl px-6 py-1 sm:px-10 sm:py-2">
           <div className="mx-auto mb-7 max-w-4xl text-center text-white sm:mb-9">
             <h2 className="text-4xl font-bold leading-tight tracking-tight sm:text-6xl">모여ON과 함께라면<br />모임이 달라집니다</h2>
-            <p className="mx-auto mt-3 max-w-2xl text-base leading-6 text-blue-100 sm:mt-4 sm:text-lg sm:leading-7">모임을 만들고, 모두의 시간을 맞추고, 장소를 찾는 과정까지<br className="hidden sm:block" />모여ON이 더 쉽고 즐겁게 바꿔드려요.</p>
+            <p className="mx-auto mt-3 max-w-2xl text-base leading-6 text-blue-100 sm:mt-4 sm:text-lg sm:leading-7">모임을 만들고, 모두의 시간을 맞추고, 장소를 찾는 과정까지<br className="hidden sm:block" /></p>
           </div>
           <div className="mx-auto grid max-w-6xl items-center gap-6 lg:grid-cols-[0.78fr_1.5fr] lg:gap-10">
             <div className="flex flex-col gap-2" role="tablist" aria-label="모여ON 기능 소개">
@@ -163,7 +249,9 @@ function LandingPage() {
             </div>
             <div role="tabpanel" className="min-w-0 overflow-hidden rounded-[1.4rem] border border-white/80 bg-white p-2 shadow-[0_25px_80px_-35px_rgba(10,24,100,0.65)] sm:rounded-[1.8rem] sm:p-3">
               <div className="flex h-8 items-center gap-1.5 px-2 sm:h-9"><span className="h-2.5 w-2.5 rounded-full bg-[#ff6259]" /><span className="h-2.5 w-2.5 rounded-full bg-[#ffbd2e]" /><span className="h-2.5 w-2.5 rounded-full bg-[#28c840]" /></div>
-              <img key={selectedStory.img} src={selectedStory.img} alt={selectedStory.title.replace("\n", " ")} className="aspect-[16/10] max-h-[400px] w-full rounded-xl bg-white object-contain sm:rounded-[1.3rem]" />
+              <div key={selectedStory.preview} className="moyeo-story-preview min-h-[300px] w-full rounded-xl bg-slate-50 p-3 sm:min-h-[340px] sm:p-4 lg:min-h-[360px]" style={{ animation: "moyeoStoryEnter .45s ease-out" }}>
+                <StoryPreview type={selectedStory.preview} />
+              </div>
             </div>
           </div>
           <div className="mt-6 flex items-center justify-center gap-2 lg:hidden">{stories.map((story, index) => <button key={story.eyebrow} aria-label={`${index + 1}번 기능 보기`} onClick={() => setActiveStory(index)} className={`h-1.5 rounded-full transition-all ${activeStory === index ? "w-7 bg-white" : "w-1.5 bg-white/40"}`} />)}</div>
