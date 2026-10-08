@@ -108,7 +108,7 @@ function SignupPage() {
 
     alert("회원가입이 완료되었습니다.");
 
-    navigate("/login");
+    navigate("/onboarding");
   };
 
   return (

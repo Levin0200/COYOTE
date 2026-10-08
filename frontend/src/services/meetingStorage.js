@@ -45,30 +45,42 @@ export const isMeetingClosed = (meeting) => {
   return meeting?.status !== "COLLECTING" || (Number.isFinite(deadline) && deadline <= Date.now());
 };
 
-export const createMockFinalResult = (meetingId) => {
+export const chooseClosestDate = (dates, referenceDate = new Date()) => {
+  if (!dates.length) return "추후 협의";
+  const reference = new Date(referenceDate);
+  reference.setHours(0, 0, 0, 0);
+  return [...dates].sort((a, b) => {
+    const distanceA = Math.abs(new Date(`${a}T00:00:00`).getTime() - reference.getTime());
+    const distanceB = Math.abs(new Date(`${b}T00:00:00`).getTime() - reference.getTime());
+    return distanceA - distanceB || a.localeCompare(b);
+  })[0];
+};
+
+export const createMockFinalResult = (meetingId, generation = 1) => {
   const responses = getResponses(meetingId);
   const dateCounts = {};
   const placeCounts = {};
   responses.forEach((response) => {
     response.selectedDates?.forEach((date) => { dateCounts[date] = (dateCounts[date] || 0) + 1; });
-    if (response.placePreference) placeCounts[response.placePreference] = (placeCounts[response.placePreference] || 0) + 1;
+    if (response.placePreference && response.placeMode !== "OPEN" && response.placeMode !== "SKIP") placeCounts[response.placePreference] = (placeCounts[response.placePreference] || 0) + 1;
   });
-  const choose = (counts) => {
-    const entries = Object.entries(counts).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
-    const tied = entries.length > 1 && entries[0][1] === entries[1][1];
-    return { value: entries[0]?.[0] || "추후 협의", count: entries[0]?.[1] || 0, tied };
-  };
-  const date = choose(dateCounts);
-  const place = choose(placeCounts);
-  const tieBreak = date.tied || place.tied;
+  const rankedDates = Object.entries(dateCounts).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  const bestDateCount = rankedDates[0]?.[1] || 0;
+  const tiedDates = rankedDates.filter(([, count]) => count === bestDateCount).map(([value]) => value).sort();
+  const selectedDate = chooseClosestDate(tiedDates);
+  const rankedPlaces = Object.entries(placeCounts).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  const bestPlaceCount = rankedPlaces[0]?.[1] || 0;
+  const selectedPlaces = rankedPlaces.filter(([, count]) => count === bestPlaceCount).map(([value]) => value);
+  const tieBreak = tiedDates.length > 1 || selectedPlaces.length > 1;
+  const placeReason = selectedPlaces.length > 1 ? "장소 공동 1위 선택지는 모두 표시합니다." : selectedPlaces.length === 1 ? "가장 많은 참여자가 선택한 장소를 반영했습니다." : "유효한 장소 응답이 없어 장소는 추후 협의로 남겼습니다.";
   return {
     meetingId,
-    selectedDate: date.value,
-    selectedPlace: place.value,
+    selectedDate,
+    selectedPlaces: selectedPlaces.length ? selectedPlaces : ["추후 협의"],
+    selectedPlace: selectedPlaces.length ? selectedPlaces.join(" · ") : "추후 협의",
     decisionType: tieBreak ? "TIE_BREAK" : "MAJORITY",
-    reason: tieBreak
-      ? "최다 응답 후보가 동률이어서 전체 응답에서 반복적으로 선택된 후보와 정렬 기준을 적용해 공정하게 결정한 Mock 결과입니다."
-      : "가장 많은 참여자가 선택한 날짜와 장소를 기준으로 결정했습니다.",
+    reason: `${tiedDates.length > 1 ? "날짜 공동 1위 중 오늘과 가장 가까운 날짜를 우선했습니다. " : "가장 많은 참여자가 선택한 날짜를 반영했습니다. "}${placeReason}`,
+    generation,
     createdAt: new Date().toISOString(),
   };
 };

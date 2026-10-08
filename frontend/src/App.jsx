@@ -3,7 +3,6 @@ import LandingPage from "./pages/home/LandingPage";
 import LoginPage from "./pages/auth/LoginPage";
 import SignupPage from "./pages/auth/SignupPage";
 import OnboardingPage from "./pages/auth/OnboardingPage";
-import UserPreferencesPage from "./pages/UserPreferences/UserPreferencesPage";
 import MainPage from "./pages/home/MainPage";
 import CreateMeetingPage from "./pages/meeting/CreateMeetingPage";
 import MeetingDetailPage from "./pages/meeting/MeetingDetailPage";
@@ -23,10 +22,9 @@ function App() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/signup" element={<SignupPage />} />
       <Route path="/onboarding" element={<OnboardingPage />} />
-      <Route path="/preferences" element={<UserPreferencesPage />} />
       <Route path="/main" element={<MainPage />} />
       <Route path="/mypage" element={<MyPage />} />
-            <Route path="/ongoing-meetings" element={<MainPage />} />
+      <Route path="/ongoing-meetings" element={<MainPage />} />
       <Route path="/create-meeting" element={<CreateMeetingPage />} />
       <Route path="/meeting/setup/availability" element={<MeetingTimeOptionsPage />} />
       <Route path="/meeting/setup/place" element={<MeetingPlacesPage />} />
