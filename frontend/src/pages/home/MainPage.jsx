@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import AppHeader from "../../components/AppHeader";
 
 const meetings = [
@@ -10,7 +9,6 @@ const meetings = [
 ];
 
 function MainPage() {
-  const navigate = useNavigate();
   const [activeFilter, setActiveFilter] = useState("all");
   const [remindedMeetings, setRemindedMeetings] = useState([]);
   const [notice, setNotice] = useState("");

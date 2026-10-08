@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AppHeader from "../../components/AppHeader";
 
@@ -373,7 +373,7 @@ const nextMeeting =
     const maxCount = getMaxVoteCount(meeting);
 
     return Object.entries(voteCounts)
-      .filter(([_, count]) => count === maxCount)
+      .filter(([, count]) => count === maxCount)
       .map(([date]) => date);
   };
 
