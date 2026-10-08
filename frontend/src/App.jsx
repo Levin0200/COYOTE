@@ -13,6 +13,8 @@ import MeetingVotePage from "./pages/meeting/MeetingVotePage";
 import MeetingResultPage from "./pages/meeting/MeetingResultPage";
 import NicknamePage from "./pages/meeting/NicknamePage";
 import MeetingStatusPage from "./pages/meeting/MeetingStatusPage";
+import MyPage from "./pages/MyPage/MyPage";
+
 
 function App() {
   return (
@@ -23,7 +25,8 @@ function App() {
       <Route path="/onboarding" element={<OnboardingPage />} />
       <Route path="/preferences" element={<UserPreferencesPage />} />
       <Route path="/main" element={<MainPage />} />
-
+      <Route path="/mypage" element={<MyPage />} />
+            <Route path="/ongoing-meetings" element={<MainPage />} />
       <Route path="/create-meeting" element={<CreateMeetingPage />} />
       <Route path="/meeting/setup/availability" element={<MeetingTimeOptionsPage />} />
       <Route path="/meeting/setup/place" element={<MeetingPlacesPage />} />
