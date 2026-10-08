@@ -1,10 +1,17 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import {
+  confirmVerificationCode,
+  sendVerificationCode,
+  signup,
+} from "../../services/authService";
+import { getErrorCode, getErrorMessage } from "../../services/api";
 
 function SignupPage() {
   const navigate = useNavigate();
 
   const [step, setStep] = useState(1);
+  const [submitting, setSubmitting] = useState(false);
   const [openTerm, setOpenTerm] = useState(null);
 
   const [email, setEmail] = useState("");
@@ -22,7 +29,7 @@ function SignupPage() {
     setPrivacyAgree(checked);
   };
 
-  const handleSendVerificationCode = () => {
+  const handleSendVerificationCode = async () => {
     if (!email.trim()) {
       alert("이메일을 입력해주세요.");
       return;
@@ -30,42 +37,44 @@ function SignupPage() {
 
     const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-    if (!emailPattern.test(email)) {
+    if (!emailPattern.test(email.trim())) {
       alert("올바른 이메일 형식을 입력해주세요.");
       return;
     }
 
-    const code = Math.floor(
-      100000 + Math.random() * 900000
-    ).toString();
+    setSubmitting(true);
 
-    localStorage.setItem("verificationCode", code);
-
-    alert(`프로토타입 인증번호: ${code}`);
-
-    setStep(3);
+    try {
+      await sendVerificationCode(email.trim());
+      alert("인증번호를 발송했습니다.");
+      setStep(3);
+    } catch (error) {
+      alert(getErrorMessage(error));
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  const handleVerifyCode = () => {
-    const savedCode = localStorage.getItem("verificationCode");
-
+  const handleVerifyCode = async () => {
     if (!verificationCode.trim()) {
       alert("인증번호를 입력해주세요.");
       return;
     }
 
-    if (verificationCode === savedCode) {
+    setSubmitting(true);
+
+    try {
+      await confirmVerificationCode(email.trim(), verificationCode.trim());
       alert("이메일 인증이 완료되었습니다.");
-
-      localStorage.removeItem("verificationCode");
-
       setStep(4);
-    } else {
-      alert("인증번호가 일치하지 않습니다.");
+    } catch (error) {
+      alert(getErrorMessage(error));
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  const handleSignup = () => {
+  const handleSignup = async () => {
     if (!name.trim()) {
       alert("이름을 입력해주세요.");
       return;
@@ -73,6 +82,11 @@ function SignupPage() {
 
     if (!password) {
       alert("비밀번호를 입력해주세요.");
+      return;
+    }
+
+    if (password.length < 8) {
+      alert("비밀번호는 8자 이상 입력하세요.");
       return;
     }
 
@@ -86,29 +100,30 @@ function SignupPage() {
       return;
     }
 
-    const savedUser = localStorage.getItem("user");
+    setSubmitting(true);
 
-    if (savedUser) {
-      const user = JSON.parse(savedUser);
+    try {
+      await signup({
+        email: email.trim(),
+        name: name.trim(),
+        password,
+        address: address.trim(),
+        serviceAgree,
+        privacyAgree,
+      });
 
-      if (user.email === email) {
-        alert("이미 가입된 이메일입니다.");
-        return;
+      alert("회원가입이 완료되었습니다.");
+      navigate("/login");
+    } catch (error) {
+      alert(getErrorMessage(error));
+
+      if (getErrorCode(error) === "EMAIL_NOT_VERIFIED") {
+        setVerificationCode("");
+        setStep(2);
       }
+    } finally {
+      setSubmitting(false);
     }
-
-    const user = {
-      email,
-      name,
-      password,
-      address,
-    };
-
-    localStorage.setItem("user", JSON.stringify(user));
-
-    alert("회원가입이 완료되었습니다.");
-
-    navigate("/login");
   };
 
   return (
@@ -428,6 +443,7 @@ function SignupPage() {
 
             <button
               onClick={handleSendVerificationCode}
+              disabled={submitting}
               className="
                 w-full
                 bg-[#4F7DF3]
@@ -478,6 +494,7 @@ function SignupPage() {
 
             <button
               onClick={handleVerifyCode}
+              disabled={submitting}
               className="
                 w-full
                 bg-[#4F7DF3]
@@ -526,7 +543,7 @@ function SignupPage() {
 
             <input
               type="password"
-              placeholder="비밀번호"
+              placeholder="비밀번호 (8자 이상)"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="
@@ -582,6 +599,7 @@ function SignupPage() {
 
             <button
               onClick={handleSignup}
+              disabled={submitting}
               className="
                 w-full
                 bg-[#4F7DF3]

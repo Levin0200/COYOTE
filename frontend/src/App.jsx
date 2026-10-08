@@ -12,6 +12,7 @@ import MeetingResultPage from "./pages/meeting/MeetingResultPage";
 import NicknamePage from "./pages/meeting/NicknamePage";
 import MeetingStatusPage from "./pages/meeting/MeetingStatusPage";
 import MyPage from "./pages/MyPage/MyPage";
+import RequireAuth from "./components/RequireAuth";
 
 
 function App() {
@@ -20,9 +21,9 @@ function App() {
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/signup" element={<SignupPage />} />
-      <Route path="/main" element={<MainPage />} />
-      <Route path="/mypage" element={<MyPage />} />
-      <Route path="/ongoing-meetings" element={<MainPage />} />
+      <Route path="/main" element={<RequireAuth><MainPage /></RequireAuth>} />
+      <Route path="/mypage" element={<RequireAuth><MyPage /></RequireAuth>} />
+      <Route path="/ongoing-meetings" element={<RequireAuth><MainPage /></RequireAuth>} />
       <Route path="/create-meeting" element={<CreateMeetingPage />} />
       <Route path="/meeting/setup/availability" element={<MeetingTimeOptionsPage />} />
       <Route path="/meeting/setup/place" element={<MeetingPlacesPage />} />

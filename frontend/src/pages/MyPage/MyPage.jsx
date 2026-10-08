@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AppHeader from "../../components/AppHeader";
+import { fetchMe, logout } from "../../services/authService";
 
 function MainPage() {
   const navigate = useNavigate();
@@ -27,10 +28,35 @@ function MainPage() {
   // 사용자 정보
   // --------------------------------------------------
 
-  const savedUser = JSON.parse(localStorage.getItem("user") || "null");
+  const [user, setUser] = useState(null);
+  const [userLoadFailed, setUserLoadFailed] = useState(false);
 
-  const userName = savedUser?.name || "김모여";
-  const userAddress = savedUser?.address || "인천광역시 동구";
+  useEffect(() => {
+    let cancelled = false;
+
+    fetchMe()
+      .then((me) => {
+        if (!cancelled) setUser(me);
+      })
+      .catch(() => {
+        if (!cancelled) setUserLoadFailed(true);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const userName = user
+    ? user.name
+    : userLoadFailed
+      ? "회원"
+      : "불러오는 중...";
+  const userAddress = user
+    ? user.address || "주소 미등록"
+    : userLoadFailed
+      ? "정보를 불러오지 못했습니다"
+      : "";
 
   // --------------------------------------------------
   // 확정된 모임 임시 데이터
@@ -333,8 +359,7 @@ const nextMeeting =
   // --------------------------------------------------
 
   const handleLogout = () => {
-    localStorage.removeItem("user");
-    localStorage.removeItem("isLoggedIn");
+    logout();
 
     navigate("/login");
   };

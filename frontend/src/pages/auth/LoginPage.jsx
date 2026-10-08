@@ -3,31 +3,33 @@ import { useNavigate } from "react-router-dom";
 
 import { FaGoogle, FaApple } from "react-icons/fa";
 import { SiNaver, SiKakaotalk } from "react-icons/si";
+import { login } from "../../services/authService";
+import { getErrorMessage } from "../../services/api";
 
 function LoginPage() {
   const navigate = useNavigate();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleLogin = () => {
-    const savedUser = localStorage.getItem("user");
-
-    if (!savedUser) {
-      alert("가입된 회원정보가 없습니다. 먼저 회원가입을 해주세요.");
+  const handleLogin = async () => {
+    if (!email.trim() || !password) {
+      alert("이메일과 비밀번호를 입력해주세요.");
       return;
     }
 
-    const user = JSON.parse(savedUser);
+    setSubmitting(true);
 
-    if (email === user.email && password === user.password) {
-      localStorage.setItem("isLoggedIn", "true");
+    try {
+      await login(email.trim(), password);
 
       alert("로그인되었습니다.");
-
-            navigate("/mypage");
-    } else {
-      alert("이메일 또는 비밀번호가 일치하지 않습니다.");
+      navigate("/mypage");
+    } catch (error) {
+      alert(getErrorMessage(error));
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -107,6 +109,7 @@ function LoginPage() {
 
         <button
           onClick={handleLogin}
+          disabled={submitting}
           className="
             w-full
             bg-[#4F7DF3]
@@ -115,6 +118,7 @@ function LoginPage() {
             rounded-xl
             font-medium
             hover:bg-[#3D6BE5]
+            disabled:opacity-60
             transition
           "
         >
