@@ -1,310 +1,130 @@
-import React, { useState } from 'react';
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import AppHeader from "../../components/AppHeader";
+
+const meetings = [
+  { id: 1, title: "개발팀 주말 정기 회식", status: "진행 중", date: "가능한 날짜 투표 중", location: "장소 응답 대기 중", members: 5, responses: 4, progress: 80, deadline: "오늘까지" },
+  { id: 2, title: "대학 동창 신년회 모임", status: "완료", date: "2026년 6월 6일 (토) 18:00", location: "홍대 스페이스 룸", members: 8, responses: 8, progress: 100 },
+  { id: 3, title: "모여ON 네트워킹 데이", status: "진행 중", date: "가능한 날짜 투표 중", location: "장소 응답 대기 중", members: 12, responses: 5, progress: 42, deadline: "내일까지" },
+  { id: 4, title: "금요 러닝 크루 번개", status: "완료", date: "2026년 6월 12일 (금) 20:00", location: "여의도 한강공원", members: 6, responses: 6, progress: 100 },
+];
 
 function MainPage() {
-  const [isDarkMode, setIsDarkMode] = useState(false); 
-  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState('all');
-  const [selectedMeeting, setSelectedMeeting] = useState(null);
-  const [activeNotifyTab, setActiveNotifyTab] = useState('calendar');
-  
-  let navigate;
-  try {
-    navigate = useNavigate();
-  } catch (e) {
-    navigate = (path) => console.log("이동 경로:", path);
-  }
+  const navigate = useNavigate();
+  const [activeFilter, setActiveFilter] = useState("all");
+  const [remindedMeetings, setRemindedMeetings] = useState([]);
+  const [notice, setNotice] = useState("");
 
-  const theme = {
-    bg: isDarkMode ? '#0B1020' : '#FFFFFF',
-    cardBg: isDarkMode ? 'rgba(255,255,255,0.03)' : '#F8FAFC',
-    cardBorder: isDarkMode ? 'rgba(255,255,255,0.08)' : '#E2E8F0',
-    innerBoxBg: isDarkMode ? '#0a0d1a' : '#F1F5F9',
-    popupBg: isDarkMode ? '#0f1425' : '#FFFFFF',
-    textMain: isDarkMode ? '#ffffff' : '#334155',
-    textSub: isDarkMode ? '#94a3b8' : '#64748b',
-    textTitle: isDarkMode ? '#f8fafc' : '#0F172A',
-    gradient: isDarkMode 
-      ? 'radial-gradient(circle at top left, rgba(59,130,246,0.18), transparent 45%), radial-gradient(circle at bottom right, rgba(168,85,247,0.12), transparent 45%)'
-      : 'radial-gradient(circle at top left, rgba(59,130,246,0.05), transparent 50%), radial-gradient(circle at bottom right, rgba(168,85,247,0.03), transparent 50%)',
-    shadow: isDarkMode 
-      ? '0 20px 45px rgba(0,0,0,0.25)' 
-      : '0 12px 30px rgba(148,163,184,0.08)',
-  };
-
-  const notifyDetails = {
-    calendar: [
-      { id: 11, title: "📅 캘린더 연동 알림", text: "멤버 5명의 구글 캘린더 공백 시간대 분석이 완료되었습니다.", time: "방금 전" },
-      { id: 12, title: "📅 일정 리마인더", text: "이번 주 토요일 '대학 동창 모임' 일정이 캘린더에 등록되었습니다.", time: "2시간 전" }
-    ],
-    vote: [
-      { id: 21, title: "🔥 투표 진행 중", text: "'개발팀 주말 회식' 메뉴 선호도 투표 마감이 3시간 남았습니다.", time: "10분 전" },
-      { id: 22, title: "🗳️ 새로운 투표", text: "성수동 번개 모임 장소 선정을 위한 2차 투표가 생성되었습니다.", time: "1일 전" }
-    ],
-    promise: [
-      { id: 31, title: "✨ 약속 확정 알림", text: "'금요 러닝 크루 번개'의 시간과 최종 장소가 확정되었습니다.", time: "30분 전" },
-      { id: 32, title: "⚠️ 보증금 미입금 안내", text: "신년회 모임 보증금 패널티 정산 기한이 오늘 자정까지입니다.", time: "4시간 전" }
-    ]
-  };
-
-  const myMeetings = [
-    { id: 1, title: "개발팀 주말 정기 회식", status: "진행 중", type: "AI 분석 중", date: "조율 중 (토요일 유력)", location: "강남역 인근", color: "#3b82f6", bg: "rgba(59,130,246,0.08)", img: "📊", members: 5, progress: 75, details: "현재 5명 중 4명 일정 연동 완료. 고기류/조용한 룸 선호도가 가장 높게 분석됨." },
-    { id: 2, title: "대학 동창 신년회 모임", status: "확정", type: "최적화 완료", date: "2026년 06월 06일 (토) 18:00", location: "홍대 스페이스 룸", color: "#10b981", bg: "rgba(16,185,129,0.08)", img: "✨", members: 8, progress: 100, details: "출발지 분석 결과 합정/홍대 중간지점 매핑 성공. 노쇼 방지 보증금 인당 10,000원 전원 납부 완료." },
-    { id: 3, title: "COYOTE 네트워킹 데이", status: "진행 중", type: "투표 수집 중", date: "조율 중 (평일 저녁)", location: "성수동 공유오피스", color: "#a855f7", bg: "rgba(168,85,247,0.08)", img: "🚀", members: 12, progress: 40, details: "메뉴 및 선호 플레이스 투표 참여율 40% 진행 중. 트렌디한 라운지 바 위주 추천 중." },
-    { id: 4, title: "금요 러닝 크루 번개", status: "확정", type: "정산 완료", date: "2026년 06월 12일 (금) 20:00", location: "여의도 한강공원", color: "#f59e0b", bg: "rgba(245,158,11,0.08)", img: "🏃‍♂️", members: 6, progress: 100, details: "러닝 코스 및 러닝 직후 방문할 이자카야 예약 완료. 우천 시 실내 액티비티로 대체 플랜 B 작동." }
-  ];
-
-  const filteredMeetings = myMeetings.filter(m => {
-    if (activeTab === 'all') return true;
-    if (activeTab === 'progress') return m.status === '진행 중';
-    if (activeTab === 'confirmed') return m.status === '확정';
+  const ongoingMeetings = meetings.filter((meeting) => meeting.status === "진행 중");
+  const completedMeetings = meetings.filter((meeting) => meeting.status === "완료");
+  const responseCount = ongoingMeetings.reduce((total, meeting) => total + meeting.responses, 0);
+  const memberCount = ongoingMeetings.reduce((total, meeting) => total + meeting.members, 0);
+  const visibleMeetings = meetings.filter((meeting) => {
+    if (activeFilter === "ongoing") return meeting.status === "진행 중";
+    if (activeFilter === "completed") return meeting.status === "완료";
     return true;
   });
 
+  const filters = [
+    { id: "all", label: "전체", count: meetings.length },
+    { id: "ongoing", label: "진행 중", count: ongoingMeetings.length },
+    { id: "completed", label: "완료", count: completedMeetings.length },
+  ];
+
+  const sendReminder = (meeting) => {
+    if (remindedMeetings.includes(meeting.id)) return;
+    setRemindedMeetings((current) => [...current, meeting.id]);
+    setNotice(`‘${meeting.title}’ 리마인더 요청을 기록했어요. 실제 알림은 백엔드 연결 후 전송됩니다.`);
+    window.setTimeout(() => setNotice(""), 3500);
+  };
+
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: theme.bg, color: theme.textMain, position: 'relative', overflow: 'hidden', fontFamily: 'sans-serif', transition: 'background-color 0.3s, color 0.3s' }}>
-      
-      <div style={{ position: 'absolute', inset: 0, backgroundImage: theme.gradient, pointerEvents: 'none' }} />
+    <main className="min-h-screen bg-slate-50 text-slate-900">
+      <AppHeader />
 
-      <div style={{ position: 'relative', maxWidth: '1200px', margin: '0 auto', padding: '32px 24px' }}>
-        
-        <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '48px', position: 'relative', zIndex: 100 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }} onClick={() => navigate("/")}>
-            <div className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-xl bg-blue-500 font-black text-white shadow-[0_4px_12px_rgba(59,130,246,0.2)]">
-              C
-            </div>
-
-            <h1
-              className={`whitespace-nowrap text-[22px] font-black tracking-[-0.05em] ${
-                isDarkMode ? "text-white" : "text-slate-900"
-              }`}
-            >
-              COYOTE
-            </h1>
+      <div className="mx-auto max-w-6xl px-6 pb-20 pt-12 sm:pt-16">
+        <section className="mb-8 flex flex-wrap items-end justify-between gap-5">
+          <div>
+            <p className="mb-3 text-xs font-bold uppercase tracking-[0.14em] text-[#4F7DF3]">Meeting dashboard</p>
+            <h1 className="text-3xl font-black tracking-[-0.045em] text-slate-900 sm:text-4xl">모임 현황</h1>
+            <p className="mt-3 text-sm leading-6 text-slate-500 sm:text-base">진행 중인 모임의 응답 상황을 한눈에 확인하세요.</p>
           </div>
+        </section>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '14px', position: 'relative' }}>
-            <button
-              onClick={() => setIsDarkMode(!isDarkMode)}
-              style={{
-                backgroundColor: theme.cardBg,
-                border: `1px solid ${theme.cardBorder}`,
-                color: theme.textMain,
-                padding: '10px 16px',
-                borderRadius: '14px',
-                fontWeight: '600',
-                fontSize: '14px',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                boxShadow: theme.shadow,
-                backdropFilter: 'blur(10px)'
-              }}
-            >
-              {isDarkMode ? '☀️ 라이트 모드' : '🌙 다크 모드'}
-            </button>
-
-            <button 
-              onClick={() => setIsNotificationOpen(!isNotificationOpen)}
-              style={{ position: 'relative', backgroundColor: theme.cardBg, border: `1px solid ${theme.cardBorder}`, color: theme.textMain, width: '44px', height: '44px', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', cursor: 'pointer' }}
-            >
-              🔔
-              <span style={{ position: 'absolute', top: '12px', right: '12px', width: '7px', height: '7px', backgroundColor: '#ef4444', borderRadius: '50%', boxShadow: '0 0 8px #ef4444' }} />
-            </button>
-
-            {isNotificationOpen && (
-              <div style={{ position: 'absolute', top: '56px', right: 0, width: '360px', backgroundColor: theme.popupBg, border: `1px solid ${theme.cardBorder}`, borderRadius: '24px', padding: '20px', boxShadow: '0 20px 40px rgba(15,23,42,0.08)', zIndex: 110, backdropFilter: 'blur(20px)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                  <h4 style={{ margin: 0, fontSize: '16px', fontWeight: 'bold', color: theme.textTitle }}>🔔 알림 인텔리전스</h4>
-                  <span style={{ fontSize: '12px', color: theme.textSub, cursor: 'pointer' }} onClick={() => setIsNotificationOpen(false)}>✕ 닫기</span>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '6px', backgroundColor: isDarkMode ? 'rgba(0,0,0,0.2)' : '#E2E8F0', padding: '4px', borderRadius: '12px', marginBottom: '16px' }}>
-                  {['calendar', 'vote', 'promise'].map((tab) => (
-                    <button
-                      key={tab}
-                      onClick={() => setActiveNotifyTab(tab)}
-                      style={{
-                        backgroundColor: activeNotifyTab === tab ? '#3b82f6' : 'transparent',
-                        border: 'none',
-                        color: activeNotifyTab === tab ? '#ffffff' : theme.textSub,
-                        padding: '6px 0',
-                        borderRadius: '8px',
-                        fontSize: '12px',
-                        fontWeight: '600',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      {tab === 'calendar' ? '캘린더' : tab === 'vote' ? '투표' : '약속'}
-                    </button>
-                  ))}
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '240px', overflowY: 'auto' }}>
-                  {notifyDetails[activeNotifyTab].map(item => (
-                    <div key={item.id} style={{ backgroundColor: isDarkMode ? 'rgba(255,255,255,0.03)' : '#FFFFFF', padding: '12px', borderRadius: '14px', border: `1px solid ${theme.cardBorder}` }}>
-                      <p style={{ margin: '0 0 4px 0', fontSize: '13px', fontWeight: '700', color: '#3b82f6' }}>{item.title}</p>
-                      <p style={{ margin: '0 0 6px 0', fontSize: '12px', color: theme.textMain, lineHeight: '1.4' }}>{item.text}</p>
-                      <span style={{ fontSize: '10px', color: theme.textSub }}>{item.time}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <button 
-              onClick={() => navigate("/mypage")}
-              style={{ backgroundColor: theme.cardBg, border: `1px solid ${theme.cardBorder}`, color: theme.textMain, padding: '10px 18px', borderRadius: '14px', fontWeight: '600', fontSize: '13px', cursor: 'pointer' }}
-            >
-              👤 마이페이지
-            </button>
+        <section aria-label="모임 요약" className="mb-8 grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div className="rounded-3xl border border-slate-200/80 bg-white p-5 shadow-sm">
+            <p className="text-sm font-medium text-slate-500">진행 중인 모임</p>
+            <p className="mt-2 text-3xl font-black tracking-tight text-slate-900">{ongoingMeetings.length}<span className="ml-1 text-base font-bold text-slate-400">개</span></p>
           </div>
-        </header>
+          <div className="rounded-3xl border border-slate-200/80 bg-white p-5 shadow-sm">
+            <p className="text-sm font-medium text-slate-500">현재 응답 현황</p>
+            <p className="mt-2 text-3xl font-black tracking-tight text-[#4F7DF3]">{responseCount}<span className="mx-1 text-base font-bold text-slate-400">/</span>{memberCount}<span className="ml-1 text-base font-bold text-slate-400">명</span></p>
+          </div>
+          <div className="rounded-3xl border border-slate-200/80 bg-white p-5 shadow-sm">
+            <p className="text-sm font-medium text-slate-500">완료된 모임</p>
+            <p className="mt-2 text-3xl font-black tracking-tight text-slate-900">{completedMeetings.length}<span className="ml-1 text-base font-bold text-slate-400">개</span></p>
+          </div>
+        </section>
 
-        <section style={{ marginBottom: '48px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '20px' }}>
+        <section className="rounded-[2rem] border border-slate-200/80 bg-white p-5 shadow-sm sm:p-7">
+          <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
             <div>
-              <h2 style={{ fontSize: '32px', fontWeight: '900', letterSpacing: '-0.02em', margin: '0 0 8px 0', color: theme.textTitle }}>모임 컨트롤 타워</h2>
-              <p style={{ color: theme.textSub, margin: 0, fontSize: '15px' }}>초대 기반 멤버들의 스케줄 동기화 및 위치 최적화 보드입니다.</p>
+              <h2 className="text-lg font-extrabold tracking-tight text-slate-900">내 모임</h2>
+              <p className="mt-1 text-sm text-slate-500">응답률과 진행 상태를 확인할 수 있어요.</p>
             </div>
-            <button
-              onClick={() => navigate("/create-meeting")}
-              style={{ backgroundColor: '#3b82f6', border: 'none', color: '#ffffff', padding: '14px 28px', borderRadius: '14px', fontWeight: 'bold', fontSize: '15px', cursor: 'pointer', boxShadow: '0 6px 16px rgba(59,130,246,0.25)' }}
-            >
-              ➕ 새로운 모임 예약하기
-            </button>
+            <div role="tablist" aria-label="모임 상태 필터" className="inline-flex rounded-xl bg-slate-100 p-1">
+              {filters.map((filter) => {
+                const selected = activeFilter === filter.id;
+                return <button key={filter.id} role="tab" aria-selected={selected} onClick={() => setActiveFilter(filter.id)} className={`rounded-lg px-3.5 py-2 text-sm font-semibold transition sm:px-4 ${selected ? "bg-white text-[#3D6BE5] shadow-sm" : "text-slate-500 hover:text-slate-800"}`}>
+                  {filter.label}<span className={`ml-1.5 text-xs ${selected ? "text-[#4F7DF3]" : "text-slate-400"}`}>{filter.count}</span>
+                </button>;
+              })}
+            </div>
           </div>
-        </section>
 
-        <section style={{ marginBottom: '28px' }}>
-          <div style={{ display: 'flex', gap: '12px', borderBottom: `1px solid ${theme.cardBorder}`, paddingBottom: '12px' }}>
-            {[
-              { id: 'all', label: '전체 보기' },
-              { id: 'progress', label: '🔄 진행 중' },
-              { id: 'confirmed', label: '✅ 확정' }
-            ].map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                style={{
-                  backgroundColor: activeTab === tab.id ? 'rgba(59,130,246,0.06)' : 'transparent',
-                  border: 'none',
-                  borderBottom: activeTab === tab.id ? '2px solid #3b82f6' : '2px solid transparent',
-                  color: activeTab === tab.id ? '#3b82f6' : theme.textSub,
-                  padding: '10px 20px',
-                  fontSize: '14px',
-                  fontWeight: '700',
-                  cursor: 'pointer',
-                  borderRadius: '8px 8px 0 0'
-                }}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-        </section>
+          {notice && <div role="status" className="mb-5 flex items-start gap-3 rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3.5 text-sm leading-6 text-blue-800"><span aria-hidden="true">✓</span><span>{notice}</span></div>}
 
-        <section style={{ marginBottom: '64px' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '28px' }}>
-            {filteredMeetings.map((meeting) => (
-              <div 
-                key={meeting.id}
-                onClick={() => setSelectedMeeting(meeting)}
-                style={{
-                  backgroundColor: theme.cardBg,
-                  backdropFilter: 'blur(20px)',
-                  border: `1px solid ${theme.cardBorder}`,
-                  borderRadius: '28px',
-                  padding: '24px',
-                  cursor: 'pointer',
-                  boxShadow: theme.shadow,
-                  transition: 'transform 0.2s, border-color 0.2s, background-color 0.3s',
-                  position: 'relative'
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                  <span style={{ fontSize: '11px', fontWeight: 'bold', color: theme.textSub, letterSpacing: '0.05em' }}>{meeting.type}</span>
-                  <span style={{ fontSize: '12px', fontWeight: 'bold', color: meeting.color, backgroundColor: meeting.bg, padding: '4px 12px', borderRadius: '9999px' }}>
-                    {meeting.status}
+          {visibleMeetings.length > 0 ? <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            {visibleMeetings.map((meeting) => {
+              const ongoing = meeting.status === "진행 중";
+              const reminded = remindedMeetings.includes(meeting.id);
+              return <article key={meeting.id} className="rounded-3xl border border-slate-200 bg-white p-5 transition duration-200 hover:border-blue-200 hover:shadow-md sm:p-6">
+                <div className="mb-4 flex items-center justify-between gap-3">
+                  <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-bold ${ongoing ? "bg-blue-50 text-[#3D6BE5]" : "bg-emerald-50 text-emerald-700"}`}>
+                    <span className={`h-1.5 w-1.5 rounded-full ${ongoing ? "bg-[#4F7DF3]" : "bg-emerald-500"}`} />{meeting.status}
                   </span>
+                  {ongoing && <span className="text-xs font-medium text-slate-400">마감 {meeting.deadline}</span>}
                 </div>
 
-                <h3 style={{ fontSize: '20px', fontWeight: '800', margin: '0 0 16px 0', color: theme.textTitle }}>{meeting.title}</h3>
+                <h3 className="mb-5 text-lg font-extrabold tracking-[-0.03em] text-slate-900">{meeting.title}</h3>
 
-                <div style={{ 
-                  height: '140px', 
-                  backgroundColor: theme.innerBoxBg, 
-                  borderRadius: '20px', 
-                  marginBottom: '20px',
-                  position: 'relative',
-                  overflow: 'hidden',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  border: `1px solid ${theme.cardBorder}`,
-                  transition: 'background-color 0.3s'
-                }}>
-                  <div style={{ position: 'absolute', width: '80px', height: '80px', backgroundColor: meeting.color, opacity: 0.12, filter: 'blur(25px)', borderRadius: '50%' }} />
-                  <span style={{ fontSize: '56px', zIndex: 10 }}>{meeting.img}</span>
-                  
-                  <div style={{ position: 'absolute', bottom: '16px', left: '16px', right: '16px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: theme.textSub, marginBottom: '4px' }}>
-                      <span>AI 데이터 분석 정밀도</span>
-                      <span style={{ color: meeting.color, fontWeight: 'bold' }}>{meeting.progress}%</span>
-                    </div>
-                    <div style={{ width: '100%', height: '6px', backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.06)', borderRadius: '9999px', overflow: 'hidden' }}>
-                      <div style={{ width: `${meeting.progress}%`, height: '100%', backgroundColor: meeting.color, borderRadius: '9999px' }} />
-                    </div>
-                  </div>
+                <div className="mb-2 flex items-end justify-between gap-3">
+                  <span className="text-sm font-medium text-slate-500">참여 응답</span>
+                  <span className="text-sm font-bold text-slate-800">{meeting.responses}<span className="font-medium text-slate-400"> / {meeting.members}명</span></span>
+                </div>
+                <div role="progressbar" aria-label={`${meeting.title} 응답률`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={meeting.progress} className="h-2 overflow-hidden rounded-full bg-slate-100">
+                  <div className={`h-full rounded-full transition-all duration-300 ${ongoing ? "bg-[#4F7DF3]" : "bg-emerald-500"}`} style={{ width: `${meeting.progress}%` }} />
+                </div>
+                <div className="mb-5 mt-2 flex items-center justify-between text-xs">
+                  <span className="font-semibold text-slate-500">응답 진행률</span>
+                  <span className={`font-bold ${ongoing ? "text-[#3D6BE5]" : "text-emerald-700"}`}>{meeting.progress}%</span>
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', backgroundColor: isDarkMode ? 'rgba(0,0,0,0.15)' : '#FFFFFF', padding: '14px', borderRadius: '16px', border: `1px solid ${theme.cardBorder}`, transition: 'background-color 0.3s' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
-                    <span style={{ color: theme.textSub }}>🗓️ 만날 날짜</span>
-                    <span style={{ color: theme.textMain, fontWeight: '600' }}>{meeting.date}</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
-                    <span style={{ color: theme.textSub }}>📍 모임 장소</span>
-                    <span style={{ color: theme.textMain, fontWeight: '600' }}>{meeting.location}</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
-                    <span style={{ color: theme.textSub }}>👥 참여 인원</span>
-                    <span style={{ color: theme.textMain, fontWeight: '600' }}>{meeting.members}명 동기화 중</span>
-                  </div>
-                </div>
-
-                <div style={{ textAlign: 'center', marginTop: '14px', fontSize: '12px', color: theme.textSub }}>
-                  상세 가이드 및 분석 로그 보기 →
-                </div>
-              </div>
-            ))}
-          </div>
+                {ongoing ? <button type="button" onClick={() => sendReminder(meeting)} disabled={reminded} className={`flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-bold transition focus:outline-none focus:ring-4 focus:ring-blue-100 ${reminded ? "cursor-default border border-slate-200 bg-slate-50 text-slate-400" : "bg-[#4F7DF3] text-white shadow-sm hover:bg-[#3D6BE5]"}`}>
+                  <span aria-hidden="true">{reminded ? "✓" : "↗"}</span>{reminded ? "리마인더 요청됨" : "미응답자에게 알림 보내기"}
+                </button> : <div className="grid gap-3 border-t border-slate-100 pt-4 sm:grid-cols-2">
+                  <div><p className="mb-1 text-xs font-medium text-slate-400">확정 날짜</p><p className="text-sm font-semibold text-slate-700">{meeting.date}</p></div>
+                  <div><p className="mb-1 text-xs font-medium text-slate-400">모임 장소</p><p className="text-sm font-semibold text-slate-700">{meeting.location}</p></div>
+                </div>}
+              </article>;
+            })}
+          </div> : <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 px-6 py-14 text-center">
+            <p className="text-sm font-semibold text-slate-600">이 상태의 모임이 아직 없어요.</p>
+            <p className="mt-1 text-xs text-slate-400">다른 필터를 선택하거나 새 모임을 만들어 보세요.</p>
+          </div>}
         </section>
-
-        {selectedMeeting && (
-          <div style={{ position: 'fixed', bottom: '24px', right: '24px', maxWidth: 'calc(100vw - 48px)', width: '380px', backgroundColor: theme.popupBg, border: '2px solid #3b82f6', borderRadius: '24px', padding: '24px', boxShadow: '0 20px 40px rgba(15,23,42,0.15)', zIndex: 200 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.08)', padding: '4px 10px', borderRadius: '8px' }}>DETAILED SYNC</span>
-              <button style={{ backgroundColor: 'transparent', border: 'none', color: theme.textSub, cursor: 'pointer', fontSize: '16px' }} onClick={() => setSelectedMeeting(null)}>✕</button>
-            </div>
-            <h4 style={{ margin: '0 0 8px 0', fontSize: '18px', fontWeight: '800', color: theme.textTitle }}>{selectedMeeting.title}</h4>
-            <p style={{ fontSize: '13px', color: theme.textMain, lineHeight: '1.5', margin: '0 0 16px 0', backgroundColor: theme.innerBoxBg, padding: '12px', borderRadius: '12px', border: `1px solid ${theme.cardBorder}` }}>
-              {selectedMeeting.details}
-            </p>
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <button style={{ flex: 1, backgroundColor: '#3b82f6', border: 'none', color: '#fff', padding: '12px', borderRadius: '12px', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer' }} onClick={() => alert('Map API 데이터 스캔 가동')}>
-                🗺️ 추천 장소 맵 연동
-              </button>
-              <button style={{ backgroundColor: theme.innerBoxBg, border: `1px solid ${theme.cardBorder}`, color: theme.textMain, padding: '12px', borderRadius: '12px', fontSize: '13px', cursor: 'pointer' }} onClick={() => setSelectedMeeting(null)}>
-                닫기
-              </button>
-            </div>
-          </div>
-        )}
-
       </div>
-    </div>
+    </main>
   );
 }
 
