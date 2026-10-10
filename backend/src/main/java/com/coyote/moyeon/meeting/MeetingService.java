@@ -10,6 +10,7 @@ import com.coyote.moyeon.meeting.dto.PlaceOptionData;
 import com.coyote.moyeon.meeting.dto.PlacePolicyData;
 import com.coyote.moyeon.meeting.dto.PlacePolicyView;
 import com.coyote.moyeon.meeting.dto.ResponseData;
+import com.coyote.moyeon.meeting.dto.UpdateHostResponseRequest;
 import com.coyote.moyeon.user.User;
 import com.coyote.moyeon.user.UserRepository;
 import java.security.SecureRandom;
@@ -22,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Locale;
 import java.util.Set;
 import java.util.TreeSet;
@@ -63,14 +65,14 @@ public class MeetingService {
 		User host = userRepository.findById(userId)
 				.orElseThrow(() -> new BusinessException(HttpStatus.UNAUTHORIZED, "USER_NOT_FOUND", "사용자를 찾을 수 없습니다."));
 		Instant now = Instant.now();
-		validateDeadlines(request.responseDueDate(), request.linkExpirationDate(), now);
+		validateDeadlines(request.responseDeadline(), request.linkExpirationDate(), now);
 		validateCandidateRange(request.candidateStartDate(), request.candidateEndDate(), LocalDate.now(KST));
 		PolicyValues policy = normalizePolicy(request.placePolicy());
 
 		String description = request.description() == null || request.description().isBlank()
 				? null : request.description().trim();
 		Meeting draft = new Meeting(newInviteToken(), host, request.title().trim(), description,
-				request.responseDueDate(), request.linkExpirationDate(), request.candidateStartDate(),
+				request.responseDeadline(), request.linkExpirationDate(), request.candidateStartDate(),
 				request.candidateEndDate(), policy.mode(), policy.region(), policy.radius(), policy.keyword(),
 				policy.fixedPlace(), policy.options());
 		NormalizedResponse normalized = normalize(request.toResponseData(), draft, true);
@@ -99,6 +101,39 @@ public class MeetingService {
 		return toDetail(meeting, mine, Instant.now());
 	}
 
+	@Transactional
+	public MeetingDetailResponse updateHostResponse(Long userId, Long meetingId, UpdateHostResponseRequest request) {
+		Meeting meeting = meetingRepository.findByIdForUpdate(meetingId)
+				.orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "MEETING_NOT_FOUND", "모임을 찾을 수 없습니다."));
+		if (!meeting.getHost().getId().equals(userId)) {
+			throw new BusinessException(HttpStatus.FORBIDDEN, "FORBIDDEN", "이 모임에 접근할 권한이 없습니다.");
+		}
+		Instant now = Instant.now();
+		if (meeting.isClosed(now)) {
+			throw new BusinessException(HttpStatus.CONFLICT, "MEETING_CLOSED", "응답이 마감되어 수정할 수 없습니다.");
+		}
+
+		PolicyValues policy = normalizePolicy(request.placePolicy());
+		if (!isSamePolicy(meeting, policy)) {
+			if (responseRepository.countByMeetingIdAndParticipantRole(meetingId, ParticipantRole.GUEST) > 0) {
+				throw new BusinessException(HttpStatus.CONFLICT, "POLICY_LOCKED",
+						"게스트 응답이 있어 장소 정책을 바꿀 수 없습니다.");
+			}
+			meeting.changePlacePolicy(policy.mode(), policy.region(), policy.radius(), policy.keyword(),
+					policy.fixedPlace(), policy.options());
+		}
+		NormalizedResponse normalized = normalize(request.toResponseData(), meeting, true);
+
+		Participant hostParticipant = participantRepository.findByMeetingIdAndRole(meetingId, ParticipantRole.HOST)
+				.orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "RESPONSE_NOT_FOUND", "호스트 응답을 찾을 수 없습니다."));
+		MeetingResponse response = responseRepository.findByParticipantId(hostParticipant.getId())
+				.orElseGet(() -> new MeetingResponse(meeting, hostParticipant));
+		response.update(normalized.dates(), normalized.placeMode(), normalized.region(), normalized.placePreference(),
+				normalized.radius(), normalized.keyword());
+		responseRepository.save(response);
+		return toDetail(meeting, MyResponseView.from(response), now);
+	}
+
 	@Transactional(readOnly = true)
 	public InviteInfoResponse getInvite(String inviteToken) {
 		Instant now = Instant.now();
@@ -113,7 +148,7 @@ public class MeetingService {
 	@Transactional
 	public SubmitResult submitGuestResponse(String inviteToken, String rawGuestId, GuestResponseRequest request) {
 		Instant now = Instant.now();
-		Meeting meeting = findAccessibleByToken(inviteToken, now);
+		Meeting meeting = findAccessibleByToken(inviteToken, now, true);
 		String guestId = normalizeGuestId(rawGuestId);
 		if (meeting.isClosed(now)) {
 			throw new BusinessException(HttpStatus.CONFLICT, "MEETING_CLOSED", "응답이 마감되어 수정할 수 없습니다.");
@@ -156,7 +191,12 @@ public class MeetingService {
 	}
 
 	private Meeting findAccessibleByToken(String inviteToken, Instant now) {
-		Meeting meeting = meetingRepository.findByInviteToken(inviteToken)
+		return findAccessibleByToken(inviteToken, now, false);
+	}
+
+	private Meeting findAccessibleByToken(String inviteToken, Instant now, boolean forUpdate) {
+		Meeting meeting = (forUpdate ? meetingRepository.findByInviteTokenForUpdate(inviteToken)
+				: meetingRepository.findByInviteToken(inviteToken))
 				.orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "MEETING_NOT_FOUND", "유효하지 않은 초대 링크입니다."));
 		if (meeting.isLinkExpired(now)) {
 			throw new BusinessException(HttpStatus.GONE, "INVITE_EXPIRED", "만료된 초대 링크입니다.");
@@ -238,6 +278,15 @@ public class MeetingService {
 				return new PolicyValues(PlacePolicyMode.OPEN, null, null, null, null, List.of());
 			}
 		}
+	}
+
+	private boolean isSamePolicy(Meeting meeting, PolicyValues policy) {
+		return meeting.getPlacePolicyMode() == policy.mode()
+				&& Objects.equals(meeting.getPolicyRegion(), policy.region())
+				&& Objects.equals(meeting.getPolicyRadiusKm(), policy.radius())
+				&& Objects.equals(meeting.getPolicyKeyword(), policy.keyword())
+				&& Objects.equals(meeting.getFixedPlace(), policy.fixedPlace())
+				&& meeting.getPlaceOptions().equals(policy.options());
 	}
 
 	private record NormalizedResponse(Set<LocalDate> dates, PlaceMode placeMode, String region, String placePreference,

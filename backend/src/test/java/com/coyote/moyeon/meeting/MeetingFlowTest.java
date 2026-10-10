@@ -87,7 +87,7 @@ class MeetingFlowTest {
 	private static String meetingJson(String title, Instant due, Instant linkExp, String start, String end,
 			String policy, String datesJson, String mode, String place) {
 		return """
-				{"title":%s,"description":"모임 설명","responseDueDate":%s,"linkExpirationDate":%s,
+				{"title":%s,"description":"모임 설명","responseDeadline":%s,"linkExpirationDate":%s,
 				 "candidateStartDate":%s,"candidateEndDate":%s,"placePolicy":%s,
 				 "selectedDates":[%s],"placeMode":"%s","region":"송도","placePreference":%s}
 				""".formatted(q(title), q(due), q(linkExp), start, end, policy, datesJson, mode, q(place));
@@ -115,7 +115,7 @@ class MeetingFlowTest {
 	private Created createMeetingFrom(String token, String body) throws Exception {
 		String response = createMeeting(token, body).andExpect(status().isCreated())
 				.andReturn().getResponse().getContentAsString();
-		return new Created(((Number) JsonPath.read(response, "$.id")).longValue(), JsonPath.read(response, "$.inviteToken"));
+		return new Created(((Number) JsonPath.read(response, "$.meetingId")).longValue(), JsonPath.read(response, "$.inviteToken"));
 	}
 
 	private Created createDefaultMeeting(String token) throws Exception {
@@ -142,7 +142,7 @@ class MeetingFlowTest {
 				.andExpect(jsonPath("$.closed").value(false))
 				.andExpect(jsonPath("$.participantCount").value(1))
 				.andExpect(jsonPath("$.responseCount").value(1))
-				.andExpect(jsonPath("$.responseDueDate").value(due.toString()))
+				.andExpect(jsonPath("$.responseDeadline").value(due.toString()))
 				.andExpect(jsonPath("$.candidateStartDate").value(LocalDate.now(KST).plusDays(1).toString()))
 				.andExpect(jsonPath("$.candidateEndDate").value(LocalDate.now(KST).plusDays(10).toString()))
 				.andExpect(jsonPath("$.placePolicy.mode").value("RECOMMEND"))
@@ -151,7 +151,9 @@ class MeetingFlowTest {
 				.andExpect(jsonPath("$.placePolicy.keyword").value("카페"))
 				.andExpect(jsonPath("$.placePolicy.fixedPlace").isEmpty())
 				.andExpect(jsonPath("$.placePolicy.options", hasSize(3)))
+				.andExpect(jsonPath("$.placePolicy.options[0].id").value(1))
 				.andExpect(jsonPath("$.placePolicy.options[0].name").value("송도 카페 A"))
+				.andExpect(jsonPath("$.placePolicy.options[2].id").value(3))
 				.andExpect(jsonPath("$.placePolicy.options[2].distance").value("1.5km"))
 				.andExpect(jsonPath("$.myResponse.nickname").value("김호스트"))
 				.andExpect(jsonPath("$.myResponse.placeMode").value("RECOMMEND"))
@@ -160,7 +162,7 @@ class MeetingFlowTest {
 				.andExpect(jsonPath("$.myResponse.selectedDates[1]").value(LocalDate.now(KST).plusDays(3).toString()))
 				.andReturn().getResponse().getContentAsString();
 		String inviteToken = JsonPath.read(body, "$.inviteToken");
-		long id = ((Number) JsonPath.read(body, "$.id")).longValue();
+		long id = ((Number) JsonPath.read(body, "$.meetingId")).longValue();
 		org.junit.jupiter.api.Assertions.assertTrue(inviteToken.length() >= 32);
 
 		mockMvc.perform(get("/api/meetings/" + id).header("Authorization", "Bearer " + token))
@@ -410,6 +412,8 @@ class MeetingFlowTest {
 				.andExpect(jsonPath("$.title").value("캡스톤 회식"))
 				.andExpect(jsonPath("$.placePolicy.mode").value("RECOMMEND"))
 				.andExpect(jsonPath("$.placePolicy.options", hasSize(3)))
+				.andExpect(jsonPath("$.placePolicy.options[1].id").value(2))
+				.andExpect(jsonPath("$.placePolicy.options[1].name").value("송도 카페 B"))
 				.andExpect(jsonPath("$.participantCount").value(1))
 				.andExpect(jsonPath("$.closed").value(false));
 
@@ -517,5 +521,151 @@ class MeetingFlowTest {
 				.andExpect(status().isGone()).andExpect(jsonPath("$.code").value("INVITE_EXPIRED"));
 		submit(meeting.inviteToken(), UUID.randomUUID().toString(), guestJson("게스트", day(2), "RECOMMEND", "송도 카페 A"))
 				.andExpect(status().isGone());
+	}
+
+	// ---- A2: 호스트 응답/정책 수정 (PUT /api/meetings/{id}/response) ----
+
+	private static String hostUpdateJson(String policy, String datesJson, String mode, String place) {
+		return """
+				{"placePolicy":%s,"selectedDates":[%s],"placeMode":"%s","region":"송도","placePreference":%s}
+				""".formatted(policy, datesJson, mode, q(place));
+	}
+
+	private ResultActions updateHost(String token, long meetingId, String body) throws Exception {
+		return mockMvc.perform(put("/api/meetings/" + meetingId + "/response")
+				.header("Authorization", "Bearer " + token)
+				.contentType(MediaType.APPLICATION_JSON).content(body));
+	}
+
+	@Test
+	void hostUpdatesOwnResponse_whenPolicyIsUnchanged() throws Exception {
+		String host = newHostToken("호스트");
+		Created meeting = createDefaultMeeting(host);
+
+		updateHost(host, meeting.id(), hostUpdateJson(RECOMMEND_POLICY, day(5) + "," + day(6), "RECOMMEND", "송도 카페 C"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.meetingId").value(meeting.id()))
+				.andExpect(jsonPath("$.participantCount").value(1))
+				.andExpect(jsonPath("$.responseCount").value(1))
+				.andExpect(jsonPath("$.placePolicy.mode").value("RECOMMEND"))
+				.andExpect(jsonPath("$.placePolicy.options", hasSize(3)))
+				.andExpect(jsonPath("$.myResponse.nickname").value("호스트"))
+				.andExpect(jsonPath("$.myResponse.selectedDates", hasSize(2)))
+				.andExpect(jsonPath("$.myResponse.selectedDates[0]").value(LocalDate.now(KST).plusDays(5).toString()))
+				.andExpect(jsonPath("$.myResponse.placePreference").value("송도 카페 C"));
+
+		mockMvc.perform(get("/api/meetings/" + meeting.id()).header("Authorization", "Bearer " + host))
+				.andExpect(jsonPath("$.myResponse.placePreference").value("송도 카페 C"))
+				.andExpect(jsonPath("$.myResponse.selectedDates[1]").value(LocalDate.now(KST).plusDays(6).toString()));
+	}
+
+	@Test
+	void hostMayChangePolicy_untilTheFirstGuestResponds() throws Exception {
+		String host = newHostToken("호스트");
+		Created meeting = createDefaultMeeting(host);
+
+		// 게스트가 없으면 정책을 바꿀 수 있다.
+		updateHost(host, meeting.id(), hostUpdateJson(FIXED_POLICY, day(2), "FIXED", null))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.placePolicy.mode").value("FIXED"))
+				.andExpect(jsonPath("$.placePolicy.fixedPlace").value("홍대 스페이스 룸"))
+				.andExpect(jsonPath("$.placePolicy.region").isEmpty())
+				.andExpect(jsonPath("$.placePolicy.options", hasSize(0)))
+				.andExpect(jsonPath("$.myResponse.placeMode").value("FIXED"))
+				.andExpect(jsonPath("$.myResponse.placePreference").value("홍대 스페이스 룸"));
+		mockMvc.perform(get("/api/invites/" + meeting.inviteToken()))
+				.andExpect(jsonPath("$.placePolicy.mode").value("FIXED"));
+
+		// 게스트가 새 정책으로 응답하면 정책은 잠긴다.
+		submit(meeting.inviteToken(), UUID.randomUUID().toString(), guestJson("게스트", day(3), "FIXED", "홍대 스페이스 룸"))
+				.andExpect(status().isCreated());
+
+		updateHost(host, meeting.id(), hostUpdateJson(RECOMMEND_POLICY, day(2), "RECOMMEND", "송도 카페 A"))
+				.andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("POLICY_LOCKED"));
+		updateHost(host, meeting.id(), hostUpdateJson("{\"mode\":\"FIXED\",\"fixedPlace\":\"다른 장소\"}", day(2), "FIXED", null))
+				.andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("POLICY_LOCKED"));
+		mockMvc.perform(get("/api/meetings/" + meeting.id()).header("Authorization", "Bearer " + host))
+				.andExpect(jsonPath("$.placePolicy.mode").value("FIXED"))
+				.andExpect(jsonPath("$.placePolicy.fixedPlace").value("홍대 스페이스 룸"));
+
+		// 정책이 같으면 게스트가 있어도 호스트 본인의 응답은 수정할 수 있다.
+		updateHost(host, meeting.id(), hostUpdateJson(FIXED_POLICY, day(7) + "," + day(8), "FIXED", null))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.myResponse.selectedDates", hasSize(2)))
+				.andExpect(jsonPath("$.responseCount").value(2));
+	}
+
+	@Test
+	void recommendOptions_reorderOrEdit_countsAsPolicyChange() throws Exception {
+		String host = newHostToken("호스트");
+		Created meeting = createDefaultMeeting(host);
+		submit(meeting.inviteToken(), UUID.randomUUID().toString(), guestJson("게스트", day(3), "RECOMMEND", "송도 카페 B"))
+				.andExpect(status().isCreated());
+
+		String fewerOptions = """
+				{"mode":"RECOMMEND","region":"송도","radius":3,"keyword":"카페",
+				 "options":[{"name":"송도 카페 A","distance":"0.5km"},{"name":"송도 카페 B","distance":"1.0km"}]}
+				""";
+		updateHost(host, meeting.id(), hostUpdateJson(fewerOptions, day(2), "RECOMMEND", "송도 카페 A"))
+				.andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("POLICY_LOCKED"));
+		// 후보의 id 유무와 상관없이 같은 정책으로 인식한다(id는 저장하지 않음).
+		updateHost(host, meeting.id(), hostUpdateJson(RECOMMEND_POLICY.replace("\"id\":1,", ""), day(2), "RECOMMEND", "송도 카페 A"))
+				.andExpect(status().isOk());
+	}
+
+	@Test
+	void hostUpdate_requiresAuthOwnershipAndOpenMeeting() throws Exception {
+		String owner = newHostToken("주인");
+		String other = newHostToken("타인");
+		Created meeting = createDefaultMeeting(owner);
+		String body = hostUpdateJson(RECOMMEND_POLICY, day(2), "RECOMMEND", "송도 카페 A");
+
+		mockMvc.perform(put("/api/meetings/" + meeting.id() + "/response")
+				.contentType(MediaType.APPLICATION_JSON).content(body))
+				.andExpect(status().isUnauthorized());
+		updateHost(other, meeting.id(), body)
+				.andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("FORBIDDEN"));
+		updateHost(owner, 999999, body)
+				.andExpect(status().isNotFound()).andExpect(jsonPath("$.code").value("MEETING_NOT_FOUND"));
+
+		setDueDate(meeting.id(), Instant.now().minusSeconds(60));
+		updateHost(owner, meeting.id(), body)
+				.andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("MEETING_CLOSED"));
+
+		Created closed = createDefaultMeeting(owner);
+		jdbc.update("update meeting set status = 'CLOSED' where id = ?", closed.id());
+		updateHost(owner, closed.id(), body)
+				.andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("MEETING_CLOSED"));
+	}
+
+	@Test
+	void hostUpdate_rejectsInvalidInput() throws Exception {
+		String host = newHostToken("호스트");
+		Created meeting = createDefaultMeeting(host);
+		String[] badBodies = {
+				// 후보 범위(내일~10일 뒤) 밖 날짜
+				hostUpdateJson(RECOMMEND_POLICY, day(11), "RECOMMEND", "송도 카페 A"),
+				hostUpdateJson(RECOMMEND_POLICY, day(0), "RECOMMEND", "송도 카페 A"),
+				hostUpdateJson(RECOMMEND_POLICY, "", "RECOMMEND", "송도 카페 A"),
+				// 정책과 어긋난 호스트 응답
+				hostUpdateJson(RECOMMEND_POLICY, day(2), "RECOMMEND", "목록에 없음"),
+				hostUpdateJson(RECOMMEND_POLICY, day(2), "OPEN", null),
+				hostUpdateJson(RECOMMEND_POLICY, day(2), "PROPOSE", "송도 카페 A"),
+				// 잘못된 정책 입력
+				hostUpdateJson("{\"mode\":\"FIXED\"}", day(2), "FIXED", null),
+				hostUpdateJson("{\"mode\":\"RECOMMEND\",\"radius\":3,\"options\":[{\"name\":\"a\"}]}", day(2), "RECOMMEND", "a"),
+				"{\"selectedDates\":[" + day(2) + "],\"placeMode\":\"OPEN\"}",
+		};
+		for (String body : badBodies) {
+			updateHost(host, meeting.id(), body).andExpect(status().isBadRequest())
+					.andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
+		}
+		// OPEN 정책에서 호스트는 OPEN만 가능
+		updateHost(host, meeting.id(), hostUpdateJson(OPEN_POLICY, day(2), "PROPOSE", "호스트 제안"))
+				.andExpect(status().isBadRequest());
+		// 실패한 요청은 기존 응답을 바꾸지 않는다.
+		mockMvc.perform(get("/api/meetings/" + meeting.id()).header("Authorization", "Bearer " + host))
+				.andExpect(jsonPath("$.placePolicy.mode").value("RECOMMEND"))
+				.andExpect(jsonPath("$.myResponse.placePreference").value("송도 카페 A"));
 	}
 }

@@ -7,7 +7,7 @@ import java.time.LocalDate;
 public record InviteInfoResponse(
 		String title,
 		String description,
-		Instant responseDueDate,
+		Instant responseDeadline,
 		Instant linkExpirationDate,
 		LocalDate candidateStartDate,
 		LocalDate candidateEndDate,

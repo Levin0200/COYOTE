@@ -8,4 +8,6 @@ public interface MeetingResponseRepository extends JpaRepository<MeetingResponse
 	Optional<MeetingResponse> findByParticipantId(Long participantId);
 
 	long countByMeetingId(Long meetingId);
+
+	long countByMeetingIdAndParticipantRole(Long meetingId, ParticipantRole role);
 }

@@ -30,7 +30,7 @@
 
 ## 도메인 (프론트 코드 기준)
 
-- Meeting: id, inviteToken, title, description, responseDueDate, linkExpirationDate, candidateStartDate/candidateEndDate(후보 날짜 범위, 최대 62일), 장소 정책(placePolicyMode `FIXED`/`RECOMMEND`/`OPEN`, 정책 지역·반경·키워드, fixedPlace, 추천 후보 목록은 별도 테이블 `meeting_place_option`), status(`COLLECTING` 등), manuallyClosed, 호스트 User 연결
+- Meeting: id, inviteToken, title, description, responseDueDate(JSON에서는 `responseDeadline`, 모임 상세의 `id`는 `meetingId`로 내려감), linkExpirationDate, candidateStartDate/candidateEndDate(후보 날짜 범위, 최대 62일), 장소 정책(placePolicyMode `FIXED`/`RECOMMEND`/`OPEN`, 정책 지역·반경·키워드, fixedPlace, 추천 후보 목록은 별도 테이블 `meeting_place_option`), status(`COLLECTING` 등), manuallyClosed, 호스트 User 연결
 - Participant: id, meetingId, nickname, role(`HOST`/`GUEST`), guestId
 - Response: participantId, 선택한 날짜 목록(별도 테이블), placeMode(`FIXED`/`RECOMMEND`/`PROPOSE`/`OPEN`), region, placePreference, recommendationRadius/recommendationKeyword, latitude/longitude. 서버는 정책에 맞는 응답만 받는다(`FIXED`는 확정 장소, `RECOMMEND`는 후보 중 선택, `OPEN`은 게스트가 `PROPOSE`/`OPEN`, 호스트는 `OPEN`).
 - FinalResult: meetingId, selectedDate, selectedPlace, decisionType(`MAJORITY`/`TIE_BREAK`), reason
@@ -61,7 +61,7 @@
 - 모임 생성(로그인 필요, 호스트 첫 응답 포함), 모임 조회, 초대 토큰 조회(공개), 게스트 응답 제출/수정(guestId 기준 upsert, 마감 후 거부), 응답 현황 조회
 - 검증: 응답 마감일/링크 만료일 규칙은 프론트(`CreateMeetingPage`)와 동일하게 서버에서도 검증
 - 확정 사항: 응답 마감일은 서버에서 10분 단위(KST 기준, 초 단위 0)를 강제한다. 호스트 닉네임은 로그인한 사용자 이름(최대 20자). `guestId`는 클라이언트가 만든 UUID를 `X-Guest-Id` 헤더로 받고(나중에 서버 발급 방식으로 교체 가능하도록 문자열 컬럼으로 저장), 닉네임 중복은 허용한다. 시간 값은 UTC ISO(`Instant`)로 주고받는다.
-- 확정 사항(최종 프론트 연동, 2026-10-10): 후보 날짜 범위는 오늘(KST) 이후, 시작≤종료, 시작·종료 포함 최대 62일이며 응답 날짜는 범위 안이어야 한다. 날짜 동률은 마감 처리 시점의 오늘과 가장 가까운 하나, 장소 동률은 전부 표시한다(3단계). `join`(참여 등록)과 미응답 인원수 집계를 구현한다(MainPage 응답 N/M명용, 인원수만 제공). 추천 후보는 프론트가 보낸 목록을 그대로 저장하고 Kakao 연동(5단계) 때 서버 생성으로 교체한다. 보류: "다시 추천"(회차/이력)은 AI 단계에서, PROPOSE 공동 제안 장소 이름 공개 API는 구현 직전에 다시 확인한다.
+- 확정 사항(최종 프론트 연동, 2026-10-10): 후보 날짜 범위는 오늘(KST) 이후, 시작≤종료, 시작·종료 포함 최대 62일이며 응답 날짜는 범위 안이어야 한다. 날짜 동률은 마감 처리 시점의 오늘과 가장 가까운 하나, 장소 동률은 전부 표시한다(3단계). `join`(참여 등록)과 미응답 인원수 집계를 구현한다(MainPage 응답 N/M명용, 인원수만 제공). 추천 후보는 프론트가 보낸 목록을 그대로 저장하고 Kakao 연동(5단계) 때 서버 생성으로 교체한다. 호스트 응답 수정은 `PUT /api/meetings/{id}/response`(호스트만, 마감 전까지)이며 장소 정책도 함께 보낸다. 게스트 응답이 하나라도 있으면 정책 변경은 409 `POLICY_LOCKED`로 막고(정책이 같으면 호스트 본인 응답 수정은 가능), 호스트 수정과 게스트 제출은 모임 행 쓰기 잠금으로 순서를 보장한다. 보류: "다시 추천"(회차/이력)은 AI 단계에서, PROPOSE 공동 제안 장소 이름 공개 API는 구현 직전에 다시 확인한다.
 
 ### 3단계: 마감과 결과 산출
 - 호스트 수동 마감, 마감 시간 자동 처리(스케줄러)

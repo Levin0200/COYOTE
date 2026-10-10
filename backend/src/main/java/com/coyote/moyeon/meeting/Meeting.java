@@ -109,6 +109,17 @@ public class Meeting {
 		this.createdAt = Instant.now();
 	}
 
+	public void changePlacePolicy(PlacePolicyMode placePolicyMode, String policyRegion, Integer policyRadiusKm,
+			String policyKeyword, String fixedPlace, List<PlaceOption> placeOptions) {
+		this.placePolicyMode = placePolicyMode;
+		this.policyRegion = policyRegion;
+		this.policyRadiusKm = policyRadiusKm;
+		this.policyKeyword = policyKeyword;
+		this.fixedPlace = fixedPlace;
+		this.placeOptions.clear();
+		this.placeOptions.addAll(placeOptions);
+	}
+
 	public boolean isLinkExpired(Instant now) {
 		return linkExpirationDate != null && !now.isBefore(linkExpirationDate);
 	}

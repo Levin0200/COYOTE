@@ -5,11 +5,11 @@ import java.time.Instant;
 import java.time.LocalDate;
 
 public record MeetingDetailResponse(
-		Long id,
+		Long meetingId,
 		String inviteToken,
 		String title,
 		String description,
-		Instant responseDueDate,
+		Instant responseDeadline,
 		Instant linkExpirationDate,
 		LocalDate candidateStartDate,
 		LocalDate candidateEndDate,

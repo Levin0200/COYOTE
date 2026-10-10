@@ -15,7 +15,7 @@ import java.util.List;
 public record CreateMeetingRequest(
 		@NotBlank @Size(max = 100) String title,
 		@Size(max = 1000) String description,
-		@NotNull Instant responseDueDate,
+		@NotNull Instant responseDeadline,
 		Instant linkExpirationDate,
 		@NotNull LocalDate candidateStartDate,
 		@NotNull LocalDate candidateEndDate,
