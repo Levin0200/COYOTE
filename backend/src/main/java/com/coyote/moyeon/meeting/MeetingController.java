@@ -2,6 +2,7 @@ package com.coyote.moyeon.meeting;
 
 import com.coyote.moyeon.meeting.dto.CreateMeetingRequest;
 import com.coyote.moyeon.meeting.dto.MeetingDetailResponse;
+import com.coyote.moyeon.meeting.dto.MeetingResultResponse;
 import com.coyote.moyeon.meeting.dto.UpdateHostResponseRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -35,6 +36,16 @@ public class MeetingController {
 	@GetMapping("/{id}")
 	public MeetingDetailResponse get(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id) {
 		return meetingService.getForHost(Long.valueOf(jwt.getSubject()), id);
+	}
+
+	@PostMapping("/{id}/close")
+	public MeetingDetailResponse close(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id) {
+		return meetingService.closeMeeting(Long.valueOf(jwt.getSubject()), id);
+	}
+
+	@GetMapping("/{id}/result")
+	public MeetingResultResponse result(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id) {
+		return meetingService.getResultForHost(Long.valueOf(jwt.getSubject()), id);
 	}
 
 	@PutMapping("/{id}/response")

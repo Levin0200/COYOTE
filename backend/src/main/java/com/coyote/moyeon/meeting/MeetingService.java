@@ -5,6 +5,7 @@ import com.coyote.moyeon.meeting.dto.CreateMeetingRequest;
 import com.coyote.moyeon.meeting.dto.GuestResponseRequest;
 import com.coyote.moyeon.meeting.dto.InviteInfoResponse;
 import com.coyote.moyeon.meeting.dto.MeetingDetailResponse;
+import com.coyote.moyeon.meeting.dto.MeetingResultResponse;
 import com.coyote.moyeon.meeting.dto.MyResponseView;
 import com.coyote.moyeon.meeting.dto.PlaceOptionData;
 import com.coyote.moyeon.meeting.dto.PlacePolicyData;
@@ -51,13 +52,18 @@ public class MeetingService {
 	private final MeetingRepository meetingRepository;
 	private final ParticipantRepository participantRepository;
 	private final MeetingResponseRepository responseRepository;
+	private final FinalResultRepository finalResultRepository;
+	private final MeetingClosingService closingService;
 
 	public MeetingService(UserRepository userRepository, MeetingRepository meetingRepository,
-			ParticipantRepository participantRepository, MeetingResponseRepository responseRepository) {
+			ParticipantRepository participantRepository, MeetingResponseRepository responseRepository,
+			FinalResultRepository finalResultRepository, MeetingClosingService closingService) {
 		this.userRepository = userRepository;
 		this.meetingRepository = meetingRepository;
 		this.participantRepository = participantRepository;
 		this.responseRepository = responseRepository;
+		this.finalResultRepository = finalResultRepository;
+		this.closingService = closingService;
 	}
 
 	@Transactional
@@ -132,6 +138,53 @@ public class MeetingService {
 				normalized.radius(), normalized.keyword());
 		responseRepository.save(response);
 		return toDetail(meeting, MyResponseView.from(response), now);
+	}
+
+	@Transactional
+	public MeetingDetailResponse closeMeeting(Long userId, Long meetingId) {
+		Meeting meeting = findHostMeeting(userId, meetingId);
+		closingService.closeIfOpen(meetingId, true);
+		return detailForHost(meeting);
+	}
+
+	@Transactional
+	public MeetingResultResponse getResultForHost(Long userId, Long meetingId) {
+		return resultOf(findHostMeeting(userId, meetingId));
+	}
+
+	@Transactional
+	public MeetingResultResponse getResultForGuest(String inviteToken) {
+		return resultOf(findAccessibleByToken(inviteToken, Instant.now()));
+	}
+
+	/** 마감 시각이 지났는데 아직 열려 있으면 이 시점에 마감한다(스케줄러보다 먼저 조회가 온 경우). */
+	private MeetingResultResponse resultOf(Meeting meeting) {
+		if (meeting.getStatus() == MeetingStatus.COLLECTING) {
+			if (Instant.now().isBefore(meeting.getResponseDueDate())) {
+				throw new BusinessException(HttpStatus.CONFLICT, "MEETING_NOT_CLOSED", "아직 응답이 마감되지 않았습니다.");
+			}
+			closingService.closeIfOpen(meeting.getId(), false);
+		}
+		return finalResultRepository.findByMeetingId(meeting.getId())
+				.map(MeetingResultResponse::from)
+				.orElseThrow(() -> new BusinessException(HttpStatus.CONFLICT, "RESULT_NOT_READY", "결과를 준비하고 있습니다."));
+	}
+
+	private Meeting findHostMeeting(Long userId, Long meetingId) {
+		Meeting meeting = meetingRepository.findById(meetingId)
+				.orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "MEETING_NOT_FOUND", "모임을 찾을 수 없습니다."));
+		if (!meeting.getHost().getId().equals(userId)) {
+			throw new BusinessException(HttpStatus.FORBIDDEN, "FORBIDDEN", "이 모임에 접근할 권한이 없습니다.");
+		}
+		return meeting;
+	}
+
+	private MeetingDetailResponse detailForHost(Meeting meeting) {
+		MyResponseView mine = participantRepository.findByMeetingIdAndRole(meeting.getId(), ParticipantRole.HOST)
+				.flatMap(p -> responseRepository.findByParticipantId(p.getId()))
+				.map(MyResponseView::from)
+				.orElse(null);
+		return toDetail(meeting, mine, Instant.now());
 	}
 
 	@Transactional(readOnly = true)

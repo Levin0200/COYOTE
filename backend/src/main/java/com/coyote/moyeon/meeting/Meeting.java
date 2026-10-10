@@ -120,6 +120,11 @@ public class Meeting {
 		this.placeOptions.addAll(placeOptions);
 	}
 
+	public void complete(boolean manuallyClosed) {
+		this.status = MeetingStatus.COMPLETED;
+		this.manuallyClosed = manuallyClosed;
+	}
+
 	public boolean isLinkExpired(Instant now) {
 		return linkExpirationDate != null && !now.isBefore(linkExpirationDate);
 	}

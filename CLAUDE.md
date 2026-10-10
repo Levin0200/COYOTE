@@ -67,6 +67,7 @@
 - 호스트 수동 마감, 마감 시간 자동 처리(스케줄러)
 - 날짜/장소 최다 득표 계산, 동률 처리(`TIE_BREAK`), FinalResult 저장
 - 결과 조회 API (프론트 `createMockFinalResult` 로직을 서버로 이전)
+- 구현 완료(2026-10-10): 마감 처리는 `MeetingClosingService.closeIfOpen`(멱등, 모임 행 잠금) 하나이며 수동 마감(`POST /api/meetings/{id}/close`, 호스트), 스케줄러(`MeetingCloseScheduler`, 1분 주기와 서버 시작 시 1회, `app.scheduling.enabled`로 끔), 결과 조회 시 지연 마감에서 호출한다. 마감 즉시 결과를 계산·저장하고 상태를 바로 `COMPLETED`로 바꾼다(`CLOSED`는 비동기 AI 생성용으로 예약). 결과 계산은 `FinalResultGenerator` 인터페이스(기본 구현 `VoteCountResultGenerator`)로 분리해 AI 구현으로 교체할 수 있다. 결과 조회는 호스트 `GET /api/meetings/{id}/result`(JWT, 링크 만료와 무관), 게스트 `GET /api/invites/{token}/result`(공개, 링크 만료 410). 마감 전 409 `MEETING_NOT_CLOSED`. 결과는 집계 값만 포함하고 개별 응답·닉네임은 공개하지 않는다.
 
 ### 4단계: 마이페이지
 - 프로필 조회/수정, 확정된 내 모임 목록(캘린더 이벤트) API

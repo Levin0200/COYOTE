@@ -2,6 +2,7 @@ package com.coyote.moyeon.meeting;
 
 import com.coyote.moyeon.meeting.dto.GuestResponseRequest;
 import com.coyote.moyeon.meeting.dto.InviteInfoResponse;
+import com.coyote.moyeon.meeting.dto.MeetingResultResponse;
 import com.coyote.moyeon.meeting.dto.MyResponseView;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -29,6 +30,11 @@ public class InviteController {
 	@GetMapping
 	public InviteInfoResponse info(@PathVariable String inviteToken) {
 		return meetingService.getInvite(inviteToken);
+	}
+
+	@GetMapping("/result")
+	public MeetingResultResponse result(@PathVariable String inviteToken) {
+		return meetingService.getResultForGuest(inviteToken);
 	}
 
 	@PutMapping("/response")
