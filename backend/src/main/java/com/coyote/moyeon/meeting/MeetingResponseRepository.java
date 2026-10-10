@@ -13,6 +13,10 @@ public interface MeetingResponseRepository extends JpaRepository<MeetingResponse
 
 	long countByMeetingId(Long meetingId);
 
+	@Query("select new com.coyote.moyeon.meeting.MeetingCount(r.meeting.id, count(r)) from MeetingResponse r "
+			+ "where r.meeting.host.id = :hostId group by r.meeting.id")
+	List<MeetingCount> countByHost(@Param("hostId") Long hostId);
+
 	@EntityGraph(attributePaths = "availableDates")
 	@Query("select r from MeetingResponse r where r.meeting.id = :meetingId")
 	List<MeetingResponse> findAllWithDatesByMeetingId(@Param("meetingId") Long meetingId);

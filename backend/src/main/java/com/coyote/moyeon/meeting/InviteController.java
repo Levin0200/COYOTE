@@ -2,6 +2,8 @@ package com.coyote.moyeon.meeting;
 
 import com.coyote.moyeon.meeting.dto.GuestResponseRequest;
 import com.coyote.moyeon.meeting.dto.InviteInfoResponse;
+import com.coyote.moyeon.meeting.dto.JoinRequest;
+import com.coyote.moyeon.meeting.dto.JoinResponse;
 import com.coyote.moyeon.meeting.dto.MeetingResultResponse;
 import com.coyote.moyeon.meeting.dto.MyResponseView;
 import jakarta.validation.Valid;
@@ -9,6 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -35,6 +38,13 @@ public class InviteController {
 	@GetMapping("/result")
 	public MeetingResultResponse result(@PathVariable String inviteToken) {
 		return meetingService.getResultForGuest(inviteToken);
+	}
+
+	@PostMapping("/join")
+	public ResponseEntity<JoinResponse> join(@PathVariable String inviteToken,
+			@RequestHeader(GUEST_ID_HEADER) String guestId, @Valid @RequestBody JoinRequest request) {
+		MeetingService.JoinResult result = meetingService.joinGuest(inviteToken, guestId, request);
+		return ResponseEntity.status(result.created() ? HttpStatus.CREATED : HttpStatus.OK).body(result.response());
 	}
 
 	@PutMapping("/response")

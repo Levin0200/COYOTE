@@ -4,8 +4,11 @@ import com.coyote.moyeon.common.exception.BusinessException;
 import com.coyote.moyeon.meeting.dto.CreateMeetingRequest;
 import com.coyote.moyeon.meeting.dto.GuestResponseRequest;
 import com.coyote.moyeon.meeting.dto.InviteInfoResponse;
+import com.coyote.moyeon.meeting.dto.JoinRequest;
+import com.coyote.moyeon.meeting.dto.JoinResponse;
 import com.coyote.moyeon.meeting.dto.MeetingDetailResponse;
 import com.coyote.moyeon.meeting.dto.MeetingResultResponse;
+import com.coyote.moyeon.meeting.dto.MeetingSummaryResponse;
 import com.coyote.moyeon.meeting.dto.MyResponseView;
 import com.coyote.moyeon.meeting.dto.PlaceOptionData;
 import com.coyote.moyeon.meeting.dto.PlacePolicyData;
@@ -23,7 +26,9 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Locale;
 import java.util.Set;
@@ -38,6 +43,9 @@ import org.springframework.transaction.annotation.Transactional;
 public class MeetingService {
 
 	public record SubmitResult(boolean created, MyResponseView response) {
+	}
+
+	public record JoinResult(boolean created, JoinResponse response) {
 	}
 
 	private static final ZoneId KST = ZoneId.of("Asia/Seoul");
@@ -231,6 +239,56 @@ public class MeetingService {
 				normalized.radius(), normalized.keyword());
 		responseRepository.save(response);
 		return new SubmitResult(created, MyResponseView.from(response));
+	}
+
+	@Transactional
+	public JoinResult joinGuest(String inviteToken, String rawGuestId, JoinRequest request) {
+		Instant now = Instant.now();
+		Meeting meeting = findAccessibleByToken(inviteToken, now, true);
+		String guestId = normalizeGuestId(rawGuestId);
+		if (meeting.isClosed(now)) {
+			throw new BusinessException(HttpStatus.CONFLICT, "MEETING_CLOSED", "응답이 마감되어 참여할 수 없습니다.");
+		}
+		String nickname = request.nickname().trim();
+
+		Participant participant = participantRepository.findByMeetingIdAndGuestId(meeting.getId(), guestId).orElse(null);
+		if (participant == null) {
+			try {
+				participantRepository.saveAndFlush(Participant.guest(meeting, guestId, nickname));
+			} catch (DataIntegrityViolationException e) {
+				throw new BusinessException(HttpStatus.CONFLICT, "DUPLICATE_SUBMISSION", "잠시 후 다시 시도해주세요.");
+			}
+			return new JoinResult(true, new JoinResponse(nickname, false));
+		}
+		participant.changeNickname(nickname);
+		boolean responded = responseRepository.findByParticipantId(participant.getId()).isPresent();
+		return new JoinResult(false, new JoinResponse(nickname, responded));
+	}
+
+	@Transactional(readOnly = true)
+	public List<MeetingSummaryResponse> listMine(Long userId) {
+		List<Meeting> meetings = meetingRepository.findByHostIdOrderByIdDesc(userId);
+		if (meetings.isEmpty()) {
+			return List.of();
+		}
+		Map<Long, Long> participantCounts = toMap(participantRepository.countByHost(userId));
+		Map<Long, Long> responseCounts = toMap(responseRepository.countByHost(userId));
+		Map<Long, FinalResult> results = new HashMap<>();
+		finalResultRepository.findAllByHostId(userId).forEach(r -> results.put(r.getMeeting().getId(), r));
+
+		Instant now = Instant.now();
+		return meetings.stream().map(m -> new MeetingSummaryResponse(m.getId(), m.getInviteToken(), m.getTitle(),
+				m.getDescription(), m.getResponseDueDate(), m.getStatus(), m.isClosed(now),
+				participantCounts.getOrDefault(m.getId(), 0L), responseCounts.getOrDefault(m.getId(), 0L),
+				m.getCreatedAt(),
+				results.containsKey(m.getId()) ? MeetingSummaryResponse.ResultSummary.from(results.get(m.getId())) : null))
+				.toList();
+	}
+
+	private Map<Long, Long> toMap(List<MeetingCount> counts) {
+		Map<Long, Long> map = new HashMap<>();
+		counts.forEach(c -> map.put(c.meetingId(), c.count()));
+		return map;
 	}
 
 	@Transactional(readOnly = true)

@@ -13,6 +13,8 @@ public interface MeetingRepository extends JpaRepository<Meeting, Long> {
 
 	Optional<Meeting> findByInviteToken(String inviteToken);
 
+	List<Meeting> findByHostIdOrderByIdDesc(Long hostId);
+
 	@Query("select m.id from Meeting m where m.status = :status and m.responseDueDate <= :now")
 	List<Long> findDueMeetingIds(@Param("status") MeetingStatus status, @Param("now") Instant now);
 

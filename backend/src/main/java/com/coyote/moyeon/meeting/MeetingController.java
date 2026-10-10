@@ -3,8 +3,10 @@ package com.coyote.moyeon.meeting;
 import com.coyote.moyeon.meeting.dto.CreateMeetingRequest;
 import com.coyote.moyeon.meeting.dto.MeetingDetailResponse;
 import com.coyote.moyeon.meeting.dto.MeetingResultResponse;
+import com.coyote.moyeon.meeting.dto.MeetingSummaryResponse;
 import com.coyote.moyeon.meeting.dto.UpdateHostResponseRequest;
 import jakarta.validation.Valid;
+import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -31,6 +33,11 @@ public class MeetingController {
 	@ResponseStatus(HttpStatus.CREATED)
 	public MeetingDetailResponse create(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody CreateMeetingRequest request) {
 		return meetingService.create(Long.valueOf(jwt.getSubject()), request);
+	}
+
+	@GetMapping
+	public List<MeetingSummaryResponse> listMine(@AuthenticationPrincipal Jwt jwt) {
+		return meetingService.listMine(Long.valueOf(jwt.getSubject()));
 	}
 
 	@GetMapping("/{id}")

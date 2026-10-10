@@ -68,6 +68,7 @@
 - 날짜/장소 최다 득표 계산, 동률 처리(`TIE_BREAK`), FinalResult 저장
 - 결과 조회 API (프론트 `createMockFinalResult` 로직을 서버로 이전)
 - 구현 완료(2026-10-10): 마감 처리는 `MeetingClosingService.closeIfOpen`(멱등, 모임 행 잠금) 하나이며 수동 마감(`POST /api/meetings/{id}/close`, 호스트), 스케줄러(`MeetingCloseScheduler`, 1분 주기와 서버 시작 시 1회, `app.scheduling.enabled`로 끔), 결과 조회 시 지연 마감에서 호출한다. 마감 즉시 결과를 계산·저장하고 상태를 바로 `COMPLETED`로 바꾼다(`CLOSED`는 비동기 AI 생성용으로 예약). 결과 계산은 `FinalResultGenerator` 인터페이스(기본 구현 `VoteCountResultGenerator`)로 분리해 AI 구현으로 교체할 수 있다. 결과 조회는 호스트 `GET /api/meetings/{id}/result`(JWT, 링크 만료와 무관), 게스트 `GET /api/invites/{token}/result`(공개, 링크 만료 410). 마감 전 409 `MEETING_NOT_CLOSED`. 결과는 집계 값만 포함하고 개별 응답·닉네임은 공개하지 않는다.
+- 구현 완료(2026-10-10, 참여 등록·내 모임 목록): `POST /api/invites/{token}/join`(공개, `X-Guest-Id`, 닉네임)은 응답 없이 참여자만 만들고(처음 201, 같은 guestId 재호출 200으로 닉네임 갱신) `participantCount`는 호스트+등록한 게스트, `responseCount`는 응답 제출자다. 결과 계산에는 응답한 사람만 들어간다. 마감·만료 후 등록은 409/410. `GET /api/meetings`(JWT)는 로그인한 사용자가 호스트인 모임 전체를 최신순으로(페이지 없음) 내려주며 항목은 meetingId, inviteToken, title, description, responseDeadline, status, closed, participantCount, responseCount, createdAt, result(마감 후 요약, 없으면 null)다. 참여자 수 상한은 두지 않았다(보안 점검 단계에서 다룸).
 
 ### 4단계: 마이페이지
 - 프로필 조회/수정, 확정된 내 모임 목록(캘린더 이벤트) API
