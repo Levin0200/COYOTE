@@ -1,7 +1,8 @@
 package com.coyote.moyeon.meeting;
 
 public enum PlaceMode {
-	MANUAL,
+	FIXED,
 	RECOMMEND,
-	SKIP
+	PROPOSE,
+	OPEN
 }

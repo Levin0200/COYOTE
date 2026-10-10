@@ -50,6 +50,11 @@ public class MeetingResponse {
 	@Column(length = 100)
 	private String placePreference;
 
+	private Integer recommendationRadius;
+
+	@Column(length = 100)
+	private String recommendationKeyword;
+
 	private Double latitude;
 
 	private Double longitude;
@@ -72,12 +77,15 @@ public class MeetingResponse {
 		this.updatedAt = this.createdAt;
 	}
 
-	public void update(Set<LocalDate> dates, PlaceMode placeMode, String region, String placePreference) {
+	public void update(Set<LocalDate> dates, PlaceMode placeMode, String region, String placePreference,
+			Integer recommendationRadius, String recommendationKeyword) {
 		this.availableDates.clear();
 		this.availableDates.addAll(dates);
 		this.placeMode = placeMode;
 		this.region = region;
 		this.placePreference = placePreference;
+		this.recommendationRadius = recommendationRadius;
+		this.recommendationKeyword = recommendationKeyword;
 		this.updatedAt = Instant.now();
 	}
 }
