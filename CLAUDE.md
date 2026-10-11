@@ -11,7 +11,7 @@
 
 - 초대 링크 기반 모임 일정/장소 조율 서비스. 호스트가 모임을 만들고, 게스트는 링크 + 닉네임으로 날짜/장소를 응답하며, 마감 후 최종 날짜/장소를 산출한다.
 - 백엔드: Spring Boot 4.1.1, Java 25, Gradle, JPA, Spring Security. 패키지 루트 `com.coyote.moyeon`.
-- 프론트엔드: `D:\2학년\캡스톤\COYOTE\front\meeting-service` (React 19 + Vite, 개발 서버 `http://localhost:5173`). 현재는 localStorage(`src/services/meetingStorage.js`)가 DB 역할을 하며, 백엔드가 이를 대체한다.
+- 프론트엔드: `D:\2학년\캡스톤\COYOTE-frontend\frontend` (React 19 + Vite, 개발 서버 `http://localhost:5173`, API 주소는 `.env.development`의 `VITE_API_BASE_URL`). 인증, 모임 생성·참여·현황·결과·목록 화면은 이 백엔드와 연동되어 있다(2026-10-11, 로컬 저장소 DB 역할은 종료). 마이페이지의 확정 모임 캘린더와 모임 상세 페이지는 아직 목업이다.
 - UserPreferences 페이지는 범위에서 제외했다. 취향/관심사 엔티티는 만들지 않는다.
 
 ## 확정된 결정
@@ -77,5 +77,5 @@
 - Kakao Local API 서버 프록시(키는 환경변수), 기준 지역 검색, 거리순 추천
 
 ### 6단계: 프론트 연동과 테스트
-- 프론트 axios 서비스 레이어로 `meetingStorage` 호출부를 페이지별로 교체 (프론트 수정 전에 사용자 확인)
+- 프론트 axios 서비스 레이어로 `meetingStorage` 호출부를 페이지별로 교체 (프론트 수정 전에 사용자 확인) — 완료(2026-10-11): 회원가입·로그인부터 모임 생성, 게스트 참여·수정, 호스트 수정·마감, 결과, 모임 현황까지 화면에서 확인함. 남은 항목은 `FRONTEND_CHANGES.md`와 아래 4단계·5단계 참고
 - 서비스/컨트롤러 테스트, MariaDB 전환 검증(로컬 MariaDB에서 전체 플로우 실행)
