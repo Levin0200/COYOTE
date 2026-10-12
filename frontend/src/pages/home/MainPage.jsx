@@ -70,34 +70,37 @@ function MainPage() {
   ];
 
   return (
-    <main className="min-h-screen bg-slate-50 text-slate-900">
+    <main
+      className="min-h-screen bg-slate-50 text-slate-900"
+      style={{ fontFamily: "Arial, sans-serif" }}
+    >
       <AppHeader />
 
-      <div className="mx-auto max-w-6xl px-6 pb-20 pt-12 sm:pt-16">
+      <div className="mx-auto max-w-[1280px] px-6 pb-[60px] pt-[34px]">
         <section className="mb-8 flex flex-wrap items-end justify-between gap-5">
           <div>
-            <p className="mb-3 text-xs font-bold uppercase tracking-[0.14em] text-[#4F7DF3]">Meeting dashboard</p>
-            <h1 className="text-3xl font-black tracking-[-0.045em] text-slate-900 sm:text-4xl">모임 현황</h1>
-            <p className="mt-3 text-sm leading-6 text-slate-500 sm:text-base">진행 중인 모임의 응답 상황을 한눈에 확인하세요.</p>
+            <p className="mb-2 text-[13px] font-bold uppercase tracking-[0.12em] text-[#4F7DF3]">Meeting dashboard</p>
+            <h1 className="text-[32px] font-extrabold tracking-[-0.035em] text-[#172033]">모임 현황</h1>
+            <p className="mt-2 text-[15px] leading-6 text-slate-500">진행 중인 모임의 응답 상황을 한눈에 확인하세요.</p>
           </div>
         </section>
 
-        <section aria-label="모임 요약" className="mb-8 grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <div className="rounded-3xl border border-slate-200/80 bg-white p-5 shadow-sm">
+        <section aria-label="모임 요약" className="mb-7 grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div className="rounded-[24px] border border-[#E8EDF3] bg-white p-[22px] shadow-[0_3px_12px_rgba(15,23,42,0.05)]">
             <p className="text-sm font-medium text-slate-500">진행 중인 모임</p>
             <p className="mt-2 text-3xl font-black tracking-tight text-slate-900">{ongoingMeetings.length}<span className="ml-1 text-base font-bold text-slate-400">개</span></p>
           </div>
-          <div className="rounded-3xl border border-slate-200/80 bg-white p-5 shadow-sm">
+          <div className="rounded-[24px] border border-[#E8EDF3] bg-white p-[22px] shadow-[0_3px_12px_rgba(15,23,42,0.05)]">
             <p className="text-sm font-medium text-slate-500">현재 응답 현황</p>
             <p className="mt-2 text-3xl font-black tracking-tight text-[#4F7DF3]">{responseCount}<span className="mx-1 text-base font-bold text-slate-400">/</span>{memberCount}<span className="ml-1 text-base font-bold text-slate-400">명</span></p>
           </div>
-          <div className="rounded-3xl border border-slate-200/80 bg-white p-5 shadow-sm">
+          <div className="rounded-[24px] border border-[#E8EDF3] bg-white p-[22px] shadow-[0_3px_12px_rgba(15,23,42,0.05)]">
             <p className="text-sm font-medium text-slate-500">완료된 모임</p>
             <p className="mt-2 text-3xl font-black tracking-tight text-slate-900">{completedMeetings.length}<span className="ml-1 text-base font-bold text-slate-400">개</span></p>
           </div>
         </section>
 
-        <section className="rounded-[2rem] border border-slate-200/80 bg-white p-5 shadow-sm sm:p-7">
+        <section className="rounded-[24px] border border-[#E8EDF3] bg-white p-5 shadow-[0_3px_12px_rgba(15,23,42,0.05)] sm:p-7">
           <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
             <div>
               <h2 className="text-lg font-extrabold tracking-tight text-slate-900">내 모임</h2>
@@ -126,7 +129,7 @@ function MainPage() {
               const ongoing = !meeting.closed;
               const progress = progressOf(meeting);
               const result = meeting.result;
-              return <article key={meeting.meetingId} className="rounded-3xl border border-slate-200 bg-white p-5 transition duration-200 hover:border-blue-200 hover:shadow-md sm:p-6">
+              return <article key={meeting.meetingId} className="rounded-[20px] border border-slate-200 bg-white p-5 transition duration-200 hover:border-blue-200 hover:shadow-md sm:p-[22px]">
                 <div className="mb-4 flex items-center justify-between gap-3">
                   <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-bold ${ongoing ? "bg-blue-50 text-[#3D6BE5]" : "bg-emerald-50 text-emerald-700"}`}>
                     <span className={`h-1.5 w-1.5 rounded-full ${ongoing ? "bg-[#4F7DF3]" : "bg-emerald-500"}`} />{ongoing ? "진행 중" : "완료"}

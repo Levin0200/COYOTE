@@ -29,13 +29,16 @@ function AppHeader() {
   const visibleNavItems = navItems.filter(
     (item) => !(pathname === "/mypage" && item.to === "/mypage")
   );
+  const isMeetingStatusPage = pathname === "/main" || pathname === "/ongoing-meetings";
+  const logoTarget = isMeetingStatusPage ? "/mypage" : "/main";
+  const logoTargetLabel = isMeetingStatusPage ? "마이페이지" : "모임 현황";
 
   const closeMenu = () => setMenuOpen(false);
 
   return (
     <header className="relative z-40 border-b border-slate-100 bg-white shadow-[0_2px_8px_rgba(15,23,42,0.035)]">
       <div className="mx-auto flex h-[76px] max-w-6xl items-center justify-between px-5 sm:px-6">
-        <button type="button" onClick={() => navigate("/main")} aria-label="모여ON 모임 현황으로 이동" className="flex shrink-0 items-center gap-3 border-0 bg-transparent p-0 text-left">
+        <button type="button" onClick={() => navigate(logoTarget)} aria-label={`모여ON ${logoTargetLabel}으로 이동`} title={`${logoTargetLabel}으로 이동`} className="flex shrink-0 items-center gap-3 border-0 bg-transparent p-0 text-left">
           <span className="flex h-[42px] w-[42px] items-center justify-center rounded-xl bg-[#4F7DF3] text-2xl font-black leading-none text-white shadow-[0_4px_10px_rgba(79,125,243,0.2)]">
             M
           </span>

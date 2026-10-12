@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AppHeader from "../../components/AppHeader";
-import { fetchMe, logout } from "../../services/authService";
+import { deleteMe, fetchMe, logout, updateMe } from "../../services/authService";
+import { getErrorMessage } from "../../services/api";
 import { fetchMeetingVotes, fetchMyMeetings } from "../../services/meetingService";
 import { getMeetingErrorMessage } from "../../utils/meetingErrors";
 
@@ -35,6 +36,16 @@ function MainPage() {
 
   const [user, setUser] = useState(null);
   const [userLoadFailed, setUserLoadFailed] = useState(false);
+  const [profileEditOpen, setProfileEditOpen] = useState(false);
+  const [profileName, setProfileName] = useState("");
+  const [profileAddress, setProfileAddress] = useState("");
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileError, setProfileError] = useState("");
+  const [withdrawOpen, setWithdrawOpen] = useState(false);
+  const [withdrawConfirmText, setWithdrawConfirmText] = useState("");
+  const [withdrawing, setWithdrawing] = useState(false);
+  const [withdrawError, setWithdrawError] = useState("");
+  const [withdrawComplete, setWithdrawComplete] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -62,6 +73,94 @@ function MainPage() {
     : userLoadFailed
       ? "정보를 불러오지 못했습니다"
       : "";
+
+  const openProfileEdit = () => {
+    if (!user) return;
+    setProfileName(user.name || "");
+    setProfileAddress(user.address || "");
+    setProfileError("");
+    setProfileEditOpen(true);
+  };
+
+  const closeProfileEdit = () => {
+    if (profileSaving) return;
+    setProfileEditOpen(false);
+    setProfileError("");
+  };
+
+  const saveProfile = async (event) => {
+    event.preventDefault();
+
+    const name = profileName.trim();
+    const address = profileAddress.trim();
+
+    if (!name) {
+      setProfileError("이름을 입력해주세요.");
+      return;
+    }
+    if (name.length > 50) {
+      setProfileError("이름은 50자 이하로 입력해주세요.");
+      return;
+    }
+    if (address.length > 255) {
+      setProfileError("주소는 255자 이하로 입력해주세요.");
+      return;
+    }
+
+    setProfileSaving(true);
+    setProfileError("");
+
+    try {
+      const updatedUser = await updateMe({ name, address });
+      setUser(updatedUser);
+      setUserLoadFailed(false);
+      setProfileEditOpen(false);
+    } catch (error) {
+      setProfileError(getErrorMessage(error));
+    } finally {
+      setProfileSaving(false);
+    }
+  };
+
+  const openWithdraw = () => {
+    setWithdrawConfirmText("");
+    setWithdrawError("");
+    setWithdrawOpen(true);
+  };
+
+  const closeWithdraw = () => {
+    if (withdrawing) return;
+    setWithdrawOpen(false);
+    setWithdrawConfirmText("");
+    setWithdrawError("");
+  };
+
+  const withdrawAccount = async (event) => {
+    event.preventDefault();
+    if (withdrawConfirmText.trim() !== "탈퇴") {
+      setWithdrawError("확인을 위해 ‘탈퇴’를 정확히 입력해주세요.");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      "정말로 회원 탈퇴하시겠습니까?\n탈퇴한 계정 정보는 복구할 수 없습니다."
+    );
+    if (!confirmed) return;
+
+    setWithdrawing(true);
+    setWithdrawError("");
+
+    try {
+      await deleteMe();
+      logout();
+      setWithdrawOpen(false);
+      setWithdrawComplete(true);
+    } catch (error) {
+      setWithdrawError(getErrorMessage(error));
+    } finally {
+      setWithdrawing(false);
+    }
+  };
 
   // --------------------------------------------------
   // 확정된 모임 (서버)
@@ -372,6 +471,381 @@ const nextMeeting =
       ================================================== */}
 
       <AppHeader />
+
+      {profileEditOpen && (
+        <div
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) closeProfileEdit();
+          }}
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 1000,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "24px",
+            backgroundColor: "rgba(15, 23, 42, 0.48)",
+          }}
+        >
+          <form
+            onSubmit={saveProfile}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="profile-edit-title"
+            style={{
+              width: "100%",
+              maxWidth: "460px",
+              borderRadius: "24px",
+              backgroundColor: "#FFFFFF",
+              padding: "28px",
+              boxShadow: "0 24px 70px rgba(15, 23, 42, 0.24)",
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", gap: "16px" }}>
+              <div>
+                <p style={{ margin: 0, color: "#4F7DF3", fontSize: "13px", fontWeight: 800 }}>
+                  PROFILE
+                </p>
+                <h2 id="profile-edit-title" style={{ margin: "6px 0 0", color: "#172033", fontSize: "26px" }}>
+                  회원정보 수정
+                </h2>
+              </div>
+              <button
+                type="button"
+                onClick={closeProfileEdit}
+                disabled={profileSaving}
+                aria-label="회원정보 수정 닫기"
+                style={{
+                  width: "38px",
+                  height: "38px",
+                  border: "none",
+                  borderRadius: "12px",
+                  backgroundColor: "#F1F5F9",
+                  color: "#64748B",
+                  cursor: profileSaving ? "not-allowed" : "pointer",
+                  fontSize: "20px",
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            <label style={{ display: "block", marginTop: "24px", color: "#475569", fontSize: "13px", fontWeight: 700 }}>
+              이메일
+              <input
+                value={user?.email || ""}
+                readOnly
+                style={{
+                  width: "100%",
+                  boxSizing: "border-box",
+                  marginTop: "8px",
+                  border: "1px solid #E2E8F0",
+                  borderRadius: "14px",
+                  padding: "13px 14px",
+                  backgroundColor: "#F8FAFC",
+                  color: "#94A3B8",
+                }}
+              />
+            </label>
+
+            <label style={{ display: "block", marginTop: "18px", color: "#475569", fontSize: "13px", fontWeight: 700 }}>
+              이름 <span style={{ color: "#EF4444" }}>*</span>
+              <input
+                value={profileName}
+                onChange={(event) => setProfileName(event.target.value)}
+                maxLength={50}
+                autoFocus
+                disabled={profileSaving}
+                style={{
+                  width: "100%",
+                  boxSizing: "border-box",
+                  marginTop: "8px",
+                  border: "1px solid #CBD5E1",
+                  borderRadius: "14px",
+                  padding: "13px 14px",
+                  color: "#172033",
+                  outlineColor: "#4F7DF3",
+                }}
+              />
+            </label>
+
+            <label style={{ display: "block", marginTop: "18px", color: "#475569", fontSize: "13px", fontWeight: 700 }}>
+              주소 <span style={{ color: "#94A3B8", fontWeight: 500 }}>(선택)</span>
+              <input
+                value={profileAddress}
+                onChange={(event) => setProfileAddress(event.target.value)}
+                maxLength={255}
+                disabled={profileSaving}
+                placeholder="예) 인천광역시 동구"
+                style={{
+                  width: "100%",
+                  boxSizing: "border-box",
+                  marginTop: "8px",
+                  border: "1px solid #CBD5E1",
+                  borderRadius: "14px",
+                  padding: "13px 14px",
+                  color: "#172033",
+                  outlineColor: "#4F7DF3",
+                }}
+              />
+            </label>
+
+            {profileError && (
+              <p
+                role="alert"
+                style={{
+                  margin: "16px 0 0",
+                  borderRadius: "12px",
+                  padding: "11px 13px",
+                  backgroundColor: "#FFF1F2",
+                  color: "#E11D48",
+                  fontSize: "13px",
+                  fontWeight: 700,
+                }}
+              >
+                {profileError}
+              </p>
+            )}
+
+            <div style={{ display: "flex", gap: "10px", marginTop: "24px" }}>
+              <button
+                type="button"
+                onClick={closeProfileEdit}
+                disabled={profileSaving}
+                style={{
+                  flex: 1,
+                  border: "1px solid #E2E8F0",
+                  borderRadius: "14px",
+                  padding: "13px",
+                  backgroundColor: "#FFFFFF",
+                  color: "#475569",
+                  fontWeight: 800,
+                  cursor: profileSaving ? "not-allowed" : "pointer",
+                }}
+              >
+                취소
+              </button>
+              <button
+                type="submit"
+                disabled={profileSaving}
+                style={{
+                  flex: 2,
+                  border: "none",
+                  borderRadius: "14px",
+                  padding: "13px",
+                  backgroundColor: profileSaving ? "#94A3B8" : "#4F7DF3",
+                  color: "#FFFFFF",
+                  fontWeight: 800,
+                  cursor: profileSaving ? "wait" : "pointer",
+                }}
+              >
+                {profileSaving ? "저장 중..." : "변경사항 저장"}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {withdrawOpen && (
+        <div
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) closeWithdraw();
+          }}
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 1000,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "24px",
+            backgroundColor: "rgba(15, 23, 42, 0.48)",
+          }}
+        >
+          <form
+            onSubmit={withdrawAccount}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="withdraw-title"
+            style={{
+              width: "100%",
+              maxWidth: "430px",
+              borderRadius: "24px",
+              backgroundColor: "#FFFFFF",
+              padding: "28px",
+              boxShadow: "0 24px 70px rgba(15, 23, 42, 0.24)",
+            }}
+          >
+            <p style={{ margin: 0, color: "#94A3B8", fontSize: "12px", fontWeight: 800 }}>
+              ACCOUNT
+            </p>
+            <h2 id="withdraw-title" style={{ margin: "7px 0 0", color: "#172033", fontSize: "25px" }}>
+              회원 탈퇴
+            </h2>
+            <p style={{ margin: "14px 0 0", color: "#64748B", fontSize: "14px", lineHeight: 1.7 }}>
+              탈퇴하면 계정 정보와 직접 만든 모임, 참여 응답 기록이 모두 삭제되며 복구할 수 없습니다.
+            </p>
+
+            <label style={{ display: "block", marginTop: "22px", color: "#475569", fontSize: "13px", fontWeight: 700 }}>
+              계속하려면 <strong style={{ color: "#E11D48" }}>탈퇴</strong>를 입력해주세요.
+              <input
+                value={withdrawConfirmText}
+                onChange={(event) => setWithdrawConfirmText(event.target.value)}
+                disabled={withdrawing}
+                autoFocus
+                autoComplete="off"
+                placeholder="탈퇴"
+                style={{
+                  width: "100%",
+                  boxSizing: "border-box",
+                  marginTop: "9px",
+                  border: "1px solid #CBD5E1",
+                  borderRadius: "14px",
+                  padding: "13px 14px",
+                  color: "#172033",
+                  outlineColor: "#E11D48",
+                }}
+              />
+            </label>
+
+            {withdrawError && (
+              <p
+                role="alert"
+                style={{
+                  margin: "15px 0 0",
+                  borderRadius: "12px",
+                  padding: "11px 13px",
+                  backgroundColor: "#FFF1F2",
+                  color: "#E11D48",
+                  fontSize: "13px",
+                  fontWeight: 700,
+                }}
+              >
+                {withdrawError}
+              </p>
+            )}
+
+            <div style={{ display: "flex", gap: "10px", marginTop: "24px" }}>
+              <button
+                type="button"
+                onClick={closeWithdraw}
+                disabled={withdrawing}
+                style={{
+                  flex: 1,
+                  border: "1px solid #E2E8F0",
+                  borderRadius: "14px",
+                  padding: "13px",
+                  backgroundColor: "#FFFFFF",
+                  color: "#475569",
+                  fontWeight: 800,
+                  cursor: withdrawing ? "not-allowed" : "pointer",
+                }}
+              >
+                취소
+              </button>
+              <button
+                type="submit"
+                disabled={withdrawing || withdrawConfirmText.trim() !== "탈퇴"}
+                style={{
+                  flex: 1.4,
+                  border: "none",
+                  borderRadius: "14px",
+                  padding: "13px",
+                  backgroundColor:
+                    withdrawing || withdrawConfirmText.trim() !== "탈퇴" ? "#CBD5E1" : "#E11D48",
+                  color: "#FFFFFF",
+                  fontWeight: 800,
+                  cursor: withdrawing ? "wait" : "pointer",
+                }}
+              >
+                {withdrawing ? "처리 중..." : "회원 탈퇴"}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {withdrawComplete && (
+        <div
+          role="presentation"
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 1100,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "24px",
+            backgroundColor: "rgba(15, 23, 42, 0.52)",
+          }}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="withdraw-complete-title"
+            style={{
+              width: "100%",
+              maxWidth: "430px",
+              borderRadius: "28px",
+              backgroundColor: "#FFFFFF",
+              padding: "34px 30px 30px",
+              textAlign: "center",
+              boxShadow: "0 28px 80px rgba(15, 23, 42, 0.28)",
+            }}
+          >
+            <div
+              aria-hidden="true"
+              style={{
+                display: "flex",
+                width: "68px",
+                height: "68px",
+                margin: "0 auto",
+                alignItems: "center",
+                justifyContent: "center",
+                borderRadius: "22px",
+                background: "linear-gradient(135deg, #EEF4FF 0%, #F3E8FF 100%)",
+                color: "#4F7DF3",
+                fontSize: "30px",
+                fontWeight: 900,
+              }}
+            >
+              M
+            </div>
+            <p style={{ margin: "20px 0 0", color: "#4F7DF3", fontSize: "12px", fontWeight: 900, letterSpacing: "0.08em" }}>
+              GOODBYE
+            </p>
+            <h2 id="withdraw-complete-title" style={{ margin: "8px 0 0", color: "#172033", fontSize: "27px" }}>
+              이용해 주셔서 감사합니다
+            </h2>
+            <p style={{ margin: "14px auto 0", maxWidth: "330px", color: "#64748B", fontSize: "14px", lineHeight: 1.75 }}>
+              회원 탈퇴가 완료되었습니다.<br />모여ON과 함께한 시간이 좋은 기억으로 남기를 바랍니다.
+            </p>
+            <button
+              type="button"
+              autoFocus
+              onClick={() => navigate("/", { replace: true })}
+              style={{
+                width: "100%",
+                marginTop: "26px",
+                border: "none",
+                borderRadius: "15px",
+                padding: "14px",
+                backgroundColor: "#4F7DF3",
+                color: "#FFFFFF",
+                fontSize: "15px",
+                fontWeight: 900,
+                cursor: "pointer",
+                boxShadow: "0 10px 24px rgba(79, 125, 243, 0.24)",
+              }}
+            >
+              확인
+            </button>
+          </div>
+        </div>
+      )}
 
 
       {/* ==================================================
@@ -868,7 +1342,8 @@ const nextMeeting =
             >
 
               <button
-                onClick={() => navigate("/mypage")}
+                onClick={openProfileEdit}
+                disabled={!user}
                 style={{
                   width: "100%",
                   border: "none",
@@ -878,7 +1353,8 @@ const nextMeeting =
                   fontSize: "14px",
                   fontWeight: "700",
                   color: "#475569",
-                  cursor: "pointer",
+                  cursor: user ? "pointer" : "not-allowed",
+                  opacity: user ? 1 : 0.6,
                 }}
               >
                 회원정보 수정
@@ -902,6 +1378,32 @@ const nextMeeting =
               >
                 로그아웃
               </button>
+
+              <div
+                style={{
+                  marginTop: "14px",
+                  paddingTop: "12px",
+                  borderTop: "1px solid #F1F5F9",
+                  textAlign: "center",
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={openWithdraw}
+                  style={{
+                    border: "none",
+                    padding: "4px 8px",
+                    backgroundColor: "transparent",
+                    color: "#94A3B8",
+                    fontSize: "12px",
+                    textDecoration: "underline",
+                    textUnderlineOffset: "3px",
+                    cursor: "pointer",
+                  }}
+                >
+                  회원 탈퇴
+                </button>
+              </div>
 
             </section>
 

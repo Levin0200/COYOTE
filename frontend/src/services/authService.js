@@ -36,3 +36,10 @@ export const logout = () => clearToken();
 
 export const fetchMe = () =>
   api.get("/api/users/me").then((response) => response.data);
+
+export const updateMe = ({ name, address }) =>
+  api
+    .patch("/api/users/me", { name, address })
+    .then((response) => response.data);
+
+export const deleteMe = () => api.delete("/api/users/me");
