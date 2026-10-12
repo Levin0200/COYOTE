@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AppHeader from "../../components/AppHeader";
 import { fetchMe, logout } from "../../services/authService";
+import { fetchMeetingVotes, fetchMyMeetings } from "../../services/meetingService";
+import { getMeetingErrorMessage } from "../../utils/meetingErrors";
 
 function MainPage() {
   const navigate = useNavigate();
@@ -12,6 +14,9 @@ function MainPage() {
 
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(null);
+
+  // 같은 날 모임이 3개 이상일 때 펼쳐 둔 날짜
+  const [expandedDate, setExpandedDate] = useState(null);
 
   // 간단한 모임 정보 팝업
   const [selectedMeeting, setSelectedMeeting] = useState(null);
@@ -59,137 +64,68 @@ function MainPage() {
       : "";
 
   // --------------------------------------------------
-  // 확정된 모임 임시 데이터
-  // 나중에 백엔드 API 데이터로 교체
+  // 확정된 모임 (서버)
+  // 마감되어 결과가 있는 내 모임만 캘린더에 표시한다.
   // --------------------------------------------------
 
-  const confirmedMeetings = [
-  {
-    id: 1,
-    date: "2026-10-08",
-    title: "팀 프로젝트 회의",
-    description:
-      "팀 프로젝트 진행 상황을 공유하고 다음 작업을 정하기 위한 모임입니다.",
-    location: "인천광역시 동구",
-    place: "학교 근처 카페",
-    time: "15:00",
+  const [meetings, setMeetings] = useState([]);
+  const [meetingsLoading, setMeetingsLoading] = useState(true);
+  const [meetingsError, setMeetingsError] = useState("");
+  const [meetingsReloadKey, setMeetingsReloadKey] = useState(0);
 
-    members: [
-      "김모여",
-      "박모여",
-      "이모여",
-      "남모여",
-      "최모여",
-    ],
+  useEffect(() => {
+    let cancelled = false;
 
-    votes: [
-      {
-        member: "김모여",
-        dates: ["2026-10-07", "2026-10-08"],
-      },
-      {
-        member: "박모여",
-        dates: ["2026-10-08"],
-      },
-      {
-        member: "이모여",
-        dates: ["2026-10-08"],
-      },
-      {
-        member: "남모여",
-        dates: ["2026-10-07", "2026-10-08"],
-      },
-      {
-        member: "최모여",
-        dates: [],
-      },
-    ],
-  },
+    fetchMyMeetings()
+      .then((list) => {
+        if (cancelled) return;
+        setMeetings(list);
+        setMeetingsError("");
+      })
+      .catch((error) => {
+        if (!cancelled) setMeetingsError(getMeetingErrorMessage(error));
+      })
+      .finally(() => {
+        if (!cancelled) setMeetingsLoading(false);
+      });
 
-  {
-    id: 2,
-    date: "2026-10-12",
-    title: "캡스톤 프로젝트 회의",
-    description:
-      "캡스톤 프로젝트 진행 상황을 공유하고 다음 작업을 정하기 위한 모임입니다.",
-    location: "인천광역시 동구",
-    place: "학교 근처 카페",
-    time: "14:00",
+    return () => {
+      cancelled = true;
+    };
+  }, [meetingsReloadKey]);
 
-    members: [
-      "김모여",
-      "박모여",
-      "이모여",
-      "남모여",
-      "최모여",
-    ],
+  const reloadMeetings = () => {
+    setMeetingsLoading(true);
+    setMeetingsError("");
+    setMeetingsReloadKey((value) => value + 1);
+  };
 
-    votes: [
-      {
-        member: "김모여",
-        dates: ["2026-10-10", "2026-10-12"],
-      },
-      {
-        member: "박모여",
-        dates: ["2026-10-12"],
-      },
-      {
-        member: "이모여",
-        dates: ["2026-10-11", "2026-10-12"],
-      },
-      {
-        member: "남모여",
-        dates: ["2026-10-10"],
-      },
-      {
-        member: "최모여",
-        dates: [],
-      },
-    ],
-  },
+  const confirmedMeetings = meetings
+    .filter((meeting) => meeting.result)
+    .map((meeting) => ({
+      id: meeting.meetingId,
+      date: meeting.result.selectedDate,
+      title: meeting.title,
+      description: meeting.description || "",
+      location: meeting.placeRegion || "",
+      place: meeting.result.selectedPlace,
+      memberCount: meeting.participantCount,
+    }));
 
-  {
-    id: 3,
-    date: "2026-10-20",
-    title: "동아리 정기 모임",
-    description:
-      "동아리 활동 내용을 공유하고 다음 활동을 계획하기 위한 정기 모임입니다.",
-    location: "인천광역시 남동구",
-    place: "학교 앞 카페",
-    time: "18:30",
+  // 투표 상세(상세정보 팝업) 조회 상태
+  const [votesState, setVotesState] = useState({ meetingId: null, loading: false, error: "", data: null });
 
-    members: [
-      "김모여",
-      "박모여",
-      "이모여",
-      "남모여",
-      "최모여",
-    ],
+  const loadVotes = (meetingId) => {
+    setVotesState({ meetingId, loading: true, error: "", data: null });
 
-    votes: [
-      {
-        member: "김모여",
-        dates: ["2026-10-19", "2026-10-20"],
-      },
-      {
-        member: "박모여",
-        dates: ["2026-10-20"],
-      },
-      {
-        member: "이모여",
-        dates: ["2026-10-20"],
-      },
-      {
-        member: "남모여",
-        dates: ["2026-10-19", "2026-10-20"],
-      },
-      {
-        member: "최모여",
-        dates: ["2026-10-20"],
-      },
-    ],
-  },
-];
+    fetchMeetingVotes(meetingId)
+      .then((data) => {
+        setVotesState((current) => (current.meetingId === meetingId ? { meetingId, loading: false, error: "", data } : current));
+      })
+      .catch((error) => {
+        setVotesState((current) => (current.meetingId === meetingId ? { meetingId, loading: false, error: getMeetingErrorMessage(error), data: null } : current));
+      });
+  };
 
   // --------------------------------------------------
   // 현재 달
@@ -276,8 +212,8 @@ const nextMeeting =
   // 특정 날짜의 확정 모임 찾기
   // --------------------------------------------------
 
-  const getMeetingByDate = (date) => {
-    return confirmedMeetings.find((meeting) => meeting.date === date);
+  const getMeetingsByDate = (date) => {
+    return confirmedMeetings.filter((meeting) => meeting.date === date);
   };
 
   // --------------------------------------------------
@@ -319,7 +255,7 @@ const nextMeeting =
 
     setSelectedDate(date);
 
-    const meeting = getMeetingByDate(date);
+    const [meeting] = getMeetingsByDate(date);
 
     if (meeting) {
       setSelectedMeeting(meeting);
@@ -330,11 +266,22 @@ const nextMeeting =
   };
 
   // --------------------------------------------------
+  // 캘린더의 모임 칩 클릭
+  // --------------------------------------------------
+
+  const openMeetingFromChip = (meeting) => {
+    setSelectedDate(meeting.date);
+    setSelectedMeeting(meeting);
+    setShowMeetingDetail(false);
+  };
+
+  // --------------------------------------------------
   // 상세정보 보기
   // --------------------------------------------------
 
   const openMeetingDetail = () => {
     setShowMeetingDetail(true);
+    loadVotes(selectedMeeting.id);
   };
 
   // --------------------------------------------------
@@ -368,20 +315,18 @@ const nextMeeting =
   // 투표 현황 계산
   // --------------------------------------------------
 
-  const getVoteSummary = (meeting) => {
+  const getVoteSummary = (votes) => {
     const voteCounts = {};
 
-    meeting.votes.forEach((vote) => {
-      vote.dates.forEach((date) => {
-        voteCounts[date] = (voteCounts[date] || 0) + 1;
-      });
+    (votes?.dateCounts || []).forEach(({ date, count }) => {
+      voteCounts[date] = count;
     });
 
     return voteCounts;
   };
 
-  const getMaxVoteCount = (meeting) => {
-    const voteCounts = getVoteSummary(meeting);
+  const getMaxVoteCount = (votes) => {
+    const voteCounts = getVoteSummary(votes);
 
     const values = Object.values(voteCounts);
 
@@ -392,15 +337,21 @@ const nextMeeting =
     return Math.max(...values);
   };
 
-  const getMostVotedDates = (meeting) => {
-    const voteCounts = getVoteSummary(meeting);
+  const getMostVotedDates = (votes) => {
+    const voteCounts = getVoteSummary(votes);
 
-    const maxCount = getMaxVoteCount(meeting);
+    const maxCount = getMaxVoteCount(votes);
 
     return Object.entries(voteCounts)
       .filter(([, count]) => count === maxCount)
       .map(([date]) => date);
   };
+
+  // 현재 열린 상세정보 팝업에 해당하는 투표 조회 상태
+  const votesView =
+    selectedMeeting && votesState.meetingId === selectedMeeting.id
+      ? votesState
+      : null;
 
   // ==================================================
   // RENDER
@@ -510,6 +461,46 @@ const nextMeeting =
               </div>
 
             </div>
+
+
+            {(meetingsLoading || meetingsError) && (
+              <div
+                role="status"
+                style={{
+                  marginTop: "18px",
+                  padding: "11px 14px",
+                  borderRadius: "12px",
+                  backgroundColor: meetingsError ? "#FEF2F2" : "#F1F5F9",
+                  color: meetingsError ? "#DC2626" : "#64748B",
+                  fontSize: "13px",
+                  fontWeight: "600",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: "12px",
+                }}
+              >
+                <span>{meetingsError || "모임 일정을 불러오는 중..."}</span>
+
+                {meetingsError && (
+                  <button
+                    onClick={reloadMeetings}
+                    style={{
+                      border: "1px solid #FECACA",
+                      backgroundColor: "#FFFFFF",
+                      color: "#DC2626",
+                      borderRadius: "8px",
+                      padding: "6px 10px",
+                      fontSize: "12px",
+                      fontWeight: "700",
+                      cursor: "pointer",
+                    }}
+                  >
+                    다시 불러오기
+                  </button>
+                )}
+              </div>
+            )}
 
 
             {/* 달 이동 */}
@@ -660,9 +651,9 @@ const nextMeeting =
                 const isToday = item.date === todayString;
                 const isSelected = item.date === selectedDate;
 
-                const meeting = item.date
-                  ? getMeetingByDate(item.date)
-                  : null;
+                const dayMeetings = item.date
+                  ? getMeetingsByDate(item.date)
+                  : [];
 
                 return (
                   <div
@@ -676,6 +667,7 @@ const nextMeeting =
                       height: "100%",
                       minWidth: 0,
                       boxSizing: "border-box",
+                      overflowY: expandedDate === item.date ? "auto" : "visible",
                       padding: "10px",
                       borderRight: "1px solid #E6ECF2",
                       borderBottom: "1px solid #E6ECF2",
@@ -727,11 +719,16 @@ const nextMeeting =
 
                     {/* 확정 모임 표시 */}
 
-                    {meeting && (
+                    {(expandedDate === item.date ? dayMeetings : dayMeetings.slice(0, 2)).map((meeting, chipIndex) => (
                       <div
+                        key={meeting.id}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          openMeetingFromChip(meeting);
+                        }}
                         style={{
-                          marginTop: "12px",
-                          padding: "7px 8px",
+                          marginTop: chipIndex === 0 ? "12px" : "5px",
+                          padding: "5px 8px",
                           borderRadius: "8px",
                           backgroundColor: "#EEF5FF",
                           color: "#3B82F6",
@@ -743,9 +740,28 @@ const nextMeeting =
                           overflow: "hidden",
                           whiteSpace: "nowrap",
                           textOverflow: "ellipsis",
+                          cursor: "pointer",
                         }}
                       >
                         ● {meeting.title}
+                      </div>
+                    ))}
+
+                    {dayMeetings.length > 2 && (
+                      <div
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setExpandedDate(expandedDate === item.date ? null : item.date);
+                        }}
+                        style={{
+                          marginTop: "4px",
+                          fontSize: "11px",
+                          fontWeight: "700",
+                          color: "#94A3B8",
+                          cursor: "pointer",
+                        }}
+                      >
+                        {expandedDate === item.date ? "접기" : `+${dayMeetings.length - 2}개`}
                       </div>
                     )}
 
@@ -1180,7 +1196,7 @@ const nextMeeting =
         color: "#64748B",
       }}
     >
-      {formatDate(nextMeeting.date)} · {nextMeeting.time}
+      {formatDate(nextMeeting.date)}
     </div>
 
     <div
@@ -1312,29 +1328,19 @@ const nextMeeting =
                 📅 {formatDate(selectedMeeting.date)}
               </div>
 
-              <div
-                style={{
-                  padding: "13px 15px",
-                  backgroundColor: "#F8FAFC",
-                  borderRadius: "12px",
-                  fontSize: "13px",
-                  color: "#475569",
-                }}
-              >
-                🕐 {selectedMeeting.time}
-              </div>
-
-              <div
-                style={{
-                  padding: "13px 15px",
-                  backgroundColor: "#F8FAFC",
-                  borderRadius: "12px",
-                  fontSize: "13px",
-                  color: "#475569",
-                }}
-              >
-                📍 {selectedMeeting.location}
-              </div>
+              {selectedMeeting.location && (
+  <div
+                  style={{
+                    padding: "13px 15px",
+                    backgroundColor: "#F8FAFC",
+                    borderRadius: "12px",
+                    fontSize: "13px",
+                    color: "#475569",
+                  }}
+                >
+                  📍 {selectedMeeting.location}
+                </div>
+              )}
 
               <div
                 style={{
@@ -1357,7 +1363,7 @@ const nextMeeting =
                   color: "#475569",
                 }}
               >
-                👥 참여 인원 {selectedMeeting.members.length}명
+                👥 참여 인원 {selectedMeeting.memberCount}명
               </div>
 
             </div>
@@ -1382,7 +1388,7 @@ const nextMeeting =
                   color: "#64748B",
                 }}
               >
-                {selectedMeeting.description}
+                {selectedMeeting.description || "작성된 설명이 없습니다."}
               </p>
 
             </div>
@@ -1528,6 +1534,41 @@ const nextMeeting =
 
             </div>
 
+            {!votesView?.data ? (
+              <div
+                style={{
+                  padding: "40px 0",
+                  textAlign: "center",
+                  fontSize: "13px",
+                  color: "#64748B",
+                }}
+              >
+                {votesView?.error ? (
+                  <>
+                    <p style={{ margin: "0 0 14px" }}>{votesView.error}</p>
+
+                    <button
+                      onClick={() => loadVotes(selectedMeeting.id)}
+                      style={{
+                        border: "1px solid #E2E8F0",
+                        backgroundColor: "#FFFFFF",
+                        color: "#475569",
+                        borderRadius: "10px",
+                        padding: "9px 14px",
+                        fontSize: "12px",
+                        fontWeight: "700",
+                        cursor: "pointer",
+                      }}
+                    >
+                      다시 불러오기
+                    </button>
+                  </>
+                ) : (
+                  "투표 현황을 불러오는 중..."
+                )}
+              </div>
+            ) : (
+              <>
             {/* ==================================================
                 최다 투표 날짜
             ================================================== */}
@@ -1549,7 +1590,7 @@ const nextMeeting =
                   fontWeight: "700",
                 }}
               >
-                🏆 현재 가장 많은 투표를 받은 날짜
+                🏆 가장 많은 투표를 받은 날짜
               </p>
 
               <div
@@ -1559,7 +1600,7 @@ const nextMeeting =
                   color: "#172033",
                 }}
               >
-                {getMostVotedDates(selectedMeeting)
+                {getMostVotedDates(votesView.data)
                   .map((date) => formatDate(date))
                   .join(", ")}
               </div>
@@ -1571,7 +1612,7 @@ const nextMeeting =
                   color: "#64748B",
                 }}
               >
-                총 {getMaxVoteCount(selectedMeeting)}명이 선택했습니다.
+                총 {getMaxVoteCount(votesView.data)}명이 선택했습니다.
               </p>
 
             </div>
@@ -1595,10 +1636,10 @@ const nextMeeting =
               </h3>
 
 
-              {Object.entries(getVoteSummary(selectedMeeting)).map(
+              {Object.entries(getVoteSummary(votesView.data)).map(
                 ([date, count]) => {
 
-                  const maxVote = getMaxVoteCount(selectedMeeting);
+                  const maxVote = getMaxVoteCount(votesView.data);
 
                   const percentage =
                     maxVote === 0
@@ -1711,13 +1752,13 @@ const nextMeeting =
                 }}
               >
 
-                {selectedMeeting.votes.map((vote) => {
+                {votesView.data.members.map((vote) => {
 
                   const hasVoted = vote.dates.length > 0;
 
                   return (
                     <div
-                      key={vote.member}
+                      key={vote.nickname}
                       style={{
                         padding: "14px",
                         borderRadius: "14px",
@@ -1744,7 +1785,7 @@ const nextMeeting =
                             color: "#334155",
                           }}
                         >
-                          {vote.member}
+                          {vote.nickname}
                         </span>
 
                         {!hasVoted && (
@@ -1797,6 +1838,10 @@ const nextMeeting =
               </div>
 
             </section>
+
+
+              </>
+            )}
 
 
             {/* 닫기 버튼 */}
@@ -2142,8 +2187,7 @@ const nextMeeting =
                 color: "#64748B",
               }}
             >
-              📅 {formatDate(nextMeeting.date)} ·{" "}
-              {nextMeeting.time}
+              📅 {formatDate(nextMeeting.date)}
             </div>
 
             <div
@@ -2153,8 +2197,7 @@ const nextMeeting =
                 color: "#64748B",
               }}
             >
-              📍 {nextMeeting.location} ·{" "}
-              {nextMeeting.place}
+              📍 {nextMeeting.location ? `${nextMeeting.location} · ` : ""}{nextMeeting.place}
             </div>
           </div>
         )}

@@ -24,6 +24,10 @@ export const closeMeeting = (meetingId) =>
 export const fetchHostResult = (meetingId) =>
   api.get(`/api/meetings/${meetingId}/result`).then((response) => response.data);
 
+// 마감된 모임의 날짜별 득표 수와 멤버별 투표(호스트만, 마감 후에만)
+export const fetchMeetingVotes = (meetingId) =>
+  api.get(`/api/meetings/${meetingId}/votes`).then((response) => response.data);
+
 // ---- 게스트용 (로그인 불필요, guestId를 X-Guest-Id 헤더로 전달) ----
 
 export const fetchInviteInfo = (inviteToken) =>
