@@ -24,12 +24,12 @@ function App() {
       <Route path="/main" element={<RequireAuth><MainPage /></RequireAuth>} />
       <Route path="/mypage" element={<RequireAuth><MyPage /></RequireAuth>} />
       <Route path="/ongoing-meetings" element={<RequireAuth><MainPage /></RequireAuth>} />
-      <Route path="/create-meeting" element={<CreateMeetingPage />} />
-      <Route path="/meeting/setup/availability" element={<MeetingTimeOptionsPage />} />
-      <Route path="/meeting/setup/place" element={<MeetingPlacesPage />} />
-      <Route path="/meeting/setup/review" element={<MeetingVotePage />} />
-      <Route path="/meeting/:meetingId/status" element={<MeetingStatusPage />} />
-      <Route path="/meeting/:meetingId/result" element={<MeetingResultPage />} />
+      <Route path="/create-meeting" element={<RequireAuth><CreateMeetingPage /></RequireAuth>} />
+      <Route path="/meeting/setup/availability" element={<RequireAuth><MeetingTimeOptionsPage /></RequireAuth>} />
+      <Route path="/meeting/setup/place" element={<RequireAuth><MeetingPlacesPage /></RequireAuth>} />
+      <Route path="/meeting/setup/review" element={<RequireAuth><MeetingVotePage /></RequireAuth>} />
+      <Route path="/meeting/:meetingId/status" element={<RequireAuth><MeetingStatusPage /></RequireAuth>} />
+      <Route path="/meeting/:meetingId/result" element={<RequireAuth><MeetingResultPage /></RequireAuth>} />
       <Route path="/meeting/:meetingId" element={<MeetingDetailPage />} />
 
       <Route path="/invite/:inviteToken" element={<NicknamePage />} />

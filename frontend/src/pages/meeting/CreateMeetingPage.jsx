@@ -7,6 +7,9 @@ const today = new Date().toLocaleDateString("en-CA");
 const hours = Array.from({ length: 24 }, (_, index) => String(index).padStart(2, "0"));
 const minutes = ["00", "10", "20", "30", "40", "50"];
 const normalizeDateTime = (value) => value ? value.replace(/:(\d{2})(?::\d{2})?$/, (_, minute) => `:${String(Math.floor(Number(minute) / 10) * 10).padStart(2, "0")}`) : "";
+const MAX_RANGE_DAYS = 62;
+const addDays = (dateString, days) => { const date = new Date(`${dateString}T00:00:00`); date.setDate(date.getDate() + days); return date.toLocaleDateString("en-CA"); };
+const rangeDays = (start, end) => Math.round((new Date(`${end}T00:00:00`) - new Date(`${start}T00:00:00`)) / 86400000) + 1;
 
 function CreateMeetingPage() {
   const navigate = useNavigate();
@@ -23,6 +26,7 @@ function CreateMeetingPage() {
     if (!candidateStartDate || !candidateEndDate) return alert("후보 날짜 범위를 입력해주세요.");
     if (candidateStartDate < today) return alert("후보 시작일은 오늘 이후로 설정해주세요.");
     if (candidateStartDate > candidateEndDate) return alert("후보 시작일은 종료일보다 늦을 수 없습니다.");
+    if (rangeDays(candidateStartDate, candidateEndDate) > MAX_RANGE_DAYS) return alert(`후보 날짜 범위는 최대 ${MAX_RANGE_DAYS}일까지 설정할 수 있습니다.`);
     const due = new Date(responseDeadline);
     const expiration = linkExpirationDate ? new Date(linkExpirationDate) : null;
     if (due <= new Date()) return alert("응답 마감일시는 현재 이후로 설정해주세요.");
@@ -39,11 +43,11 @@ function CreateMeetingPage() {
         <main className="grid gap-8 lg:grid-cols-3">
           <section className="rounded-[2rem] border border-gray-100 bg-white p-8 shadow-xl lg:col-span-2">
             <div className="space-y-5">
-              <label className="block"><span className="mb-2 block text-sm font-bold text-slate-700">모임 제목 *</span><input value={title} onChange={(e) => setTitle(e.target.value)} className="w-full rounded-2xl border border-gray-200 bg-slate-50 px-5 py-4 outline-none focus:ring-2 focus:ring-[#4F7DF3]" placeholder="예) 캡스톤 프로젝트 회식" /></label>
-              <label className="block"><span className="mb-2 block text-sm font-bold text-slate-700">모임 설명</span><textarea value={description} onChange={(e) => setDescription(e.target.value)} className="h-32 w-full resize-none rounded-2xl border border-gray-200 bg-slate-50 px-5 py-4 outline-none focus:ring-2 focus:ring-[#4F7DF3]" placeholder="모임 목적이나 안내사항을 적어주세요." /></label>
+              <label className="block"><span className="mb-2 block text-sm font-bold text-slate-700">모임 제목 *</span><input value={title} maxLength={100} onChange={(e) => setTitle(e.target.value)} className="w-full rounded-2xl border border-gray-200 bg-slate-50 px-5 py-4 outline-none focus:ring-2 focus:ring-[#4F7DF3]" placeholder="예) 캡스톤 프로젝트 회식" /></label>
+              <label className="block"><span className="mb-2 block text-sm font-bold text-slate-700">모임 설명</span><textarea value={description} maxLength={1000} onChange={(e) => setDescription(e.target.value)} className="h-32 w-full resize-none rounded-2xl border border-gray-200 bg-slate-50 px-5 py-4 outline-none focus:ring-2 focus:ring-[#4F7DF3]" placeholder="모임 목적이나 안내사항을 적어주세요." /></label>
               <div className="grid gap-4 sm:grid-cols-2">
                 <label><span className="mb-2 block text-sm font-bold text-slate-700">후보 시작일 *</span><input type="date" value={candidateStartDate} min={today} max={candidateEndDate || undefined} onChange={(e) => setCandidateStartDate(e.target.value)} className="w-full rounded-2xl border border-gray-200 bg-slate-50 px-4 py-4 outline-none focus:ring-2 focus:ring-[#4F7DF3]" /></label>
-                <label><span className="mb-2 block text-sm font-bold text-slate-700">후보 종료일 *</span><input type="date" value={candidateEndDate} min={candidateStartDate || today} onChange={(e) => setCandidateEndDate(e.target.value)} className="w-full rounded-2xl border border-gray-200 bg-slate-50 px-4 py-4 outline-none focus:ring-2 focus:ring-[#4F7DF3]" /></label>
+                <label><span className="mb-2 block text-sm font-bold text-slate-700">후보 종료일 *</span><input type="date" value={candidateEndDate} min={candidateStartDate || today} max={candidateStartDate ? addDays(candidateStartDate, MAX_RANGE_DAYS - 1) : undefined} onChange={(e) => setCandidateEndDate(e.target.value)} className="w-full rounded-2xl border border-gray-200 bg-slate-50 px-4 py-4 outline-none focus:ring-2 focus:ring-[#4F7DF3]" /></label>
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <DateTimePicker label="응답 마감일시 *" value={responseDeadline} onChange={setResponseDeadline} required />

@@ -1,8 +1,7 @@
 import { useState } from "react";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { Navigate, useLocation, useNavigate, useParams } from "react-router-dom";
 import AvailabilityCalendar from "../../components/meeting/AvailabilityCalendar";
 import { formatSelectedDate } from "../../utils/dateFormat";
-import { getMeetingByInviteToken } from "../../services/meetingStorage";
 
 const readJson = (key) => { try { return JSON.parse(sessionStorage.getItem(key) || "{}"); } catch { return {}; } };
 
@@ -13,9 +12,8 @@ function MeetingTimeOptionsPage() {
   const isGuest = location.pathname.startsWith("/invite/");
   const key = isGuest ? `coyoteGuestDraft_${inviteToken}` : "coyoteMeetingDraft";
   const draft = readJson(key);
-  const meeting = isGuest ? getMeetingByInviteToken(inviteToken) : null;
-  const candidateStartDate = draft.candidateStartDate || meeting?.candidateStartDate;
-  const candidateEndDate = draft.candidateEndDate || meeting?.candidateEndDate;
+  const candidateStartDate = draft.candidateStartDate;
+  const candidateEndDate = draft.candidateEndDate;
   const [selectedDates, setSelectedDates] = useState(() => (draft.selectedDates || []).filter((date) =>
     (!candidateStartDate || date >= candidateStartDate) &&
     (!candidateEndDate || date <= candidateEndDate)
@@ -34,6 +32,8 @@ function MeetingTimeOptionsPage() {
     sessionStorage.setItem(key, JSON.stringify({ ...draft, candidateStartDate, candidateEndDate, selectedDates }));
     navigate(isGuest ? `/invite/${inviteToken}/place` : "/meeting/setup/place");
   };
+
+  if (isGuest && !draft.guestId) return <Navigate to={`/invite/${inviteToken}`} replace />;
 
   return (
     <div className="min-h-screen bg-slate-50 px-6 py-10 text-slate-800">

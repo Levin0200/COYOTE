@@ -1,25 +1,65 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import AppHeader from "../../components/AppHeader";
+import { fetchMyMeetings } from "../../services/meetingService";
+import { getMeetingErrorMessage } from "../../utils/meetingErrors";
+import { formatSelectedDate } from "../../utils/dateFormat";
 
-const meetings = [
-  { id: 1, title: "개발팀 주말 정기 회식", status: "진행 중", date: "가능한 날짜 투표 중", location: "장소 응답 대기 중", members: 5, responses: 4, progress: 80, deadline: "오늘까지" },
-  { id: 2, title: "대학 동창 신년회 모임", status: "완료", date: "2026년 6월 6일 (토) 18:00", location: "홍대 스페이스 룸", members: 8, responses: 8, progress: 100 },
-  { id: 3, title: "모여ON 네트워킹 데이", status: "진행 중", date: "가능한 날짜 투표 중", location: "장소 응답 대기 중", members: 12, responses: 5, progress: 42, deadline: "내일까지" },
-  { id: 4, title: "금요 러닝 크루 번개", status: "완료", date: "2026년 6월 12일 (금) 20:00", location: "여의도 한강공원", members: 6, responses: 6, progress: 100 },
-];
+const POLL_MS = 60000;
+const pad = (value) => String(value).padStart(2, "0");
+
+// 마감 일시를 "오늘 18:30" / "내일 18:30" / "10월 13일 18:30" 형식으로 보여준다.
+const formatDeadline = (isoString) => {
+  const date = new Date(isoString);
+  if (Number.isNaN(date.getTime())) return "마감일 미설정";
+  const time = `${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  const startOfDay = (value) => new Date(value.getFullYear(), value.getMonth(), value.getDate()).getTime();
+  const diffDays = Math.round((startOfDay(date) - startOfDay(new Date())) / 86400000);
+  if (diffDays === 0) return `오늘 ${time}`;
+  if (diffDays === 1) return `내일 ${time}`;
+  return `${date.getMonth() + 1}월 ${date.getDate()}일 ${time}`;
+};
+
+const progressOf = (meeting) => (meeting.participantCount > 0 ? Math.round((meeting.responseCount / meeting.participantCount) * 100) : 0);
 
 function MainPage() {
+  const navigate = useNavigate();
   const [activeFilter, setActiveFilter] = useState("all");
-  const [remindedMeetings, setRemindedMeetings] = useState([]);
-  const [notice, setNotice] = useState("");
+  const [meetings, setMeetings] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+  const [reloadKey, setReloadKey] = useState(0);
+  const loadedOnce = useRef(false);
 
-  const ongoingMeetings = meetings.filter((meeting) => meeting.status === "진행 중");
-  const completedMeetings = meetings.filter((meeting) => meeting.status === "완료");
-  const responseCount = ongoingMeetings.reduce((total, meeting) => total + meeting.responses, 0);
-  const memberCount = ongoingMeetings.reduce((total, meeting) => total + meeting.members, 0);
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const list = await fetchMyMeetings();
+        if (cancelled) return;
+        setMeetings(list);
+        loadedOnce.current = true;
+        setLoadError("");
+      } catch (error) {
+        if (!cancelled && !loadedOnce.current) setLoadError(getMeetingErrorMessage(error));
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    load();
+    const id = window.setInterval(load, POLL_MS);
+    return () => { cancelled = true; window.clearInterval(id); };
+  }, [reloadKey]);
+
+  const reload = () => { setLoading(true); setLoadError(""); setReloadKey((value) => value + 1); };
+
+  const ongoingMeetings = meetings.filter((meeting) => !meeting.closed);
+  const completedMeetings = meetings.filter((meeting) => meeting.closed);
+  const responseCount = ongoingMeetings.reduce((total, meeting) => total + meeting.responseCount, 0);
+  const memberCount = ongoingMeetings.reduce((total, meeting) => total + meeting.participantCount, 0);
   const visibleMeetings = meetings.filter((meeting) => {
-    if (activeFilter === "ongoing") return meeting.status === "진행 중";
-    if (activeFilter === "completed") return meeting.status === "완료";
+    if (activeFilter === "ongoing") return !meeting.closed;
+    if (activeFilter === "completed") return meeting.closed;
     return true;
   });
 
@@ -28,13 +68,6 @@ function MainPage() {
     { id: "ongoing", label: "진행 중", count: ongoingMeetings.length },
     { id: "completed", label: "완료", count: completedMeetings.length },
   ];
-
-  const sendReminder = (meeting) => {
-    if (remindedMeetings.includes(meeting.id)) return;
-    setRemindedMeetings((current) => [...current, meeting.id]);
-    setNotice(`‘${meeting.title}’ 리마인더 요청을 기록했어요. 실제 알림은 백엔드 연결 후 전송됩니다.`);
-    window.setTimeout(() => setNotice(""), 3500);
-  };
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
@@ -80,39 +113,51 @@ function MainPage() {
             </div>
           </div>
 
-          {notice && <div role="status" className="mb-5 flex items-start gap-3 rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3.5 text-sm leading-6 text-blue-800"><span aria-hidden="true">✓</span><span>{notice}</span></div>}
-
-          {visibleMeetings.length > 0 ? <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          {loading ? <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 px-6 py-14 text-center">
+            <p className="text-sm font-semibold text-slate-500">불러오는 중...</p>
+          </div> : loadError ? <div role="alert" className="rounded-3xl border border-red-100 bg-red-50 px-6 py-14 text-center">
+            <p className="text-sm font-semibold text-red-600">{loadError}</p>
+            <button type="button" onClick={reload} className="mt-4 rounded-xl border border-red-200 bg-white px-5 py-2.5 text-sm font-bold text-red-600 hover:bg-red-50">다시 불러오기</button>
+          </div> : meetings.length === 0 ? <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 px-6 py-14 text-center">
+            <p className="text-sm font-semibold text-slate-600">아직 만든 모임이 없어요.</p>
+            <p className="mt-1 text-xs text-slate-400">새 모임을 만들어 보세요.</p>
+          </div> : visibleMeetings.length > 0 ? <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             {visibleMeetings.map((meeting) => {
-              const ongoing = meeting.status === "진행 중";
-              const reminded = remindedMeetings.includes(meeting.id);
-              return <article key={meeting.id} className="rounded-3xl border border-slate-200 bg-white p-5 transition duration-200 hover:border-blue-200 hover:shadow-md sm:p-6">
+              const ongoing = !meeting.closed;
+              const progress = progressOf(meeting);
+              const result = meeting.result;
+              return <article key={meeting.meetingId} className="rounded-3xl border border-slate-200 bg-white p-5 transition duration-200 hover:border-blue-200 hover:shadow-md sm:p-6">
                 <div className="mb-4 flex items-center justify-between gap-3">
                   <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-bold ${ongoing ? "bg-blue-50 text-[#3D6BE5]" : "bg-emerald-50 text-emerald-700"}`}>
-                    <span className={`h-1.5 w-1.5 rounded-full ${ongoing ? "bg-[#4F7DF3]" : "bg-emerald-500"}`} />{meeting.status}
+                    <span className={`h-1.5 w-1.5 rounded-full ${ongoing ? "bg-[#4F7DF3]" : "bg-emerald-500"}`} />{ongoing ? "진행 중" : "완료"}
                   </span>
-                  {ongoing && <span className="text-xs font-medium text-slate-400">마감 {meeting.deadline}</span>}
+                  {ongoing && <span className="text-xs font-medium text-slate-400">마감 {formatDeadline(meeting.responseDeadline)}</span>}
                 </div>
 
                 <h3 className="mb-5 text-lg font-extrabold tracking-[-0.03em] text-slate-900">{meeting.title}</h3>
 
                 <div className="mb-2 flex items-end justify-between gap-3">
                   <span className="text-sm font-medium text-slate-500">참여 응답</span>
-                  <span className="text-sm font-bold text-slate-800">{meeting.responses}<span className="font-medium text-slate-400"> / {meeting.members}명</span></span>
+                  <span className="text-sm font-bold text-slate-800">{meeting.responseCount}<span className="font-medium text-slate-400"> / {meeting.participantCount}명</span></span>
                 </div>
-                <div role="progressbar" aria-label={`${meeting.title} 응답률`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={meeting.progress} className="h-2 overflow-hidden rounded-full bg-slate-100">
-                  <div className={`h-full rounded-full transition-all duration-300 ${ongoing ? "bg-[#4F7DF3]" : "bg-emerald-500"}`} style={{ width: `${meeting.progress}%` }} />
+                <div role="progressbar" aria-label={`${meeting.title} 응답률`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress} className="h-2 overflow-hidden rounded-full bg-slate-100">
+                  <div className={`h-full rounded-full transition-all duration-300 ${ongoing ? "bg-[#4F7DF3]" : "bg-emerald-500"}`} style={{ width: `${progress}%` }} />
                 </div>
                 <div className="mb-5 mt-2 flex items-center justify-between text-xs">
                   <span className="font-semibold text-slate-500">응답 진행률</span>
-                  <span className={`font-bold ${ongoing ? "text-[#3D6BE5]" : "text-emerald-700"}`}>{meeting.progress}%</span>
+                  <span className={`font-bold ${ongoing ? "text-[#3D6BE5]" : "text-emerald-700"}`}>{progress}%</span>
                 </div>
 
-                {ongoing ? <button type="button" onClick={() => sendReminder(meeting)} disabled={reminded} className={`flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-bold transition focus:outline-none focus:ring-4 focus:ring-blue-100 ${reminded ? "cursor-default border border-slate-200 bg-slate-50 text-slate-400" : "bg-[#4F7DF3] text-white shadow-sm hover:bg-[#3D6BE5]"}`}>
-                  <span aria-hidden="true">{reminded ? "✓" : "↗"}</span>{reminded ? "리마인더 요청됨" : "미응답자에게 알림 보내기"}
-                </button> : <div className="grid gap-3 border-t border-slate-100 pt-4 sm:grid-cols-2">
-                  <div><p className="mb-1 text-xs font-medium text-slate-400">확정 날짜</p><p className="text-sm font-semibold text-slate-700">{meeting.date}</p></div>
-                  <div><p className="mb-1 text-xs font-medium text-slate-400">모임 장소</p><p className="text-sm font-semibold text-slate-700">{meeting.location}</p></div>
+                {ongoing ? <button type="button" onClick={() => navigate(`/meeting/${meeting.meetingId}/status`)} className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#4F7DF3] px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-[#3D6BE5] focus:outline-none focus:ring-4 focus:ring-blue-100">
+                  현황 보기<span aria-hidden="true">→</span>
+                </button> : <div className="border-t border-slate-100 pt-4">
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div><p className="mb-1 text-xs font-medium text-slate-400">확정 날짜</p><p className="text-sm font-semibold text-slate-700">{result ? formatSelectedDate(result.selectedDate) : "결과 집계 중"}</p></div>
+                    <div><p className="mb-1 text-xs font-medium text-slate-400">모임 장소</p><p className="text-sm font-semibold text-slate-700">{result ? result.selectedPlace : "결과 집계 중"}</p></div>
+                  </div>
+                  <button type="button" onClick={() => navigate(`/meeting/${meeting.meetingId}/result`)} className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-[#4F7DF3] px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-[#3D6BE5] focus:outline-none focus:ring-4 focus:ring-blue-100">
+                    결과 보기<span aria-hidden="true">→</span>
+                  </button>
                 </div>}
               </article>;
             })}
