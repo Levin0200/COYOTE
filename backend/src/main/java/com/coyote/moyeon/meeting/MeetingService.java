@@ -9,6 +9,7 @@ import com.coyote.moyeon.meeting.dto.JoinResponse;
 import com.coyote.moyeon.meeting.dto.MeetingDetailResponse;
 import com.coyote.moyeon.meeting.dto.MeetingResultResponse;
 import com.coyote.moyeon.meeting.dto.MeetingSummaryResponse;
+import com.coyote.moyeon.meeting.dto.MeetingVotesResponse;
 import com.coyote.moyeon.meeting.dto.MyResponseView;
 import com.coyote.moyeon.meeting.dto.PlaceOptionData;
 import com.coyote.moyeon.meeting.dto.PlacePolicyData;
@@ -32,6 +33,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Locale;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.regex.Pattern;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -166,16 +168,43 @@ public class MeetingService {
 	}
 
 	/** 마감 시각이 지났는데 아직 열려 있으면 이 시점에 마감한다(스케줄러보다 먼저 조회가 온 경우). */
-	private MeetingResultResponse resultOf(Meeting meeting) {
+	private void ensureClosed(Meeting meeting) {
 		if (meeting.getStatus() == MeetingStatus.COLLECTING) {
 			if (Instant.now().isBefore(meeting.getResponseDueDate())) {
 				throw new BusinessException(HttpStatus.CONFLICT, "MEETING_NOT_CLOSED", "아직 응답이 마감되지 않았습니다.");
 			}
 			closingService.closeIfOpen(meeting.getId(), false);
 		}
+	}
+
+	private MeetingResultResponse resultOf(Meeting meeting) {
+		ensureClosed(meeting);
 		return finalResultRepository.findByMeetingId(meeting.getId())
 				.map(MeetingResultResponse::from)
 				.orElseThrow(() -> new BusinessException(HttpStatus.CONFLICT, "RESULT_NOT_READY", "결과를 준비하고 있습니다."));
+	}
+
+	/** 마감된 모임의 날짜별 득표 수와 멤버별 투표. 호스트에게만 공개한다. */
+	@Transactional
+	public MeetingVotesResponse getVotesForHost(Long userId, Long meetingId) {
+		Meeting meeting = findHostMeeting(userId, meetingId);
+		ensureClosed(meeting);
+
+		List<Participant> participants = participantRepository.findByMeetingIdOrderByIdAsc(meetingId);
+		Map<Long, MeetingResponse> responseByParticipant = new HashMap<>();
+		TreeMap<LocalDate, Long> dateCounts = new TreeMap<>();
+		for (MeetingResponse response : responseRepository.findAllWithDatesByMeetingId(meetingId)) {
+			responseByParticipant.put(response.getParticipant().getId(), response);
+			response.getAvailableDates().forEach(date -> dateCounts.merge(date, 1L, Long::sum));
+		}
+		List<MeetingVotesResponse.MemberVote> members = participants.stream().map(p -> {
+			MeetingResponse response = responseByParticipant.get(p.getId());
+			List<LocalDate> dates = response == null ? List.of() : response.getAvailableDates().stream().sorted().toList();
+			return new MeetingVotesResponse.MemberVote(p.getNickname(), p.getRole(), dates);
+		}).toList();
+		return new MeetingVotesResponse(participants.size(), responseByParticipant.size(),
+				dateCounts.entrySet().stream().map(e -> new MeetingVotesResponse.DateCount(e.getKey(), e.getValue())).toList(),
+				members);
 	}
 
 	private Meeting findHostMeeting(Long userId, Long meetingId) {
@@ -280,7 +309,7 @@ public class MeetingService {
 		return meetings.stream().map(m -> new MeetingSummaryResponse(m.getId(), m.getInviteToken(), m.getTitle(),
 				m.getDescription(), m.getResponseDueDate(), m.getStatus(), m.isClosed(now),
 				participantCounts.getOrDefault(m.getId(), 0L), responseCounts.getOrDefault(m.getId(), 0L),
-				m.getCreatedAt(),
+				m.getCreatedAt(), m.getPolicyRegion(),
 				results.containsKey(m.getId()) ? MeetingSummaryResponse.ResultSummary.from(results.get(m.getId())) : null))
 				.toList();
 	}

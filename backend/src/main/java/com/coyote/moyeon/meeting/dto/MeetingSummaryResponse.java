@@ -19,6 +19,7 @@ public record MeetingSummaryResponse(
 		long participantCount,
 		long responseCount,
 		Instant createdAt,
+		String placeRegion,
 		ResultSummary result) {
 
 	public record ResultSummary(

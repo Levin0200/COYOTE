@@ -14,6 +14,8 @@ public interface ParticipantRepository extends JpaRepository<Participant, Long> 
 
 	long countByMeetingId(Long meetingId);
 
+	List<Participant> findByMeetingIdOrderByIdAsc(Long meetingId);
+
 	@Query("select new com.coyote.moyeon.meeting.MeetingCount(p.meeting.id, count(p)) from Participant p "
 			+ "where p.meeting.host.id = :hostId group by p.meeting.id")
 	List<MeetingCount> countByHost(@Param("hostId") Long hostId);

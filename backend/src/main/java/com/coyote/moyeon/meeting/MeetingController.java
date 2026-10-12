@@ -4,6 +4,7 @@ import com.coyote.moyeon.meeting.dto.CreateMeetingRequest;
 import com.coyote.moyeon.meeting.dto.MeetingDetailResponse;
 import com.coyote.moyeon.meeting.dto.MeetingResultResponse;
 import com.coyote.moyeon.meeting.dto.MeetingSummaryResponse;
+import com.coyote.moyeon.meeting.dto.MeetingVotesResponse;
 import com.coyote.moyeon.meeting.dto.UpdateHostResponseRequest;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -53,6 +54,11 @@ public class MeetingController {
 	@GetMapping("/{id}/result")
 	public MeetingResultResponse result(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id) {
 		return meetingService.getResultForHost(Long.valueOf(jwt.getSubject()), id);
+	}
+
+	@GetMapping("/{id}/votes")
+	public MeetingVotesResponse votes(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id) {
+		return meetingService.getVotesForHost(Long.valueOf(jwt.getSubject()), id);
 	}
 
 	@PutMapping("/{id}/response")
