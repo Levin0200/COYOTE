@@ -36,14 +36,28 @@ public class AuthController {
 		authService.confirmVerificationCode(request);
 	}
 
+	/**
+	 * 회원가입
+	 * 요청 예시 POST/api/auth/signup
+	 * 회원가입 성공 시 생성된 회원 정보를 UserResponse 형태로 반환
+	 * HTTP 상태코드는 201 Created
+	 */
 	@PostMapping("/signup")
 	@ResponseStatus(HttpStatus.CREATED)
 	public UserResponse signup(@Valid @RequestBody SignupRequest request) {
+		// 회원 정보 검증 및 db 저장 로직을 Service에서 처리 (여기서 요청 받고->authService에서 로직처리)
 		return authService.signup(request);
 	}
 
+	/**
+	 *
+	 * 로그인
+	 * 요청예시: POST / api/auth/login
+	 * 이메일, 비밀번호 검증 후 JWT 토큰 반환
+	 */
 	@PostMapping("/login")
 	public TokenResponse login(@Valid @RequestBody LoginRequest request) {
+		//로그인 검증 후 JWT 토큰 발급
 		return authService.login(request);
 	}
 }
