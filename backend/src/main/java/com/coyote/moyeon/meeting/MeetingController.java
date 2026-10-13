@@ -42,27 +42,27 @@ public class MeetingController {
 	}
 
 	@GetMapping("/{id}")
-	public MeetingDetailResponse get(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id) {
+	public MeetingDetailResponse get(@AuthenticationPrincipal Jwt jwt, @PathVariable("id") Long id) {
 		return meetingService.getForHost(Long.valueOf(jwt.getSubject()), id);
 	}
 
 	@PostMapping("/{id}/close")
-	public MeetingDetailResponse close(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id) {
+	public MeetingDetailResponse close(@AuthenticationPrincipal Jwt jwt, @PathVariable("id") Long id) {
 		return meetingService.closeMeeting(Long.valueOf(jwt.getSubject()), id);
 	}
 
 	@GetMapping("/{id}/result")
-	public MeetingResultResponse result(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id) {
+	public MeetingResultResponse result(@AuthenticationPrincipal Jwt jwt, @PathVariable("id") Long id) {
 		return meetingService.getResultForHost(Long.valueOf(jwt.getSubject()), id);
 	}
 
 	@GetMapping("/{id}/votes")
-	public MeetingVotesResponse votes(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id) {
+	public MeetingVotesResponse votes(@AuthenticationPrincipal Jwt jwt, @PathVariable("id") Long id) {
 		return meetingService.getVotesForHost(Long.valueOf(jwt.getSubject()), id);
 	}
 
 	@PutMapping("/{id}/response")
-	public MeetingDetailResponse updateHostResponse(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id,
+	public MeetingDetailResponse updateHostResponse(@AuthenticationPrincipal Jwt jwt, @PathVariable("id") Long id,
 			@Valid @RequestBody UpdateHostResponseRequest request) {
 		return meetingService.updateHostResponse(Long.valueOf(jwt.getSubject()), id, request);
 	}

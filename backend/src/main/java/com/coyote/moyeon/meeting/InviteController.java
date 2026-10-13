@@ -31,31 +31,31 @@ public class InviteController {
 	}
 
 	@GetMapping
-	public InviteInfoResponse info(@PathVariable String inviteToken) {
+	public InviteInfoResponse info(@PathVariable("inviteToken") String inviteToken) {
 		return meetingService.getInvite(inviteToken);
 	}
 
 	@GetMapping("/result")
-	public MeetingResultResponse result(@PathVariable String inviteToken) {
+	public MeetingResultResponse result(@PathVariable("inviteToken") String inviteToken) {
 		return meetingService.getResultForGuest(inviteToken);
 	}
 
 	@PostMapping("/join")
-	public ResponseEntity<JoinResponse> join(@PathVariable String inviteToken,
+	public ResponseEntity<JoinResponse> join(@PathVariable("inviteToken") String inviteToken,
 			@RequestHeader(GUEST_ID_HEADER) String guestId, @Valid @RequestBody JoinRequest request) {
 		MeetingService.JoinResult result = meetingService.joinGuest(inviteToken, guestId, request);
 		return ResponseEntity.status(result.created() ? HttpStatus.CREATED : HttpStatus.OK).body(result.response());
 	}
 
 	@PutMapping("/response")
-	public ResponseEntity<MyResponseView> submit(@PathVariable String inviteToken,
+	public ResponseEntity<MyResponseView> submit(@PathVariable("inviteToken") String inviteToken,
 			@RequestHeader(GUEST_ID_HEADER) String guestId, @Valid @RequestBody GuestResponseRequest request) {
 		MeetingService.SubmitResult result = meetingService.submitGuestResponse(inviteToken, guestId, request);
 		return ResponseEntity.status(result.created() ? HttpStatus.CREATED : HttpStatus.OK).body(result.response());
 	}
 
 	@GetMapping("/response/me")
-	public MyResponseView myResponse(@PathVariable String inviteToken, @RequestHeader(GUEST_ID_HEADER) String guestId) {
+	public MyResponseView myResponse(@PathVariable("inviteToken") String inviteToken, @RequestHeader(GUEST_ID_HEADER) String guestId) {
 		return meetingService.getMyResponse(inviteToken, guestId);
 	}
 }
