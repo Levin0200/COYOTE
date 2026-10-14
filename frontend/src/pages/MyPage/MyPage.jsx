@@ -43,6 +43,7 @@ function MainPage() {
   const [profileError, setProfileError] = useState("");
   const [withdrawOpen, setWithdrawOpen] = useState(false);
   const [withdrawConfirmText, setWithdrawConfirmText] = useState("");
+  const [withdrawPassword, setWithdrawPassword] = useState("");
   const [withdrawing, setWithdrawing] = useState(false);
   const [withdrawError, setWithdrawError] = useState("");
   const [withdrawComplete, setWithdrawComplete] = useState(false);
@@ -124,6 +125,7 @@ function MainPage() {
 
   const openWithdraw = () => {
     setWithdrawConfirmText("");
+    setWithdrawPassword("");
     setWithdrawError("");
     setWithdrawOpen(true);
   };
@@ -132,13 +134,20 @@ function MainPage() {
     if (withdrawing) return;
     setWithdrawOpen(false);
     setWithdrawConfirmText("");
+    setWithdrawPassword("");
     setWithdrawError("");
   };
+
+  const canWithdraw = withdrawConfirmText.trim() === "탈퇴" && withdrawPassword !== "";
 
   const withdrawAccount = async (event) => {
     event.preventDefault();
     if (withdrawConfirmText.trim() !== "탈퇴") {
       setWithdrawError("확인을 위해 ‘탈퇴’를 정확히 입력해주세요.");
+      return;
+    }
+    if (withdrawPassword === "") {
+      setWithdrawError("비밀번호를 입력해주세요.");
       return;
     }
 
@@ -151,7 +160,7 @@ function MainPage() {
     setWithdrawError("");
 
     try {
-      await deleteMe();
+      await deleteMe(withdrawPassword);
       logout();
       setWithdrawOpen(false);
       setWithdrawComplete(true);
@@ -711,6 +720,28 @@ const nextMeeting =
               />
             </label>
 
+            <label style={{ display: "block", marginTop: "16px", color: "#475569", fontSize: "13px", fontWeight: 700 }}>
+              본인 확인을 위해 현재 비밀번호를 입력해주세요.
+              <input
+                type="password"
+                value={withdrawPassword}
+                onChange={(event) => setWithdrawPassword(event.target.value)}
+                disabled={withdrawing}
+                autoComplete="current-password"
+                placeholder="비밀번호"
+                style={{
+                  width: "100%",
+                  boxSizing: "border-box",
+                  marginTop: "9px",
+                  border: "1px solid #CBD5E1",
+                  borderRadius: "14px",
+                  padding: "13px 14px",
+                  color: "#172033",
+                  outlineColor: "#E11D48",
+                }}
+              />
+            </label>
+
             {withdrawError && (
               <p
                 role="alert"
@@ -748,14 +779,13 @@ const nextMeeting =
               </button>
               <button
                 type="submit"
-                disabled={withdrawing || withdrawConfirmText.trim() !== "탈퇴"}
+                disabled={withdrawing || !canWithdraw}
                 style={{
                   flex: 1.4,
                   border: "none",
                   borderRadius: "14px",
                   padding: "13px",
-                  backgroundColor:
-                    withdrawing || withdrawConfirmText.trim() !== "탈퇴" ? "#CBD5E1" : "#E11D48",
+                  backgroundColor: withdrawing || !canWithdraw ? "#CBD5E1" : "#E11D48",
                   color: "#FFFFFF",
                   fontWeight: 800,
                   cursor: withdrawing ? "wait" : "pointer",

@@ -42,4 +42,6 @@ export const updateMe = ({ name, address }) =>
     .patch("/api/users/me", { name, address })
     .then((response) => response.data);
 
-export const deleteMe = () => api.delete("/api/users/me");
+// 탈퇴 시 현재 비밀번호를 한 번 더 확인한다(틀리면 403 INVALID_PASSWORD).
+export const deleteMe = (password) =>
+  api.delete("/api/users/me", { data: { password } });
