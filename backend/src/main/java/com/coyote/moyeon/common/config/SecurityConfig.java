@@ -6,6 +6,7 @@ import com.coyote.moyeon.common.ratelimit.RateLimiter;
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 import javax.crypto.SecretKey;
@@ -30,6 +31,7 @@ import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -62,7 +64,13 @@ public class SecurityConfig {
 			}
 		}
 		this.jwtKey = new SecretKeySpec(keyBytes, "HmacSHA256");
-		this.allowedOrigins = Arrays.stream(allowedOrigins.split(",")).map(String::trim).toList();
+		this.allowedOrigins = Arrays.stream(allowedOrigins.split(",")).map(String::trim)
+				.filter(origin -> !origin.isEmpty()).toList();
+		boolean devOrTest = environment.acceptsProfiles(Profiles.of("dev", "test"));
+		if (!devOrTest && (this.allowedOrigins.isEmpty() || this.allowedOrigins.contains("*"))) {
+			throw new IllegalStateException(
+					"CORS_ALLOWED_ORIGINS must list the frontend origins (no wildcard) outside the dev/test profiles");
+		}
 	}
 
 	@Bean
@@ -71,6 +79,10 @@ public class SecurityConfig {
 		http
 				.csrf(AbstractHttpConfigurer::disable)
 				.cors(Customizer.withDefaults())
+				// JSON API라 브라우저가 응답을 문서로 렌더링할 일이 없다. 어떤 리소스도 불러오지 못하게 막는다.
+				.headers(headers -> headers
+						.contentSecurityPolicy(csp -> csp.policyDirectives("default-src 'none'; frame-ancestors 'none'"))
+						.referrerPolicy(referrer -> referrer.policy(ReferrerPolicy.NO_REFERRER)))
 				.addFilterAfter(new IpRateLimitFilter(rateLimiter, rateLimitProperties), CorsFilter.class)
 				.sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 				.authorizeHttpRequests(auth -> auth
@@ -86,7 +98,11 @@ public class SecurityConfig {
 		CorsConfiguration config = new CorsConfiguration();
 		config.setAllowedOrigins(allowedOrigins);
 		config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-		config.setAllowedHeaders(List.of("*"));
+		// 프론트가 실제로 보내는 헤더만 허용한다(Authorization: 호스트 JWT, X-Guest-Id: 게스트 식별자).
+		config.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Guest-Id"));
+		// 429 응답의 Retry-After 를 프론트가 읽을 수 있게 노출한다.
+		config.setExposedHeaders(List.of("Retry-After"));
+		config.setMaxAge(Duration.ofHours(1));
 		UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
 		source.registerCorsConfiguration("/**", config);
 		return source;
