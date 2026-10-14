@@ -1,5 +1,6 @@
 package com.coyote.moyeon.user;
 
+import com.coyote.moyeon.user.dto.DeleteAccountRequest;
 import com.coyote.moyeon.user.dto.UpdateUserRequest;
 import com.coyote.moyeon.user.dto.UserResponse;
 import jakarta.validation.Valid;
@@ -39,7 +40,7 @@ public class UserController {
 
 	@DeleteMapping
 	@ResponseStatus(HttpStatus.NO_CONTENT)
-	public void deleteMe(@AuthenticationPrincipal Jwt jwt) {
-		userService.deleteMe(Long.valueOf(jwt.getSubject()));
+	public void deleteMe(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody DeleteAccountRequest request) {
+		userService.deleteMe(Long.valueOf(jwt.getSubject()), request.password());
 	}
 }

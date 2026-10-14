@@ -36,6 +36,7 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.regex.Pattern;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -64,16 +65,19 @@ public class MeetingService {
 	private final MeetingResponseRepository responseRepository;
 	private final FinalResultRepository finalResultRepository;
 	private final MeetingClosingService closingService;
+	private final int maxParticipants;
 
 	public MeetingService(UserRepository userRepository, MeetingRepository meetingRepository,
 			ParticipantRepository participantRepository, MeetingResponseRepository responseRepository,
-			FinalResultRepository finalResultRepository, MeetingClosingService closingService) {
+			FinalResultRepository finalResultRepository, MeetingClosingService closingService,
+			@Value("${app.meeting.max-participants:100}") int maxParticipants) {
 		this.userRepository = userRepository;
 		this.meetingRepository = meetingRepository;
 		this.participantRepository = participantRepository;
 		this.responseRepository = responseRepository;
 		this.finalResultRepository = finalResultRepository;
 		this.closingService = closingService;
+		this.maxParticipants = maxParticipants;
 	}
 
 	@Transactional
@@ -249,6 +253,7 @@ public class MeetingService {
 		boolean created = false;
 		Participant participant = participantRepository.findByMeetingIdAndGuestId(meeting.getId(), guestId).orElse(null);
 		if (participant == null) {
+			assertHasRoom(meeting);
 			try {
 				participant = participantRepository.saveAndFlush(Participant.guest(meeting, guestId, nickname));
 			} catch (DataIntegrityViolationException e) {
@@ -282,6 +287,7 @@ public class MeetingService {
 
 		Participant participant = participantRepository.findByMeetingIdAndGuestId(meeting.getId(), guestId).orElse(null);
 		if (participant == null) {
+			assertHasRoom(meeting);
 			try {
 				participantRepository.saveAndFlush(Participant.guest(meeting, guestId, nickname));
 			} catch (DataIntegrityViolationException e) {
@@ -480,6 +486,14 @@ public class MeetingService {
 				return new NormalizedResponse(dates, PlaceMode.PROPOSE, blankToNull(data.region()), place,
 						data.recommendationRadius(), blankToNull(data.recommendationKeyword()));
 			}
+		}
+	}
+
+	/** 초대 링크로 가짜 참여자가 끝없이 늘어나지 않도록 모임당 인원을 제한한다(호스트 포함). 모임 행 잠금 안에서 호출한다. */
+	private void assertHasRoom(Meeting meeting) {
+		if (participantRepository.countByMeetingId(meeting.getId()) >= maxParticipants) {
+			throw new BusinessException(HttpStatus.CONFLICT, "PARTICIPANT_LIMIT",
+					"참여 가능한 인원(" + maxParticipants + "명)을 초과했습니다.");
 		}
 	}
 
