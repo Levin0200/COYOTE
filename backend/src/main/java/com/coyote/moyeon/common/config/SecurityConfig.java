@@ -1,5 +1,8 @@
 package com.coyote.moyeon.common.config;
 
+import com.coyote.moyeon.common.ratelimit.IpRateLimitFilter;
+import com.coyote.moyeon.common.ratelimit.RateLimitProperties;
+import com.coyote.moyeon.common.ratelimit.RateLimiter;
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
@@ -30,6 +33,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.web.filter.CorsFilter;
 
 @Configuration
 public class SecurityConfig {
@@ -62,10 +66,12 @@ public class SecurityConfig {
 	}
 
 	@Bean
-	SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+	SecurityFilterChain securityFilterChain(HttpSecurity http, RateLimiter rateLimiter,
+			RateLimitProperties rateLimitProperties) throws Exception {
 		http
 				.csrf(AbstractHttpConfigurer::disable)
 				.cors(Customizer.withDefaults())
+				.addFilterAfter(new IpRateLimitFilter(rateLimiter, rateLimitProperties), CorsFilter.class)
 				.sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 				.authorizeHttpRequests(auth -> auth
 						.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()

@@ -6,6 +6,7 @@ import com.coyote.moyeon.auth.dto.SendCodeRequest;
 import com.coyote.moyeon.auth.dto.SignupRequest;
 import com.coyote.moyeon.auth.dto.TokenResponse;
 import com.coyote.moyeon.user.dto.UserResponse;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -26,8 +27,8 @@ public class AuthController {
 
 	@PostMapping("/email-verification")
 	@ResponseStatus(HttpStatus.NO_CONTENT)
-	public void sendCode(@Valid @RequestBody SendCodeRequest request) {
-		authService.sendVerificationCode(request);
+	public void sendCode(@Valid @RequestBody SendCodeRequest request, HttpServletRequest http) {
+		authService.sendVerificationCode(request, http.getRemoteAddr());
 	}
 
 	@PostMapping("/email-verification/confirm")
@@ -56,8 +57,8 @@ public class AuthController {
 	 * 이메일, 비밀번호 검증 후 JWT 토큰 반환
 	 */
 	@PostMapping("/login")
-	public TokenResponse login(@Valid @RequestBody LoginRequest request) {
+	public TokenResponse login(@Valid @RequestBody LoginRequest request, HttpServletRequest http) {
 		//로그인 검증 후 JWT 토큰 발급
-		return authService.login(request);
+		return authService.login(request, http.getRemoteAddr());
 	}
 }
