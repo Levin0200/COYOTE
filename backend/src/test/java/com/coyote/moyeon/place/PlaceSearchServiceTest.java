@@ -285,4 +285,35 @@ class PlaceSearchServiceTest {
 
 		assertThat(result.places()).extracting(Place::name).containsExactly("중복카페", "다른카페");
 	}
+
+	@Test
+	void placesConfirmedClosedByLocalDataAreNotReturned() {
+		PlaceSearchProvider places = new PlaceSearchProvider() {
+			@Override
+			public boolean isAvailable() {
+				return true;
+			}
+
+			@Override
+			public List<Place> findInRadius(double latitude, double longitude, int radiusMeters, CategoryFilter filter) {
+				return List.of(
+						new Place("closed", "폐업카페", "I2", "I212", "I21201", "음식 > 카페", "서울 강남구 1", LAT + 0.001, LON, 0),
+						new Place("open", "영업카페", "I2", "I212", "I21201", "음식 > 카페", "서울 강남구 2", LAT + 0.002, LON, 0),
+						new Place("unknown", "미확인가게", "I2", "I212", "I21201", "음식 > 카페", "서울 강남구 3", LAT + 0.003, LON, 0));
+			}
+
+			@Override
+			public List<Place> findInBox(double a, double b, double c, double d, CategoryFilter filter) {
+				return List.of();
+			}
+		};
+		PlaceStatusVerifier verifier = place -> "closed".equals(place.id())
+				? PlaceStatusVerifier.Status.CLOSED
+				: PlaceStatusVerifier.Status.UNKNOWN;
+
+		PlaceSearchService.Result result = new PlaceSearchService(places, new KeywordCategoryMapper(), verifier)
+				.search(LAT, LON, 500, null, 10);
+
+		assertThat(result.places()).extracting(Place::id).containsExactly("open", "unknown");
+	}
 }

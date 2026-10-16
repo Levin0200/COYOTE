@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.springframework.http.HttpStatus;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 /**
@@ -31,6 +32,9 @@ public class PlaceSearchService {
 	private static final int MAX_FILTERS = 5;
 	/** 같은 건물(주소)에 점포가 몰려 있어도 추천 후보가 한 건물로만 채워지지 않게 주소당 최대 개수를 제한한다. */
 	static final int MAX_PER_ADDRESS = 2;
+	/** 실시간 영업상태 API 호출이 과도해지지 않게 최종 순위 상위 후보만 검증한다. */
+	private static final int STATUS_VERIFICATION_EXTRA = 6;
+	private static final int STATUS_VERIFICATION_MAX = 30;
 	/** 모임 장소로 부적절한 업종(일반 유흥 주점, 무도 유흥 주점)은 검색 결과에서 뺀다. */
 	private static final Set<String> EXCLUDED_SMALL_CODES = Set.of("I21101", "I21102");
 	private static final int KEYWORD_MAX_LENGTH = 100;
@@ -41,10 +45,18 @@ public class PlaceSearchService {
 
 	private final PlaceSearchProvider provider;
 	private final KeywordCategoryMapper mapper;
+	private final PlaceStatusVerifier statusVerifier;
 
-	public PlaceSearchService(PlaceSearchProvider provider, KeywordCategoryMapper mapper) {
+	@Autowired
+	public PlaceSearchService(PlaceSearchProvider provider, KeywordCategoryMapper mapper,
+			PlaceStatusVerifier statusVerifier) {
 		this.provider = provider;
 		this.mapper = mapper;
+		this.statusVerifier = statusVerifier;
+	}
+
+	public PlaceSearchService(PlaceSearchProvider provider, KeywordCategoryMapper mapper) {
+		this(provider, mapper, PlaceStatusVerifier.permissive());
 	}
 
 	public Result search(double latitude, double longitude, int radiusMeters, String keyword, int limit) {
@@ -132,10 +144,22 @@ public class PlaceSearchService {
 		within.sort(byName.thenComparingDouble(Place::distanceMeters));
 
 		Map<String, Integer> perAddress = new HashMap<>();
-		List<Place> result = new ArrayList<>();
+		List<Place> verificationCandidates = new ArrayList<>();
+		int verificationLimit = Math.min(STATUS_VERIFICATION_MAX, limit + STATUS_VERIFICATION_EXTRA);
 		for (Place place : within) {
 			String address = place.address().isBlank() ? place.id() : place.address();
 			if (perAddress.merge(address, 1, Integer::sum) <= MAX_PER_ADDRESS) {
+				verificationCandidates.add(place);
+				if (verificationCandidates.size() == verificationLimit) {
+					break;
+				}
+			}
+		}
+
+		Map<Place, PlaceStatusVerifier.Status> statuses = statusVerifier.statusesOf(verificationCandidates);
+		List<Place> result = new ArrayList<>();
+		for (Place place : verificationCandidates) {
+			if (statuses.getOrDefault(place, PlaceStatusVerifier.Status.UNKNOWN) != PlaceStatusVerifier.Status.CLOSED) {
 				result.add(place);
 				if (result.size() == limit) {
 					break;
