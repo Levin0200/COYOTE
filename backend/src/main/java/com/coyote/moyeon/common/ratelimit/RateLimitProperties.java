@@ -14,6 +14,7 @@ public class RateLimitProperties {
 	private final EmailSend emailSend = new EmailSend();
 	private final Login login = new Login();
 	private final Ip ip = new Ip();
+	private final PlaceSearch placeSearch = new PlaceSearch();
 
 	@Getter
 	@Setter
@@ -34,6 +35,14 @@ public class RateLimitProperties {
 		/** 같은 IP에서 실패를 허용하는 횟수(이메일을 바꿔 가며 시도하는 경우) */
 		private int ipMaxFailures = 30;
 		private int lockMinutes = 15;
+	}
+
+	@Getter
+	@Setter
+	public static class PlaceSearch {
+		/** 장소 검색을 windowMinutes 동안 호출할 수 있는 최대 횟수(호스트는 사용자별, 게스트는 IP별) */
+		private int max = 30;
+		private int windowMinutes = 10;
 	}
 
 	@Getter

@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingRequestHeaderException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -41,6 +42,12 @@ public class GlobalExceptionHandler {
 	ResponseEntity<ErrorResponse> handleMissingHeader(MissingRequestHeaderException e) {
 		String code = "X-Guest-Id".equalsIgnoreCase(e.getHeaderName()) ? "INVALID_GUEST_ID" : "INVALID_REQUEST";
 		return ResponseEntity.badRequest().body(new ErrorResponse(code, e.getHeaderName() + " 헤더가 필요합니다."));
+	}
+
+	@ExceptionHandler(MissingServletRequestParameterException.class)
+	ResponseEntity<ErrorResponse> handleMissingParameter(MissingServletRequestParameterException e) {
+		return ResponseEntity.badRequest()
+				.body(new ErrorResponse("INVALID_REQUEST", e.getParameterName() + " 값이 필요합니다."));
 	}
 
 	@ExceptionHandler(MethodArgumentTypeMismatchException.class)

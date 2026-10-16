@@ -326,6 +326,24 @@ public class MeetingService {
 		return map;
 	}
 
+	/**
+	 * 게스트가 장소를 검색할 수 있는 상태인지 확인한다. 호스트가 장소 결정을 게스트 제안에 열어 둔 모임(건너뛰기)에서
+	 * 마감 전까지만 가능하다. 추천 후보 중에서 고르거나 확정 장소인 모임에서는 검색할 일이 없다.
+	 */
+	@Transactional(readOnly = true)
+	public void assertGuestMayProposePlaces(String inviteToken, String rawGuestId) {
+		Instant now = Instant.now();
+		Meeting meeting = findAccessibleByToken(inviteToken, now);
+		normalizeGuestId(rawGuestId);
+		if (meeting.isClosed(now)) {
+			throw new BusinessException(HttpStatus.CONFLICT, "MEETING_CLOSED", "응답이 마감되어 장소를 검색할 수 없습니다.");
+		}
+		if (meeting.getPlacePolicyMode() != PlacePolicyMode.OPEN) {
+			throw new BusinessException(HttpStatus.CONFLICT, "PLACE_SEARCH_NOT_ALLOWED",
+					"이 모임에서는 장소를 검색해 제안할 수 없습니다.");
+		}
+	}
+
 	@Transactional(readOnly = true)
 	public MyResponseView getMyResponse(String inviteToken, String rawGuestId) {
 		Meeting meeting = findAccessibleByToken(inviteToken, Instant.now());
