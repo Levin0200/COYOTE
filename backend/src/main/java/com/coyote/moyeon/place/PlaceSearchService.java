@@ -31,6 +31,8 @@ public class PlaceSearchService {
 	private static final int MAX_FILTERS = 5;
 	/** 같은 건물(주소)에 점포가 몰려 있어도 추천 후보가 한 건물로만 채워지지 않게 주소당 최대 개수를 제한한다. */
 	static final int MAX_PER_ADDRESS = 2;
+	/** 모임 장소로 부적절한 업종(일반 유흥 주점, 무도 유흥 주점)은 검색 결과에서 뺀다. */
+	private static final Set<String> EXCLUDED_SMALL_CODES = Set.of("I21101", "I21102");
 	private static final int KEYWORD_MAX_LENGTH = 100;
 
 	public record Result(List<Place> places, List<String> appliedCategories, List<String> ignoredKeywords,
@@ -46,11 +48,26 @@ public class PlaceSearchService {
 	}
 
 	public Result search(double latitude, double longitude, int radiusMeters, String keyword, int limit) {
-		if (latitude < 33.0 || latitude > 38.7 || longitude < 124.5 || longitude > 132.0) {
-			throw invalid("대한민국 안의 좌표를 입력해주세요.");
-		}
 		if (keyword != null && keyword.length() > KEYWORD_MAX_LENGTH) {
 			throw invalid("키워드는 " + KEYWORD_MAX_LENGTH + "자 이하여야 합니다.");
+		}
+		KeywordCategoryMapper.Mapping mapping = mapper.map(keyword);
+		List<CategoryFilter> filters = mapping.filters().isEmpty() ? List.of(KeywordCategoryMapper.DEFAULT_FILTER)
+				: mapping.filters();
+		List<String> nameTerms = mapping.ignoredKeywords().stream().filter(term -> term.length() >= 2).toList();
+		Result result = searchWithFilters(latitude, longitude, radiusMeters, filters, nameTerms, limit);
+		return new Result(result.places(), result.appliedCategories(), mapping.ignoredKeywords(),
+				result.searchedRadiusMeters());
+	}
+
+	/**
+	 * 업종 필터를 직접 지정해 가까운 장소를 찾는다(키워드 해석 없이). 합의 지역 주변 후보처럼 서버가 업종을 정하는 경우에 쓴다.
+	 * nameTerms에 이름이 맞는 곳은 거리와 상관없이 먼저 나온다. filters가 비어 있으면 음식 대분류를 쓴다.
+	 */
+	public Result searchWithFilters(double latitude, double longitude, int radiusMeters, List<CategoryFilter> filters,
+			List<String> nameTerms, int limit) {
+		if (latitude < 33.0 || latitude > 38.7 || longitude < 124.5 || longitude > 132.0) {
+			throw invalid("대한민국 안의 좌표를 입력해주세요.");
 		}
 		if (!provider.isAvailable()) {
 			throw new BusinessException(HttpStatus.SERVICE_UNAVAILABLE, "PLACE_SEARCH_UNAVAILABLE",
@@ -58,18 +75,15 @@ public class PlaceSearchService {
 		}
 		int radius = Math.max(MIN_RADIUS_METERS, Math.min(MAX_RADIUS_METERS, radiusMeters));
 		int count = Math.max(1, Math.min(MAX_LIMIT, limit));
-
-		KeywordCategoryMapper.Mapping mapping = mapper.map(keyword);
-		List<CategoryFilter> filters = mapping.filters().isEmpty() ? List.of(KeywordCategoryMapper.DEFAULT_FILTER)
-				: mapping.filters().stream().limit(MAX_FILTERS).toList();
-		List<String> nameTerms = mapping.ignoredKeywords().stream().filter(term -> term.length() >= 2).toList();
+		List<CategoryFilter> applied = filters.isEmpty() ? List.of(KeywordCategoryMapper.DEFAULT_FILTER)
+				: filters.stream().limit(MAX_FILTERS).toList();
 
 		List<Place> ranked = List.of();
 		int searched = radius;
 		for (int ring : rings(radius)) {
 			searched = ring;
 			Map<String, Place> found = new LinkedHashMap<>();
-			for (CategoryFilter filter : filters) {
+			for (CategoryFilter filter : applied) {
 				for (Place place : fetch(latitude, longitude, ring, filter)) {
 					found.putIfAbsent(place.id(), place);
 				}
@@ -79,8 +93,7 @@ public class PlaceSearchService {
 				break;
 			}
 		}
-		return new Result(ranked, filters.stream().map(CategoryFilter::label).toList(), mapping.ignoredKeywords(),
-				searched);
+		return new Result(ranked, applied.stream().map(CategoryFilter::label).toList(), List.of(), searched);
 	}
 
 	private List<Place> fetch(double latitude, double longitude, int ring, CategoryFilter filter) {
@@ -110,7 +123,8 @@ public class PlaceSearchService {
 		for (Place place : candidates) {
 			double distance = GeoMath.distanceMeters(latitude, longitude, place.latitude(), place.longitude());
 			// 같은 건물의 같은 상호가 중복으로 내려오는 경우를 하나로 합친다.
-			if (distance <= radius && seen.add(place.name() + "|" + place.address())) {
+			if (distance <= radius && !EXCLUDED_SMALL_CODES.contains(place.smallCategoryCode())
+					&& seen.add(place.name() + "|" + place.address())) {
 				within.add(place.withDistance(distance));
 			}
 		}

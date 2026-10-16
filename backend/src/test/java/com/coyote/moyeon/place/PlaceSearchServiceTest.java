@@ -230,6 +230,34 @@ class PlaceSearchServiceTest {
 	}
 
 	@Test
+	void entertainmentBarsAreNeverReturned() {
+		PlaceSearchProvider bars = new PlaceSearchProvider() {
+			@Override
+			public boolean isAvailable() {
+				return true;
+			}
+
+			@Override
+			public List<Place> findInRadius(double latitude, double longitude, int radiusMeters, CategoryFilter filter) {
+				return List.of(
+						new Place("1", "요리주점", "I2", "I211", "I21104", "음식 > 주점 > 요리 주점", "서울 강남구 1", LAT + 0.001, LON, 0),
+						new Place("2", "룸살롱", "I2", "I211", "I21101", "음식 > 주점 > 일반 유흥 주점", "서울 강남구 2", LAT + 0.0005, LON, 0),
+						new Place("3", "클럽", "I2", "I211", "I21102", "음식 > 주점 > 무도 유흥 주점", "서울 강남구 3", LAT + 0.0006, LON, 0));
+			}
+
+			@Override
+			public List<Place> findInBox(double a, double b, double c, double d, CategoryFilter filter) {
+				return List.of();
+			}
+		};
+
+		PlaceSearchService.Result result = new PlaceSearchService(bars, new KeywordCategoryMapper())
+				.search(LAT, LON, 500, "주점", 10);
+
+		assertThat(result.places()).extracting(Place::name).containsExactly("요리주점");
+	}
+
+	@Test
 	void samePlaceWithDifferentIdsIsReturnedOnce() {
 		PlaceSearchProvider duplicates = new PlaceSearchProvider() {
 			@Override
