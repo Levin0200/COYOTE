@@ -58,8 +58,7 @@ public class FinalResult {
 	@ElementCollection(fetch = FetchType.LAZY)
 	@CollectionTable(name = "final_result_place", joinColumns = @JoinColumn(name = "final_result_id"))
 	@OrderColumn(name = "sort_order")
-	@Column(name = "place_name", nullable = false, length = 100)
-	private List<String> selectedPlaces = new ArrayList<>();
+	private List<SelectedPlace> selectedPlaces = new ArrayList<>();
 
 	@Column(nullable = false)
 	private Instant createdAt;
@@ -74,5 +73,9 @@ public class FinalResult {
 		this.reason = generated.reason();
 		this.selectedPlaces = new ArrayList<>(generated.selectedPlaces());
 		this.createdAt = Instant.now();
+	}
+
+	public List<String> getSelectedPlaceNames() {
+		return selectedPlaces.stream().map(SelectedPlace::name).toList();
 	}
 }

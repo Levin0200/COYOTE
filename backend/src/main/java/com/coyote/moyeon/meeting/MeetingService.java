@@ -16,6 +16,7 @@ import com.coyote.moyeon.meeting.dto.PlacePolicyData;
 import com.coyote.moyeon.meeting.dto.PlacePolicyView;
 import com.coyote.moyeon.meeting.dto.ResponseData;
 import com.coyote.moyeon.meeting.dto.UpdateHostResponseRequest;
+import com.coyote.moyeon.place.Place;
 import com.coyote.moyeon.user.User;
 import com.coyote.moyeon.user.UserRepository;
 import java.security.SecureRandom;
@@ -81,13 +82,13 @@ public class MeetingService {
 	}
 
 	@Transactional
-	public MeetingDetailResponse create(Long userId, CreateMeetingRequest request) {
+	public MeetingDetailResponse create(Long userId, CreateMeetingRequest request, Map<String, Place> places) {
 		User host = userRepository.findById(userId)
 				.orElseThrow(() -> new BusinessException(HttpStatus.UNAUTHORIZED, "USER_NOT_FOUND", "사용자를 찾을 수 없습니다."));
 		Instant now = Instant.now();
 		validateDeadlines(request.responseDeadline(), request.linkExpirationDate(), now);
 		validateCandidateRange(request.candidateStartDate(), request.candidateEndDate(), LocalDate.now(KST));
-		PolicyValues policy = normalizePolicy(request.placePolicy());
+		PolicyValues policy = normalizePolicy(request.placePolicy(), places);
 
 		String description = request.description() == null || request.description().isBlank()
 				? null : request.description().trim();
@@ -95,14 +96,14 @@ public class MeetingService {
 				request.responseDeadline(), request.linkExpirationDate(), request.candidateStartDate(),
 				request.candidateEndDate(), policy.mode(), policy.region(), policy.radius(), policy.keyword(),
 				policy.fixedPlace(), policy.options());
-		NormalizedResponse normalized = normalize(request.toResponseData(), draft, true);
+		NormalizedResponse normalized = normalize(request.toResponseData(), draft, true, places);
 
 		Meeting meeting = meetingRepository.save(draft);
 		Participant hostParticipant = participantRepository.save(
 				Participant.host(meeting, host, truncate(host.getName().trim(), NICKNAME_MAX)));
 		MeetingResponse response = new MeetingResponse(meeting, hostParticipant);
 		response.update(normalized.dates(), normalized.placeMode(), normalized.region(), normalized.placePreference(),
-				normalized.radius(), normalized.keyword());
+				normalized.radius(), normalized.keyword(), normalized.place());
 		responseRepository.save(response);
 		return toDetail(meeting, MyResponseView.from(response), now);
 	}
@@ -122,7 +123,8 @@ public class MeetingService {
 	}
 
 	@Transactional
-	public MeetingDetailResponse updateHostResponse(Long userId, Long meetingId, UpdateHostResponseRequest request) {
+	public MeetingDetailResponse updateHostResponse(Long userId, Long meetingId, UpdateHostResponseRequest request,
+			Map<String, Place> places) {
 		Meeting meeting = meetingRepository.findByIdForUpdate(meetingId)
 				.orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "MEETING_NOT_FOUND", "모임을 찾을 수 없습니다."));
 		if (!meeting.getHost().getId().equals(userId)) {
@@ -133,7 +135,7 @@ public class MeetingService {
 			throw new BusinessException(HttpStatus.CONFLICT, "MEETING_CLOSED", "응답이 마감되어 수정할 수 없습니다.");
 		}
 
-		PolicyValues policy = normalizePolicy(request.placePolicy());
+		PolicyValues policy = normalizePolicy(request.placePolicy(), places);
 		if (!isSamePolicy(meeting, policy)) {
 			if (responseRepository.countByMeetingIdAndParticipantRole(meetingId, ParticipantRole.GUEST) > 0) {
 				throw new BusinessException(HttpStatus.CONFLICT, "POLICY_LOCKED",
@@ -142,14 +144,14 @@ public class MeetingService {
 			meeting.changePlacePolicy(policy.mode(), policy.region(), policy.radius(), policy.keyword(),
 					policy.fixedPlace(), policy.options());
 		}
-		NormalizedResponse normalized = normalize(request.toResponseData(), meeting, true);
+		NormalizedResponse normalized = normalize(request.toResponseData(), meeting, true, places);
 
 		Participant hostParticipant = participantRepository.findByMeetingIdAndRole(meetingId, ParticipantRole.HOST)
 				.orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "RESPONSE_NOT_FOUND", "호스트 응답을 찾을 수 없습니다."));
 		MeetingResponse response = responseRepository.findByParticipantId(hostParticipant.getId())
 				.orElseGet(() -> new MeetingResponse(meeting, hostParticipant));
 		response.update(normalized.dates(), normalized.placeMode(), normalized.region(), normalized.placePreference(),
-				normalized.radius(), normalized.keyword());
+				normalized.radius(), normalized.keyword(), normalized.place());
 		responseRepository.save(response);
 		return toDetail(meeting, MyResponseView.from(response), now);
 	}
@@ -240,14 +242,15 @@ public class MeetingService {
 	}
 
 	@Transactional
-	public SubmitResult submitGuestResponse(String inviteToken, String rawGuestId, GuestResponseRequest request) {
+	public SubmitResult submitGuestResponse(String inviteToken, String rawGuestId, GuestResponseRequest request,
+			Map<String, Place> places) {
 		Instant now = Instant.now();
 		Meeting meeting = findAccessibleByToken(inviteToken, now, true);
 		String guestId = normalizeGuestId(rawGuestId);
 		if (meeting.isClosed(now)) {
 			throw new BusinessException(HttpStatus.CONFLICT, "MEETING_CLOSED", "응답이 마감되어 수정할 수 없습니다.");
 		}
-		NormalizedResponse normalized = normalize(request.toResponseData(), meeting, false);
+		NormalizedResponse normalized = normalize(request.toResponseData(), meeting, false, places);
 		String nickname = request.nickname().trim();
 
 		boolean created = false;
@@ -270,7 +273,7 @@ public class MeetingService {
 			created = true;
 		}
 		response.update(normalized.dates(), normalized.placeMode(), normalized.region(), normalized.placePreference(),
-				normalized.radius(), normalized.keyword());
+				normalized.radius(), normalized.keyword(), normalized.place());
 		responseRepository.save(response);
 		return new SubmitResult(created, MyResponseView.from(response));
 	}
@@ -405,7 +408,7 @@ public class MeetingService {
 			String fixedPlace, List<PlaceOption> options) {
 	}
 
-	private PolicyValues normalizePolicy(PlacePolicyData data) {
+	private PolicyValues normalizePolicy(PlacePolicyData data, Map<String, Place> places) {
 		switch (data.mode()) {
 			case FIXED -> {
 				String fixedPlace = blankToNull(data.fixedPlace());
@@ -428,12 +431,16 @@ public class MeetingService {
 				}
 				List<PlaceOption> options = new ArrayList<>();
 				HashSet<String> names = new HashSet<>();
+				HashSet<String> ids = new HashSet<>();
 				for (PlaceOptionData option : given) {
-					String name = option.name().trim();
-					if (!names.add(name)) {
+					// 장소 ID가 있으면 공식 이름·주소·좌표로 바꿔 저장하고, 없으면(예전 방식) 이름만 저장한다.
+					PlaceInfo info = placeInfoOf(option.placeId(), places);
+					String name = info != null ? info.name() : option.name().trim();
+					if (!names.add(name) || (info != null && !ids.add(info.id()))) {
 						throw invalid("추천 후보 이름이 중복되었습니다.");
 					}
-					options.add(new PlaceOption(name, blankToNull(option.distance())));
+					options.add(info == null ? new PlaceOption(name, blankToNull(option.distance()))
+							: PlaceOption.of(info, blankToNull(option.distance())));
 				}
 				return new PolicyValues(PlacePolicyMode.RECOMMEND, region, data.radius(), blankToNull(data.keyword()),
 						null, options);
@@ -454,10 +461,23 @@ public class MeetingService {
 	}
 
 	private record NormalizedResponse(Set<LocalDate> dates, PlaceMode placeMode, String region, String placePreference,
-			Integer radius, String keyword) {
+			Integer radius, String keyword, PlaceInfo place) {
 	}
 
-	private NormalizedResponse normalize(ResponseData data, Meeting meeting, boolean host) {
+	/** 요청의 장소 ID를 서버가 미리 조회해 둔 공식 장소 정보로 바꾼다. 장소 ID가 없으면 null. */
+	private PlaceInfo placeInfoOf(String placeId, Map<String, Place> places) {
+		String id = blankToNull(placeId);
+		if (id == null) {
+			return null;
+		}
+		Place place = places.get(id.trim());
+		if (place == null) {
+			throw invalid("확인되지 않은 장소입니다.");
+		}
+		return PlaceInfo.from(place);
+	}
+
+	private NormalizedResponse normalize(ResponseData data, Meeting meeting, boolean host, Map<String, Place> places) {
 		LocalDate today = LocalDate.now(KST);
 		TreeSet<LocalDate> dates = new TreeSet<>(data.selectedDates());
 		if (dates.first().isBefore(today)) {
@@ -478,31 +498,39 @@ public class MeetingService {
 				if (place != null && !place.equals(meeting.getFixedPlace())) {
 					throw invalid("확정된 장소와 다른 장소는 선택할 수 없습니다.");
 				}
-				return new NormalizedResponse(dates, PlaceMode.FIXED, null, meeting.getFixedPlace(), null, null);
+				return new NormalizedResponse(dates, PlaceMode.FIXED, null, meeting.getFixedPlace(), null, null, null);
 			}
 			case RECOMMEND -> {
 				if (mode != PlaceMode.RECOMMEND) {
 					throw invalid("추천 후보 중에서 장소를 선택해주세요.");
 				}
-				if (place == null || meeting.getPlaceOptions().stream().noneMatch(o -> o.name().equals(place))) {
+				// 장소 ID로 고르면 ID로, 아니면(예전 방식) 이름으로 후보를 찾는다. 후보에 저장된 좌표를 응답에 그대로 붙인다.
+				String chosenId = blankToNull(data.placeId());
+				PlaceOption chosen = meeting.getPlaceOptions().stream()
+						.filter(o -> chosenId != null ? chosenId.equals(o.placeId()) : o.name().equals(place))
+						.findFirst().orElse(null);
+				if (chosen == null) {
 					throw invalid("추천 후보 중에서 장소를 선택해주세요.");
 				}
-				return new NormalizedResponse(dates, PlaceMode.RECOMMEND, meeting.getPolicyRegion(), place,
-						meeting.getPolicyRadiusKm(), meeting.getPolicyKeyword());
+				return new NormalizedResponse(dates, PlaceMode.RECOMMEND, meeting.getPolicyRegion(), chosen.name(),
+						meeting.getPolicyRadiusKm(), meeting.getPolicyKeyword(), chosen.toPlaceInfo());
 			}
 			default -> {
 				if (mode == PlaceMode.OPEN) {
-					return new NormalizedResponse(dates, PlaceMode.OPEN, null, null, null, null);
+					return new NormalizedResponse(dates, PlaceMode.OPEN, null, null, null, null, null);
 				}
 				if (mode != PlaceMode.PROPOSE || host) {
 					throw invalid(host ? "호스트는 장소 제안 방식을 사용할 수 없습니다."
 							: "이 모임에서는 장소 제안 또는 건너뛰기만 선택할 수 있습니다.");
 				}
-				if (place == null) {
+				// 장소 ID로 제안하면 공식 이름·좌표를 쓰고, 이름만 보내면(예전 방식) 이름만 저장한다.
+				PlaceInfo info = placeInfoOf(data.placeId(), places);
+				if (info == null && place == null) {
 					throw invalid("제안할 장소를 입력해주세요.");
 				}
-				return new NormalizedResponse(dates, PlaceMode.PROPOSE, blankToNull(data.region()), place,
-						data.recommendationRadius(), blankToNull(data.recommendationKeyword()));
+				return new NormalizedResponse(dates, PlaceMode.PROPOSE, blankToNull(data.region()),
+						info != null ? info.name() : place, data.recommendationRadius(),
+						blankToNull(data.recommendationKeyword()), info);
 			}
 		}
 	}

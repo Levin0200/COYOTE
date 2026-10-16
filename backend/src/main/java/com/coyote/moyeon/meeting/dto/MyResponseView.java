@@ -14,6 +14,7 @@ public record MyResponseView(
 		String placePreference,
 		Integer recommendationRadius,
 		String recommendationKeyword,
+		PlaceDetailView place,
 		Instant updatedAt) {
 
 	public static MyResponseView from(MeetingResponse response) {
@@ -25,6 +26,7 @@ public record MyResponseView(
 				response.getPlacePreference(),
 				response.getRecommendationRadius(),
 				response.getRecommendationKeyword(),
+				PlaceDetailView.from(response.toPlaceInfo()),
 				response.getUpdatedAt());
 	}
 }

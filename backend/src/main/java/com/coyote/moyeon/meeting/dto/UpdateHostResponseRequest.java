@@ -9,6 +9,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Set;
 
 public record UpdateHostResponseRequest(
 		@NotNull @Valid PlacePolicyData placePolicy,
@@ -17,10 +18,17 @@ public record UpdateHostResponseRequest(
 		@Size(max = 100) String region,
 		@Size(max = 100) String placePreference,
 		@Min(1) @Max(100) Integer recommendationRadius,
-		@Size(max = 100) String recommendationKeyword) {
+		@Size(max = 100) String recommendationKeyword,
+		/** 선택·제안한 장소의 ID(검색 결과). 있으면 서버가 공식 정보로 바꿔 저장한다. */
+		@Size(max = 64) String placeId) {
+
+	/** 요청에 들어 있는 장소 ID(추천 후보와 선택한 장소). 서버가 공식 정보로 확인할 대상이다. */
+	public Set<String> placeIds() {
+		return PlaceIds.collect(placeId, placePolicy);
+	}
 
 	public ResponseData toResponseData() {
 		return new ResponseData(selectedDates, placeMode, region, placePreference, recommendationRadius,
-				recommendationKeyword);
+				recommendationKeyword, placeId);
 	}
 }

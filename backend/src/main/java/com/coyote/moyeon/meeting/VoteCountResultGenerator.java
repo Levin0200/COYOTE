@@ -15,12 +15,17 @@ public class VoteCountResultGenerator implements FinalResultGenerator {
 	@Override
 	public GeneratedResult generate(ResultInput input) {
 		Map<LocalDate, Integer> dateCounts = new HashMap<>();
+		// 장소는 장소 ID가 있으면 ID로, 없으면(이름만 받은 응답) 이름으로 센다.
 		Map<String, Integer> placeCounts = new HashMap<>();
+		Map<String, SelectedPlace> placesByKey = new HashMap<>();
 		for (ResultInput.ResponseSnapshot response : input.responses()) {
 			response.dates().forEach(date -> dateCounts.merge(date, 1, Integer::sum));
 			String place = response.placePreference();
 			if (place != null && response.placeMode() != PlaceMode.OPEN) {
-				placeCounts.merge(place, 1, Integer::sum);
+				PlaceInfo info = response.place();
+				String key = info != null && info.id() != null ? "id:" + info.id() : "name:" + place;
+				placeCounts.merge(key, 1, Integer::sum);
+				placesByKey.putIfAbsent(key, toSelectedPlace(place, info));
 			}
 		}
 		if (dateCounts.isEmpty()) {
@@ -36,9 +41,12 @@ public class VoteCountResultGenerator implements FinalResultGenerator {
 				.orElseThrow();
 
 		int bestPlaceCount = placeCounts.values().stream().max(Integer::compare).orElse(0);
-		List<String> selectedPlaces = bestPlaceCount == 0 ? List.of()
+		List<SelectedPlace> selectedPlaces = bestPlaceCount == 0 ? List.of()
 				: placeCounts.entrySet().stream().filter(e -> e.getValue() == bestPlaceCount)
-						.map(Map.Entry::getKey).sorted().toList();
+						.map(e -> placesByKey.get(e.getKey()))
+						.sorted(Comparator.comparing(SelectedPlace::name)
+								.thenComparing(place -> place.placeId() == null ? "" : place.placeId()))
+						.toList();
 
 		boolean tieBreak = tiedDates.size() > 1 || selectedPlaces.size() > 1;
 		String dateReason = tiedDates.size() > 1
@@ -51,5 +59,10 @@ public class VoteCountResultGenerator implements FinalResultGenerator {
 		return new GeneratedResult(selectedDate, bestDateCount, selectedPlaces, bestPlaceCount,
 				input.responses().size(), tieBreak ? DecisionType.TIE_BREAK : DecisionType.MAJORITY,
 				dateReason + placeReason);
+	}
+
+	private static SelectedPlace toSelectedPlace(String name, PlaceInfo info) {
+		return info == null ? SelectedPlace.ofName(name)
+				: new SelectedPlace(name, info.id(), info.address(), info.latitude(), info.longitude());
 	}
 }

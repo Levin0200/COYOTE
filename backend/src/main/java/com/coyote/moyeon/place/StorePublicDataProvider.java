@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -27,6 +28,7 @@ public class StorePublicDataProvider implements PlaceSearchProvider {
 	private static final Logger log = LoggerFactory.getLogger(StorePublicDataProvider.class);
 	private static final JsonMapper JSON = JsonMapper.builder().build();
 	/** 22: 일일 호출 한도 초과, 20·30·31: 키 오류·미등록·만료. 서비스 쪽 문제라 "사용 불가"로 알린다. */
+	private static final String NO_DATA_CODE = "03";
 	private static final List<String> UNAVAILABLE_CODES = List.of("20", "22", "30", "31");
 
 	private final RestClient client;
@@ -40,6 +42,20 @@ public class StorePublicDataProvider implements PlaceSearchProvider {
 	@Override
 	public boolean isAvailable() {
 		return config.getServiceKey() != null && !config.getServiceKey().isBlank();
+	}
+
+	@Override
+	public Optional<Place> findById(String id) {
+		if (!isAvailable()) {
+			throw unavailable();
+		}
+		Map<String, Object> params = new LinkedHashMap<>();
+		params.put("key", id);
+		params.put("type", "json");
+		params.put("serviceKey", config.getServiceKey());
+		List<Place> places = new ArrayList<>();
+		parsePage(call("storeOne", params), places);
+		return places.stream().filter(place -> id.equals(place.id())).findFirst();
 	}
 
 	@Override
@@ -121,6 +137,10 @@ public class StorePublicDataProvider implements PlaceSearchProvider {
 			throw failed();
 		}
 		String resultCode = root.path("header").path("resultCode").asString("");
+		// 03: 조건에 맞는 데이터가 없다(NODATA_ERROR). 오류가 아니라 빈 결과다. 존재하지 않는 업소번호 조회도 같다.
+		if (NO_DATA_CODE.equals(resultCode)) {
+			return 0;
+		}
 		if (!"00".equals(resultCode)) {
 			log.warn("공공데이터 장소 검색 결과 코드: {} {}", resultCode, root.path("header").path("resultMsg").asString(""));
 			throw UNAVAILABLE_CODES.contains(resultCode) ? unavailable() : failed();

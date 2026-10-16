@@ -7,7 +7,7 @@ import java.util.List;
 public record GeneratedResult(
 		LocalDate selectedDate,
 		int dateVoteCount,
-		List<String> selectedPlaces,
+		List<SelectedPlace> selectedPlaces,
 		int placeVoteCount,
 		int totalResponses,
 		DecisionType decisionType,

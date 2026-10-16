@@ -5,5 +5,5 @@ import java.time.LocalDate;
 import java.util.List;
 
 public record ResponseData(List<LocalDate> selectedDates, PlaceMode placeMode, String region, String placePreference,
-		Integer recommendationRadius, String recommendationKeyword) {
+		Integer recommendationRadius, String recommendationKeyword, String placeId) {
 }

@@ -52,7 +52,7 @@ public class MeetingClosingService {
 		Instant now = Instant.now();
 		List<ResultInput.ResponseSnapshot> snapshots = responseRepository.findAllWithDatesByMeetingId(meetingId).stream()
 				.map(r -> new ResultInput.ResponseSnapshot(Set.copyOf(r.getAvailableDates()), r.getPlaceMode(),
-						r.getPlacePreference()))
+						r.getPlacePreference(), r.toPlaceInfo()))
 				.toList();
 		GeneratedResult generated = generator.generate(new ResultInput(LocalDate.now(KST), snapshots));
 		finalResultRepository.save(new FinalResult(meeting, generated));

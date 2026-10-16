@@ -10,6 +10,7 @@ import java.util.List;
 public record MeetingResultResponse(
 		LocalDate selectedDate,
 		List<String> selectedPlaces,
+		List<PlaceDetailView> selectedPlaceDetails,
 		String selectedPlace,
 		DecisionType decisionType,
 		String reason,
@@ -21,8 +22,9 @@ public record MeetingResultResponse(
 	private static final String UNDECIDED_PLACE = "추후 협의";
 
 	public static MeetingResultResponse from(FinalResult result) {
-		List<String> places = List.copyOf(result.getSelectedPlaces());
-		return new MeetingResultResponse(result.getSelectedDate(), places,
+		List<String> places = result.getSelectedPlaceNames();
+		List<PlaceDetailView> details = result.getSelectedPlaces().stream().map(PlaceDetailView::from).toList();
+		return new MeetingResultResponse(result.getSelectedDate(), places, details,
 				places.isEmpty() ? UNDECIDED_PLACE : String.join(" · ", places), result.getDecisionType(),
 				result.getReason(), result.getDateVoteCount(), result.getPlaceVoteCount(),
 				result.getTotalResponses(), result.getCreatedAt());

@@ -2,6 +2,7 @@ package com.coyote.moyeon.place;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
@@ -32,6 +33,20 @@ public class FakePlaceProvider implements PlaceSearchProvider {
 	@Override
 	public boolean isAvailable() {
 		return true;
+	}
+
+	/** 테스트용: "fake-N" 형태의 ID를 강남역 기준으로 만든 N번째 장소로 돌려준다. */
+	@Override
+	public Optional<Place> findById(String id) {
+		if (id == null || !id.startsWith("fake-")) {
+			return Optional.empty();
+		}
+		try {
+			int index = Integer.parseInt(id.substring("fake-".length()));
+			return index >= 0 && index < PLACE_COUNT ? Optional.of(generate(37.4979, 127.0276).get(index)) : Optional.empty();
+		} catch (NumberFormatException e) {
+			return Optional.empty();
+		}
 	}
 
 	@Override

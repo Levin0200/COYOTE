@@ -6,6 +6,7 @@ import com.coyote.moyeon.meeting.dto.JoinRequest;
 import com.coyote.moyeon.meeting.dto.JoinResponse;
 import com.coyote.moyeon.meeting.dto.MeetingResultResponse;
 import com.coyote.moyeon.meeting.dto.MyResponseView;
+import com.coyote.moyeon.place.PlaceLookupService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -25,9 +26,11 @@ public class InviteController {
 	private static final String GUEST_ID_HEADER = "X-Guest-Id";
 
 	private final MeetingService meetingService;
+	private final PlaceLookupService placeLookupService;
 
-	public InviteController(MeetingService meetingService) {
+	public InviteController(MeetingService meetingService, PlaceLookupService placeLookupService) {
 		this.meetingService = meetingService;
+		this.placeLookupService = placeLookupService;
 	}
 
 	@GetMapping
@@ -50,7 +53,9 @@ public class InviteController {
 	@PutMapping("/response")
 	public ResponseEntity<MyResponseView> submit(@PathVariable("inviteToken") String inviteToken,
 			@RequestHeader(GUEST_ID_HEADER) String guestId, @Valid @RequestBody GuestResponseRequest request) {
-		MeetingService.SubmitResult result = meetingService.submitGuestResponse(inviteToken, guestId, request);
+		// 장소 ID는 외부 API로 먼저 확인한다(모임 잠금이나 트랜잭션 안에서 외부 호출을 하지 않기 위해).
+		MeetingService.SubmitResult result = meetingService.submitGuestResponse(inviteToken, guestId, request,
+				placeLookupService.lookupAll(request.placeIds()));
 		return ResponseEntity.status(result.created() ? HttpStatus.CREATED : HttpStatus.OK).body(result.response());
 	}
 

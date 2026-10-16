@@ -217,4 +217,50 @@ class StorePublicDataProviderTest {
 						e -> assertThat(e.getStatus()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE));
 		server.verify();
 	}
+
+	@Test
+	void findByIdCallsStoreOneWithTheKeyAndMapsThePlace() {
+		server.expect(requestTo(containsString("/storeOne")))
+				.andExpect(queryParam("key", "A1"))
+				.andExpect(queryParam("type", "json"))
+				.andExpect(requestTo(containsString("serviceKey=test%2Bkey%2Fwith%3Dchars")))
+				.andRespond(withSuccess(page("00", 1, item("A1", "벤티프레소", "강남점", 37.5, 127.1)), MediaType.APPLICATION_JSON));
+
+		assertThat(provider.findById("A1")).hasValueSatisfying(place -> {
+			assertThat(place.id()).isEqualTo("A1");
+			assertThat(place.name()).isEqualTo("벤티프레소 강남점");
+			assertThat(place.longitude()).isEqualTo(127.1);
+		});
+		server.verify();
+	}
+
+	@Test
+	void findByIdReturnsNothingWhenThePlaceIsGoneOrDifferent() {
+		respondOne(page("00", 0));
+		respondOne(page("00", 1, item("OTHER", "다른 가게", "", 37.5, 127.1)));
+
+		assertThat(provider.findById("A1")).isEmpty();
+		assertThat(provider.findById("A1")).isEmpty();
+	}
+
+	@Test
+	void findByIdWithoutAKeyIsUnavailable() {
+		properties.getDataGoKr().setServiceKey("");
+
+		assertThatThrownBy(() -> provider.findById("A1")).isInstanceOfSatisfying(BusinessException.class,
+				e -> assertThat(e.getStatus()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE));
+	}
+
+	private void respondOne(String json) {
+		server.expect(requestTo(containsString("/storeOne"))).andRespond(withSuccess(json, MediaType.APPLICATION_JSON));
+	}
+
+	@Test
+	void theNoDataCodeIsAnEmptyResultNotAnError() {
+		respondWith("{\"header\":{\"resultCode\":\"03\",\"resultMsg\":\"NODATA_ERROR\"},\"body\":{\"items\":[]}}");
+		respondOne("{\"header\":{\"resultCode\":\"03\",\"resultMsg\":\"NODATA_ERROR\"},\"body\":{\"items\":[]}}");
+
+		assertThat(provider.findInRadius(37.5, 127.0, 500, null)).isEmpty();
+		assertThat(provider.findById("A1")).isEmpty();
+	}
 }

@@ -19,7 +19,11 @@ public record PlacePolicyView(
 		return new PlacePolicyView(meeting.getPlacePolicyMode(), meeting.getPolicyRegion(),
 				meeting.getPolicyRadiusKm(), meeting.getPolicyKeyword(), meeting.getFixedPlace(),
 				IntStream.range(0, options.size())
-						.mapToObj(i -> new PlaceOptionView(i + 1, options.get(i).name(), options.get(i).distance()))
+						.mapToObj(i -> {
+							PlaceOption option = options.get(i);
+							return new PlaceOptionView(i + 1, option.name(), option.distance(), option.placeId(),
+									option.address(), option.category(), option.latitude(), option.longitude());
+						})
 						.toList());
 	}
 }

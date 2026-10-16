@@ -6,6 +6,7 @@ import com.coyote.moyeon.meeting.dto.MeetingResultResponse;
 import com.coyote.moyeon.meeting.dto.MeetingSummaryResponse;
 import com.coyote.moyeon.meeting.dto.MeetingVotesResponse;
 import com.coyote.moyeon.meeting.dto.UpdateHostResponseRequest;
+import com.coyote.moyeon.place.PlaceLookupService;
 import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.http.HttpStatus;
@@ -25,15 +26,18 @@ import org.springframework.web.bind.annotation.RestController;
 public class MeetingController {
 
 	private final MeetingService meetingService;
+	private final PlaceLookupService placeLookupService;
 
-	public MeetingController(MeetingService meetingService) {
+	public MeetingController(MeetingService meetingService, PlaceLookupService placeLookupService) {
 		this.meetingService = meetingService;
+		this.placeLookupService = placeLookupService;
 	}
 
 	@PostMapping
 	@ResponseStatus(HttpStatus.CREATED)
 	public MeetingDetailResponse create(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody CreateMeetingRequest request) {
-		return meetingService.create(Long.valueOf(jwt.getSubject()), request);
+		// 장소 ID는 외부 API로 먼저 확인한다(모임 잠금이나 트랜잭션 안에서 외부 호출을 하지 않기 위해).
+		return meetingService.create(Long.valueOf(jwt.getSubject()), request, placeLookupService.lookupAll(request.placeIds()));
 	}
 
 	@GetMapping
@@ -64,6 +68,7 @@ public class MeetingController {
 	@PutMapping("/{id}/response")
 	public MeetingDetailResponse updateHostResponse(@AuthenticationPrincipal Jwt jwt, @PathVariable("id") Long id,
 			@Valid @RequestBody UpdateHostResponseRequest request) {
-		return meetingService.updateHostResponse(Long.valueOf(jwt.getSubject()), id, request);
+		return meetingService.updateHostResponse(Long.valueOf(jwt.getSubject()), id, request,
+				placeLookupService.lookupAll(request.placeIds()));
 	}
 }
