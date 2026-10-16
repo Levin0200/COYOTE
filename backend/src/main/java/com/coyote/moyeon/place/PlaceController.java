@@ -1,15 +1,19 @@
 package com.coyote.moyeon.place;
 
+import com.coyote.moyeon.ai.AiProperties;
 import com.coyote.moyeon.common.ratelimit.RateLimitGuard;
 import com.coyote.moyeon.common.ratelimit.RateLimitProperties;
 import com.coyote.moyeon.common.ratelimit.RateLimiter;
 import com.coyote.moyeon.meeting.MeetingService;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import java.time.Duration;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -22,15 +26,23 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class PlaceController {
 
+	private static final int RECOMMEND_POOL_SIZE = 20;
+	private static final int RECOMMEND_COUNT = 6;
+
 	private final PlaceSearchService placeSearchService;
+	private final PlaceRankingService rankingService;
+	private final AiProperties aiProperties;
 	private final MeetingService meetingService;
 	private final RateLimiter rateLimiter;
 	private final RateLimitGuard guard;
 	private final RateLimitProperties limits;
 
-	public PlaceController(PlaceSearchService placeSearchService, MeetingService meetingService,
-			RateLimiter rateLimiter, RateLimitGuard guard, RateLimitProperties limits) {
+	public PlaceController(PlaceSearchService placeSearchService, PlaceRankingService rankingService,
+			AiProperties aiProperties, MeetingService meetingService, RateLimiter rateLimiter, RateLimitGuard guard,
+			RateLimitProperties limits) {
 		this.placeSearchService = placeSearchService;
+		this.rankingService = rankingService;
+		this.aiProperties = aiProperties;
 		this.meetingService = meetingService;
 		this.rateLimiter = rateLimiter;
 		this.guard = guard;
@@ -57,6 +69,21 @@ public class PlaceController {
 		meetingService.assertGuestMayProposePlaces(inviteToken, guestId);
 		limitSearches("place-search:ip:" + request.getRemoteAddr());
 		return search(latitude, longitude, radiusMeters, keyword, limit);
+	}
+
+	/**
+	 * 장소 추천(호스트). 근처 후보 20곳을 찾은 뒤 AI가 모임 성격에 맞게 6곳을 골라 순서대로 돌려준다.
+	 * AI를 쓸 수 없거나 실패하면 규칙(가까운 순서·업종 다양성)으로 고른다. 호출 횟수는 사용자별로 제한한다.
+	 */
+	@PostMapping("/api/places/recommend")
+	public RecommendationResponse recommend(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody RecommendRequest request) {
+		guard.assertAllowed(rateLimiter.tryAcquire("ai-recommend:user:" + jwt.getSubject(),
+				aiProperties.getUserHourlyLimit(), Duration.ofHours(1)));
+		PlaceSearchService.Result pool = placeSearchService.search(request.latitude(), request.longitude(),
+				request.radiusOrDefault(), request.keyword(), RECOMMEND_POOL_SIZE);
+		Ranking ranking = rankingService.rank(new RankRequest(request.title(), request.description(),
+				request.participantCountOrDefault(), pool.places(), RECOMMEND_COUNT));
+		return RecommendationResponse.from(pool, ranking);
 	}
 
 	private PlaceSearchResponse search(double latitude, double longitude, int radiusMeters, String keyword, int limit) {
