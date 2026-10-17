@@ -1,0 +1,66 @@
+package com.coyote.moyeon.meeting;
+
+import com.coyote.moyeon.meeting.dto.GuestResponseRequest;
+import com.coyote.moyeon.meeting.dto.InviteInfoResponse;
+import com.coyote.moyeon.meeting.dto.JoinRequest;
+import com.coyote.moyeon.meeting.dto.JoinResponse;
+import com.coyote.moyeon.meeting.dto.MeetingResultResponse;
+import com.coyote.moyeon.meeting.dto.MyResponseView;
+import com.coyote.moyeon.place.PlaceLookupService;
+import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/api/invites/{inviteToken}")
+public class InviteController {
+
+	private static final String GUEST_ID_HEADER = "X-Guest-Id";
+
+	private final MeetingService meetingService;
+	private final PlaceLookupService placeLookupService;
+
+	public InviteController(MeetingService meetingService, PlaceLookupService placeLookupService) {
+		this.meetingService = meetingService;
+		this.placeLookupService = placeLookupService;
+	}
+
+	@GetMapping
+	public InviteInfoResponse info(@PathVariable("inviteToken") String inviteToken) {
+		return meetingService.getInvite(inviteToken);
+	}
+
+	@GetMapping("/result")
+	public MeetingResultResponse result(@PathVariable("inviteToken") String inviteToken) {
+		return meetingService.getResultForGuest(inviteToken);
+	}
+
+	@PostMapping("/join")
+	public ResponseEntity<JoinResponse> join(@PathVariable("inviteToken") String inviteToken,
+			@RequestHeader(GUEST_ID_HEADER) String guestId, @Valid @RequestBody JoinRequest request) {
+		MeetingService.JoinResult result = meetingService.joinGuest(inviteToken, guestId, request);
+		return ResponseEntity.status(result.created() ? HttpStatus.CREATED : HttpStatus.OK).body(result.response());
+	}
+
+	@PutMapping("/response")
+	public ResponseEntity<MyResponseView> submit(@PathVariable("inviteToken") String inviteToken,
+			@RequestHeader(GUEST_ID_HEADER) String guestId, @Valid @RequestBody GuestResponseRequest request) {
+		// 장소 ID는 외부 API로 먼저 확인한다(모임 잠금이나 트랜잭션 안에서 외부 호출을 하지 않기 위해).
+		MeetingService.SubmitResult result = meetingService.submitGuestResponse(inviteToken, guestId, request,
+				placeLookupService.lookupAll(request.placeIds()));
+		return ResponseEntity.status(result.created() ? HttpStatus.CREATED : HttpStatus.OK).body(result.response());
+	}
+
+	@GetMapping("/response/me")
+	public MyResponseView myResponse(@PathVariable("inviteToken") String inviteToken, @RequestHeader(GUEST_ID_HEADER) String guestId) {
+		return meetingService.getMyResponse(inviteToken, guestId);
+	}
+}

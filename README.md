@@ -1,17 +1,51 @@
-# Team COYOTE
+# 모여ON (COYOTE)
 
-팀원
+초대 링크로 참여자의 가능한 날짜와 희망 장소를 받고, 득표·군집화·AI 후보 선정을 통해 모임 일정과 장소를 결정하는 서비스입니다.
 
-남성천<br>
-박정은<br>
-이민정<br>
-노채민<br>
+## 프로젝트 구조
 
+- `frontend/`: React 19 + Vite
+- `backend/`: Spring Boot 4.1.1 + Java 25 + Gradle
+- DB: MariaDB
 
-<b>기술 스택</b><br>
-FrontEnd: React <br>
-BackEnd: Spring Boot<br>
-SQL: Maria DB<br>
+## 최초 실행
 
+### 1. MariaDB 스키마 생성
 
-아 다시 짜야겠다
+```bash
+mariadb -u root -p < backend/db/coyote_backend_mj_schema.sql
+```
+
+### 2. 백엔드 환경 설정과 실행
+
+`backend/.env.example`을 `backend/.env`로 복사한 뒤 DB 계정, JWT 비밀키, 외부 API 키를 입력합니다. 실제 비밀값은 Git에 커밋하지 않습니다.
+
+```bash
+cd backend
+./gradlew bootRun
+```
+
+Windows PowerShell에서는 `./gradlew.bat bootRun`을 사용합니다.
+
+### 3. 프론트엔드 환경 설정과 실행
+
+`frontend/.env.example`을 `frontend/.env.local`로 복사한 뒤 카카오 JavaScript 키 등을 입력합니다.
+
+```bash
+cd frontend
+npm ci
+npm run dev
+```
+
+기본 주소는 프론트엔드 `http://localhost:5173`, 백엔드 `http://localhost:8080`입니다.
+
+## 검증
+
+```bash
+cd backend
+./gradlew test
+
+cd ../frontend
+npm run lint
+npm run build
+```
