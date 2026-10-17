@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
+import { FaApple, FaGoogle } from "react-icons/fa";
+import { SiKakaotalk, SiNaver } from "react-icons/si";
 import { login } from "../../services/authService";
 import { getErrorMessage } from "../../services/api";
 
@@ -142,6 +144,75 @@ function LoginPage() {
             회원가입
           </button>
 
+          <span className="mx-2 text-gray-300">|</span>
+
+          <button
+            type="button"
+            onClick={() =>
+              alert("비밀번호 재설정 기능은 준비 중입니다.")
+            }
+            className="text-gray-500 hover:text-gray-700"
+          >
+            비밀번호 재설정
+          </button>
+
+          <span className="mx-2 text-gray-300">|</span>
+
+          <button
+            type="button"
+            onClick={() =>
+              alert("문의하기 기능은 준비 중입니다.")
+            }
+            className="text-gray-500 hover:text-gray-700"
+          >
+            문의하기
+          </button>
+        </div>
+
+        <div className="flex items-center my-8">
+          <div className="flex-1 h-px bg-gray-200" />
+          <span className="px-4 text-sm text-gray-400">
+            SNS로 로그인하기
+          </span>
+          <div className="flex-1 h-px bg-gray-200" />
+        </div>
+
+        <div className="flex justify-center gap-4">
+          <button
+            type="button"
+            aria-label="네이버 로그인"
+            onClick={() => alert("네이버 로그인은 준비 중입니다.")}
+            className="w-12 h-12 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition"
+          >
+            <SiNaver size={20} />
+          </button>
+
+          <button
+            type="button"
+            aria-label="카카오 로그인"
+            onClick={() => alert("카카오 로그인은 준비 중입니다.")}
+            className="w-12 h-12 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition"
+          >
+            <SiKakaotalk size={20} />
+          </button>
+
+          <button
+            type="button"
+            aria-label="Google 로그인"
+            onClick={() => alert("Google 로그인은 준비 중입니다.")}
+            className="w-12 h-12 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition"
+          >
+            <FaGoogle size={20} />
+          </button>
+
+          <button
+            type="button"
+            aria-label="Apple 로그인"
+            onClick={() => alert("Apple 로그인은 준비 중입니다.")}
+            className="w-12 h-12 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition"
+          >
+            <FaApple size={20} />
+          </button>
         </div>
 
         <div className="mt-8 pt-6 border-t border-gray-100 text-center">
