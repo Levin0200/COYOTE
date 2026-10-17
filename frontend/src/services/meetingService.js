@@ -24,6 +24,10 @@ export const closeMeeting = (meetingId) =>
 export const fetchHostResult = (meetingId) =>
   api.get(`/api/meetings/${meetingId}/result`).then((response) => response.data);
 
+// 호스트가 후보 중에서 최종 장소를 확정한다. payload: { placeId } (장소 ID가 없는 예전 후보는 { name })
+export const choosePlace = (meetingId, payload) =>
+  api.post(`/api/meetings/${meetingId}/result/place`, payload).then((response) => response.data);
+
 // 마감된 모임의 날짜별 득표 수와 멤버별 투표(호스트만, 마감 후에만)
 export const fetchMeetingVotes = (meetingId) =>
   api.get(`/api/meetings/${meetingId}/votes`).then((response) => response.data);

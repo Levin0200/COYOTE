@@ -5,6 +5,7 @@ import { deleteMe, fetchMe, logout, updateMe } from "../../services/authService"
 import { getErrorMessage } from "../../services/api";
 import { fetchMeetingVotes, fetchMyMeetings } from "../../services/meetingService";
 import { getMeetingErrorMessage } from "../../utils/meetingErrors";
+import { placeSummaryText } from "../../utils/placeStatus";
 
 function MainPage() {
   const navigate = useNavigate();
@@ -216,7 +217,8 @@ function MainPage() {
       title: meeting.title,
       description: meeting.description || "",
       location: meeting.placeRegion || "",
-      place: meeting.result.selectedPlace,
+      // 장소가 아직 정해지지 않았으면 상태 문구("장소 선택 대기 중" 등)를 보여 준다.
+      place: placeSummaryText(meeting.result),
       memberCount: meeting.participantCount,
     }));
 

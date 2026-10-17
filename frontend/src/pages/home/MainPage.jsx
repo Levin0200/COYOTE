@@ -4,6 +4,7 @@ import AppHeader from "../../components/AppHeader";
 import { fetchMyMeetings } from "../../services/meetingService";
 import { getMeetingErrorMessage } from "../../utils/meetingErrors";
 import { formatSelectedDate } from "../../utils/dateFormat";
+import { PLACE_STATUS, placeStatusOf, placeSummaryText } from "../../utils/placeStatus";
 
 const POLL_MS = 60000;
 const pad = (value) => String(value).padStart(2, "0");
@@ -156,10 +157,10 @@ function MainPage() {
                 </button> : <div className="border-t border-slate-100 pt-4">
                   <div className="grid gap-3 sm:grid-cols-2">
                     <div><p className="mb-1 text-xs font-medium text-slate-400">확정 날짜</p><p className="text-sm font-semibold text-slate-700">{result ? formatSelectedDate(result.selectedDate) : "결과 집계 중"}</p></div>
-                    <div><p className="mb-1 text-xs font-medium text-slate-400">모임 장소</p><p className="text-sm font-semibold text-slate-700">{result ? result.selectedPlace : "결과 집계 중"}</p></div>
+                    <div><p className="mb-1 text-xs font-medium text-slate-400">모임 장소</p><p className="text-sm font-semibold text-slate-700">{result ? placeSummaryText(result) : "결과 집계 중"}</p></div>
                   </div>
                   <button type="button" onClick={() => navigate(`/meeting/${meeting.meetingId}/result`)} className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-[#4F7DF3] px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-[#3D6BE5] focus:outline-none focus:ring-4 focus:ring-blue-100">
-                    결과 보기<span aria-hidden="true">→</span>
+                    {result && placeStatusOf(result) === PLACE_STATUS.AWAITING_HOST ? "장소 고르기" : "결과 보기"}<span aria-hidden="true">→</span>
                   </button>
                 </div>}
               </article>;
