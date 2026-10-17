@@ -190,7 +190,7 @@ class MeetingResultTest {
 				.andExpect(jsonPath("$.placeStatus").value("AWAITING_HOST"))
 				.andExpect(jsonPath("$.selectedPlaces", hasSize(0)))
 				.andExpect(jsonPath("$.selectedPlace").value("추후 협의"))
-				.andExpect(jsonPath("$.hostDecisionDeadline").isNotEmpty())
+				.andExpect(jsonPath("$.hostDecisionDeadline").doesNotExist())
 				.andExpect(jsonPath("$.placeCandidates", hasSize(2)))
 				.andExpect(jsonPath("$.placeCandidates[0].name").value("송도 카페 A"))
 				.andExpect(jsonPath("$.placeCandidates[1].name").value("송도 카페 B"))
@@ -208,7 +208,7 @@ class MeetingResultTest {
 	}
 
 	@Test
-	void openPolicy_ignoresSkippedPlaces_andFallsBackToUndecided() throws Exception {
+	void openPolicy_ignoresSkippedPlaces_andLetsTheHostChooseWhenEveryoneSkips() throws Exception {
 		String host = newHostToken();
 		Created proposed = createMeeting(host, OPEN_POLICY, dates(2), "OPEN", null);
 		guestRespond(proposed.inviteToken(), dates(2), "PROPOSE", "강남 파스타집");
@@ -226,8 +226,10 @@ class MeetingResultTest {
 		hostResult(host, none.id())
 				.andExpect(jsonPath("$.selectedPlaces", hasSize(0)))
 				.andExpect(jsonPath("$.selectedPlace").value("추후 협의"))
+				.andExpect(jsonPath("$.placeStatus").value("AWAITING_HOST"))
+				.andExpect(jsonPath("$.placeCandidates", hasSize(0)))
 				.andExpect(jsonPath("$.placeVoteCount").value(0))
-				.andExpect(jsonPath("$.reason").value(containsString("추후 협의")));
+				.andExpect(jsonPath("$.reason").value(containsString("호스트가 최종 장소를 직접 선택")));
 	}
 
 	@Test

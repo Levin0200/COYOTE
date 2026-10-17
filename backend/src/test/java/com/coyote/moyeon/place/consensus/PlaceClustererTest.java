@@ -46,7 +46,6 @@ class PlaceClustererTest {
 		assertThat(merged.totalVotes()).isEqualTo(3);
 		assertThat(GeoMath.distanceMeters(merged.centerLatitude(), merged.centerLongitude(),
 				at("x", GANGNAM, 90, 0).latitude(), at("x", GANGNAM, 90, 0).longitude())).isBetween(295.0, 305.0);
-		assertThat(merged.firstOrder()).isEqualTo(1);
 	}
 
 	@Test

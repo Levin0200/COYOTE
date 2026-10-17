@@ -39,7 +39,7 @@ class PlaceRankingServiceTest {
 	private final List<Place> pool = RankTestPlaces.pool(12, "A", "B", "C");
 
 	private Ranking rank(int pick) {
-		return service.rank(new RankRequest("모임", "설명", 4, pool, pick));
+		return service.rank(new RankRequest("모임", "설명", 4, null, null, pool, pick));
 	}
 
 	@Test
@@ -66,12 +66,15 @@ class PlaceRankingServiceTest {
 	}
 
 	@Test
-	void noAiCallIsMadeWhenTheCandidatesAreNotMoreThanTheSlots() {
-		Ranking ranking = service.rank(new RankRequest("모임", "설명", 4, RankTestPlaces.pool(6, "A"), 6));
+	void aiAlsoRanksWhenTheCandidatesFitExactlyInTheSlots() {
+		llm.answer = "{\"picks\":[{\"n\":6},{\"n\":5},{\"n\":4},{\"n\":3},{\"n\":2},{\"n\":1}]}";
+		Ranking ranking = service.rank(new RankRequest("모임", "설명", 4, null, null, RankTestPlaces.pool(6, "A"), 6));
 
-		assertThat(ranking.aiUsed()).isFalse();
+		assertThat(ranking.aiUsed()).isTrue();
 		assertThat(ranking.places()).hasSize(6);
-		assertThat(llm.calls).isZero();
+		assertThat(ranking.places()).extracting(r -> r.place().id())
+				.containsExactly("p6", "p5", "p4", "p3", "p2", "p1");
+		assertThat(llm.calls).isEqualTo(1);
 	}
 
 	@Test

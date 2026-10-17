@@ -30,8 +30,8 @@ public class PlaceSearchService {
 	private static final int RADIUS_QUERY_MAX_METERS = 2000;
 	private static final int[] STEPS = { 500, 1000, 2000 };
 	private static final int MAX_FILTERS = 5;
-	/** 같은 건물(주소)에 점포가 몰려 있어도 추천 후보가 한 건물로만 채워지지 않게 주소당 최대 개수를 제한한다. */
-	static final int MAX_PER_ADDRESS = 2;
+	/** 같은 주소가 서로 다른 상호·업종으로 중복 노출되어도 장소 선택지는 하나만 제공한다. */
+	static final int MAX_PER_ADDRESS = 1;
 	/** 실시간 영업상태 API 호출이 과도해지지 않게 최종 순위 상위 후보만 검증한다. */
 	private static final int STATUS_VERIFICATION_EXTRA = 6;
 	private static final int STATUS_VERIFICATION_MAX = 30;
@@ -78,7 +78,8 @@ public class PlaceSearchService {
 	 */
 	public Result searchWithFilters(double latitude, double longitude, int radiusMeters, List<CategoryFilter> filters,
 			List<String> nameTerms, int limit) {
-		if (latitude < 33.0 || latitude > 38.7 || longitude < 124.5 || longitude > 132.0) {
+		if (!Double.isFinite(latitude) || !Double.isFinite(longitude)
+				|| latitude < 33.0 || latitude > 38.7 || longitude < 124.5 || longitude > 132.0) {
 			throw invalid("대한민국 안의 좌표를 입력해주세요.");
 		}
 		if (!provider.isAvailable()) {

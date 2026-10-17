@@ -82,7 +82,7 @@ public class PlaceController {
 		PlaceSearchService.Result pool = placeSearchService.search(request.latitude(), request.longitude(),
 				request.radiusOrDefault(), request.keyword(), RECOMMEND_POOL_SIZE);
 		Ranking ranking = rankingService.rank(new RankRequest(request.title(), request.description(),
-				request.participantCountOrDefault(), pool.places(), RECOMMEND_COUNT));
+				request.participantCountOrDefault(), null, request.region(), pool.places(), RECOMMEND_COUNT));
 		return RecommendationResponse.from(pool, ranking);
 	}
 

@@ -33,7 +33,7 @@ class OpenRouterClientTest {
 	void setUp() {
 		properties = new AiProperties();
 		properties.setApiKey(KEY);
-		properties.setModel("deepseek/deepseek-v4.1-flash");
+		properties.setModel("deepseek/deepseek-v4-flash-0731");
 		RestClient.Builder builder = RestClient.builder().baseUrl(BASE_URL);
 		server = MockRestServiceServer.bindTo(builder).build();
 		client = new OpenRouterClient(builder.build(), properties);
@@ -53,10 +53,9 @@ class OpenRouterClientTest {
 				.andExpect(method(HttpMethod.POST))
 				.andExpect(requestTo(not(containsString("sk-or"))))
 				.andExpect(header("Authorization", "Bearer " + KEY))
-				.andExpect(jsonPath("$.model").value("deepseek/deepseek-v4.1-flash"))
-				.andExpect(jsonPath("$.max_tokens").value(400))
-				.andExpect(jsonPath("$.reasoning.effort").value("low"))
-				.andExpect(jsonPath("$.reasoning.exclude").value(true))
+				.andExpect(jsonPath("$.model").value("deepseek/deepseek-v4-flash-0731"))
+				.andExpect(jsonPath("$.max_completion_tokens").value(400))
+				.andExpect(jsonPath("$.reasoning_effort").value("none"))
 				.andExpect(jsonPath("$.messages[0].role").value("system"))
 				.andExpect(jsonPath("$.messages[0].content").value("시스템 지시"))
 				.andExpect(jsonPath("$.messages[1].role").value("user"))
@@ -72,10 +71,19 @@ class OpenRouterClientTest {
 	void theReasoningOptionIsOmittedWhenNotConfigured() {
 		properties.setReasoningEffort("");
 		server.expect(requestTo(BASE_URL + "/chat/completions"))
-				.andExpect(jsonPath("$.reasoning").doesNotExist())
+				.andExpect(jsonPath("$.reasoning_effort").value("none"))
 				.andRespond(withSuccess(completion("{}"), MediaType.APPLICATION_JSON));
 
 		assertThat(client.complete("s", "u", 100)).isEqualTo("{}");
+		server.verify();
+	}
+
+	@Test
+	void readsTextFromContentBlocksUsedBySomeProviders() {
+		server.expect(requestTo(BASE_URL + "/chat/completions"))
+				.andRespond(withSuccess("{\"choices\":[{\"message\":{\"content\":[{\"type\":\"text\",\"text\":\"{\\\"picks\\\":[]}\"}]}}]}", MediaType.APPLICATION_JSON));
+
+		assertThat(client.complete("s", "u", 100)).isEqualTo("{\"picks\":[]}");
 		server.verify();
 	}
 
@@ -101,13 +109,35 @@ class OpenRouterClientTest {
 	}
 
 	@Test
-	void unusableResponsesBecomeLlmExceptions() {
+	void malformedResponsesBecomeLlmExceptions() {
 		server.expect(requestTo(BASE_URL + "/chat/completions")).andRespond(withSuccess("이건 JSON이 아닙니다", MediaType.TEXT_PLAIN));
-		server.expect(requestTo(BASE_URL + "/chat/completions")).andRespond(withSuccess("{\"choices\":[]}", MediaType.APPLICATION_JSON));
-		server.expect(requestTo(BASE_URL + "/chat/completions")).andRespond(withSuccess(completion("   "), MediaType.APPLICATION_JSON));
 
-		for (int i = 0; i < 3; i++) {
-			assertThatThrownBy(() -> client.complete("s", "u", 100)).isInstanceOf(LlmException.class);
-		}
+		assertThatThrownBy(() -> client.complete("s", "u", 100)).isInstanceOf(LlmException.class);
+	}
+
+	@Test
+	void emptyResponseIsRetriedWithoutReasoningAndWithMoreOutputTokens() {
+		server.expect(requestTo(BASE_URL + "/chat/completions"))
+				.andExpect(jsonPath("$.reasoning_effort").value("none"))
+				.andExpect(jsonPath("$.max_completion_tokens").value(100))
+				.andRespond(withSuccess("{\"choices\":[]}", MediaType.APPLICATION_JSON));
+		server.expect(requestTo(BASE_URL + "/chat/completions"))
+				.andExpect(jsonPath("$.reasoning_effort").value("none"))
+				.andExpect(jsonPath("$.max_completion_tokens").value(1024))
+				.andRespond(withSuccess(completion("{\"picks\":[{\"n\":1}]}"), MediaType.APPLICATION_JSON));
+
+		assertThat(client.complete("s", "u", 100)).isEqualTo("{\"picks\":[{\"n\":1}]}");
+		server.verify();
+	}
+
+	@Test
+	void twoEmptyResponsesBecomeAnLlmException() {
+		server.expect(requestTo(BASE_URL + "/chat/completions"))
+				.andRespond(withSuccess(completion("   "), MediaType.APPLICATION_JSON));
+		server.expect(requestTo(BASE_URL + "/chat/completions"))
+				.andRespond(withSuccess("{\"choices\":[]}", MediaType.APPLICATION_JSON));
+
+		assertThatThrownBy(() -> client.complete("s", "u", 100)).isInstanceOf(LlmException.class);
+		server.verify();
 	}
 }

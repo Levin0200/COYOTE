@@ -4,11 +4,9 @@ import com.coyote.moyeon.common.exception.BusinessException;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.LockModeType;
 import jakarta.persistence.PersistenceContext;
-import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,17 +33,14 @@ public class MeetingClosingService {
 	private final FinalResultGenerator generator;
 	private final ResultInputFactory inputFactory;
 	private final PlaceDecisionService placeDecisionService;
-	private final Duration hostWindow;
 
 	public MeetingClosingService(MeetingRepository meetingRepository, FinalResultRepository finalResultRepository,
-			FinalResultGenerator generator, ResultInputFactory inputFactory, PlaceDecisionService placeDecisionService,
-			@Value("${app.place-decision.host-window-hours:24}") long hostWindowHours) {
+			FinalResultGenerator generator, ResultInputFactory inputFactory, PlaceDecisionService placeDecisionService) {
 		this.meetingRepository = meetingRepository;
 		this.finalResultRepository = finalResultRepository;
 		this.generator = generator;
 		this.inputFactory = inputFactory;
 		this.placeDecisionService = placeDecisionService;
-		this.hostWindow = Duration.ofHours(hostWindowHours);
 	}
 
 	/**
@@ -65,9 +60,6 @@ public class MeetingClosingService {
 		Instant now = Instant.now();
 		GeneratedResult generated = generator.generate(inputFactory.build(meeting, LocalDate.now(KST)));
 		FinalResult result = new FinalResult(meeting, generated);
-		if (generated.placeStatus() == PlaceStatus.AWAITING_HOST) {
-			result.startHostWindow(now.plus(hostWindow));
-		}
 		finalResultRepository.save(result);
 
 		boolean manuallyClosed = manual && now.isBefore(meeting.getResponseDueDate());

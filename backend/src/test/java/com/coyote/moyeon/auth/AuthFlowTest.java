@@ -1,12 +1,13 @@
 package com.coyote.moyeon.auth;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.jayway.jsonpath.JsonPath;
+import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -61,13 +62,14 @@ class AuthFlowTest {
 	}
 
 	private String login(String email, String password) throws Exception {
-		String body = mockMvc.perform(post("/api/auth/login")
+		var response = mockMvc.perform(post("/api/auth/login")
 				.contentType(MediaType.APPLICATION_JSON)
 				.content("{\"email\":\"" + email + "\",\"password\":\"" + password + "\"}"))
 				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.tokenType").value("Bearer"))
-				.andReturn().getResponse().getContentAsString();
-		return JsonPath.read(body, "$.accessToken");
+				.andExpect(jsonPath("$.authenticated").value(true))
+				.andExpect(jsonPath("$.accessToken").doesNotExist())
+				.andReturn().getResponse();
+		return response.getCookie("moyeon_auth").getValue();
 	}
 
 	@Test
@@ -185,5 +187,29 @@ class AuthFlowTest {
 		mockMvc.perform(get("/api/users/me")).andExpect(status().isUnauthorized());
 		mockMvc.perform(get("/api/users/me").header("Authorization", "Bearer not.a.token"))
 				.andExpect(status().isUnauthorized());
+	}
+
+	@Test
+	void browserAuthUsesHttpOnlyCookieAndRequiresCsrfForChanges() throws Exception {
+		String email = "cookie@example.com";
+		register(email, "password123");
+		var login = mockMvc.perform(post("/api/auth/login")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("{\"email\":\"" + email + "\",\"password\":\"password123\"}"))
+				.andExpect(status().isOk()).andReturn().getResponse();
+		Cookie auth = login.getCookie("moyeon_auth");
+		Cookie csrf = login.getCookie("XSRF-TOKEN");
+		assertThat(auth).isNotNull();
+		assertThat(auth.isHttpOnly()).isTrue();
+		assertThat(csrf).isNotNull();
+		assertThat(csrf.isHttpOnly()).isFalse();
+
+		mockMvc.perform(get("/api/users/me").cookie(auth)).andExpect(status().isOk());
+		mockMvc.perform(patch("/api/users/me").cookie(auth, csrf)
+				.contentType(MediaType.APPLICATION_JSON).content("{\"name\":\"쿠키\",\"address\":\"인천\"}"))
+				.andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("CSRF_TOKEN_INVALID"));
+		mockMvc.perform(patch("/api/users/me").cookie(auth, csrf).header("X-XSRF-TOKEN", csrf.getValue())
+				.contentType(MediaType.APPLICATION_JSON).content("{\"name\":\"쿠키\",\"address\":\"인천\"}"))
+				.andExpect(status().isOk()).andExpect(jsonPath("$.name").value("쿠키"));
 	}
 }

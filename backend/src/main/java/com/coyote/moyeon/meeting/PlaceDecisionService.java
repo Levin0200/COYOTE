@@ -15,8 +15,6 @@ import com.coyote.moyeon.place.consensus.ConsensusOutcome;
 import com.coyote.moyeon.place.consensus.PlaceVote;
 import com.coyote.moyeon.place.consensus.Proposal;
 import com.coyote.moyeon.place.consensus.SpatialConsensus;
-import java.time.Duration;
-import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
@@ -24,8 +22,9 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -33,7 +32,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /**
@@ -42,7 +40,6 @@ import org.springframework.transaction.support.TransactionTemplate;
  * <li>{@link #completePending}: 건너뛰기 모임에서 제안이 흩어졌을 때 합의 지역의 후보를 만들고 AI로 3곳을 골라
  * 호스트의 선택을 기다린다. 외부 API·AI를 부르므로 DB 잠금 밖에서 하고, 결과만 짧은 트랜잭션으로 저장한다.</li>
  * <li>{@link #chooseByHost}: 호스트가 후보 중 하나를 확정한다.</li>
- * <li>{@link #autoPick}: 호스트가 시한 안에 고르지 않으면 첫 번째 후보로 자동 확정한다.</li>
  * </ul>
  */
 @Service
@@ -61,15 +58,13 @@ public class PlaceDecisionService {
 	private final PlaceRankingService rankingService;
 	private final PlaceSearchProvider provider;
 	private final PlatformTransactionManager transactionManager;
-	private final Duration hostWindow;
 	private final boolean async;
-	private final Executor executor = Executors.newVirtualThreadPerTaskExecutor();
+	private final ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
 
 	public PlaceDecisionService(MeetingRepository meetingRepository, FinalResultRepository finalResultRepository,
 			ParticipantRepository participantRepository, ResultInputFactory inputFactory,
 			ConsensusCandidateService candidateService, PlaceRankingService rankingService,
 			PlaceSearchProvider provider, PlatformTransactionManager transactionManager,
-			@Value("${app.place-decision.host-window-hours:24}") long hostWindowHours,
 			@Value("${app.place-decision.async:true}") boolean async) {
 		this.meetingRepository = meetingRepository;
 		this.finalResultRepository = finalResultRepository;
@@ -79,8 +74,12 @@ public class PlaceDecisionService {
 		this.rankingService = rankingService;
 		this.provider = provider;
 		this.transactionManager = transactionManager;
-		this.hostWindow = Duration.ofHours(hostWindowHours);
 		this.async = async;
+	}
+
+	@PreDestroy
+	void shutdownExecutor() {
+		executor.close();
 	}
 
 	/** 마감 처리 커밋 직후 호출한다. 실패해도 마감 요청을 깨뜨리지 않고, 스케줄러가 다시 시도한다. */
@@ -107,8 +106,8 @@ public class PlaceDecisionService {
 		}
 		List<Proposal> proposals = VoteCountResultGenerator.proposalsOf(snapshot.input());
 		if (!(SpatialConsensus.decide(proposals) instanceof ConsensusOutcome.Spatial spatial)) {
-			// 마감 뒤에는 응답이 바뀌지 않으므로 여기에 오지 않는다. 오더라도 장소는 추후 협의로 끝낸다.
-			finish(meetingId, null, 0, "장소 후보를 만들지 못해 추후 협의로 남겼습니다.");
+			// 전원이 장소 의견을 건너뛰어도 임의 결과를 만들지 않는다. 호스트가 기준 위치에서 직접 검색해 고른다.
+			finish(meetingId, List.of(), 0, "장소 의견이 없어 호스트가 직접 검색해 최종 장소를 고릅니다.");
 			return;
 		}
 
@@ -116,10 +115,10 @@ public class PlaceDecisionService {
 		List<Place> pool = poolOf(enriched);
 		List<FinalResultCandidate> candidates = pool.isEmpty() ? List.of()
 				: rankingService.rank(new RankRequest(snapshot.title(), snapshot.description(),
-						snapshot.participantCount(), pool, PICK)).places().stream()
+						snapshot.participantCount(), snapshot.selectedDate(), enriched.regionLabel(), pool, PICK)).places().stream()
 						.map(ranked -> toCandidate(ranked, enriched.cluster()))
 						.toList();
-		String reason = candidates.isEmpty() ? "장소 후보를 찾지 못해 추후 협의로 남겼습니다."
+		String reason = candidates.isEmpty() ? "자동 후보를 찾지 못해 호스트가 직접 검색해 최종 장소를 고릅니다."
 				: enriched.regionLabel() + "에 제안이 모여 후보 " + candidates.size() + "곳을 골랐습니다. 호스트가 최종 장소를 고릅니다.";
 		finish(meetingId, candidates, enriched.cluster().totalVotes(), reason);
 	}
@@ -133,11 +132,7 @@ public class PlaceDecisionService {
 					|| result.getPlaceStatus() != PlaceStatus.PENDING) {
 				return;
 			}
-			if (candidates == null || candidates.isEmpty()) {
-				result.leaveUndecided(reason);
-			} else {
-				result.awaitHost(candidates, Instant.now().plus(hostWindow), votes, reason);
-			}
+			result.awaitHost(candidates == null ? List.of() : candidates, votes, reason);
 			meeting.finishProcessing();
 		});
 	}
@@ -152,10 +147,12 @@ public class PlaceDecisionService {
 			return null;
 		}
 		return new Snapshot(meeting.getTitle(), meeting.getDescription(),
-				(int) participantRepository.countByMeetingId(meetingId), inputFactory.build(meeting, LocalDate.now(KST)));
+				(int) participantRepository.countByMeetingId(meetingId), result.getSelectedDate(),
+				inputFactory.build(meeting, LocalDate.now(KST)));
 	}
 
-	private record Snapshot(String title, String description, int participantCount, ResultInput input) {
+	private record Snapshot(String title, String description, int participantCount, LocalDate selectedDate,
+			ResultInput input) {
 	}
 
 	/** 제안된 장소를 공식 데이터로 다시 조회해 업종 코드를 채운다(검색 업종을 고르는 데 쓴다). 실패하면 저장된 값을 쓴다. */
@@ -209,9 +206,36 @@ public class PlaceDecisionService {
 		return value.substring(0, max);
 	}
 
-	/** 호스트가 후보 중 하나로 최종 장소를 확정한다. */
-	@Transactional
+	/** 호스트가 후보 중 하나로 최종 장소를 확정한다. 전원 건너뛰기라 후보가 없으면 공식 장소 ID로 직접 고른다. */
 	public MeetingResultResponse chooseByHost(Long userId, Long meetingId, ChoosePlaceRequest request) {
+		boolean manualChoice = Boolean.TRUE.equals(inNewTransaction(true).execute(status -> {
+			Meeting meeting = meetingRepository.findById(meetingId).orElse(null);
+			FinalResult result = finalResultRepository.findByMeetingId(meetingId).orElse(null);
+			return meeting != null && meeting.getHost().getId().equals(userId) && result != null
+					&& result.getPlaceStatus() == PlaceStatus.AWAITING_HOST && result.getCandidates().isEmpty();
+		}));
+		Place manualPlace = null;
+		if (manualChoice) {
+			if (request.placeId() == null || request.placeId().isBlank()) {
+				throw new BusinessException(HttpStatus.BAD_REQUEST, "INVALID_REQUEST", "검색한 장소를 선택해 주세요.");
+			}
+			try {
+				manualPlace = provider.findById(request.placeId()).orElseThrow(() ->
+						new BusinessException(HttpStatus.BAD_REQUEST, "PLACE_NOT_FOUND", "확인되지 않은 장소입니다."));
+			} catch (BusinessException e) {
+				throw e;
+			} catch (RuntimeException e) {
+				throw new BusinessException(HttpStatus.SERVICE_UNAVAILABLE, "PLACE_SEARCH_UNAVAILABLE",
+						"지금은 장소를 확인할 수 없습니다. 잠시 후 다시 시도해 주세요.");
+			}
+		}
+		Place verifiedManualPlace = manualPlace;
+		return inNewTransaction(false).execute(status -> chooseByHostInTransaction(userId, meetingId, request,
+				verifiedManualPlace));
+	}
+
+	private MeetingResultResponse chooseByHostInTransaction(Long userId, Long meetingId, ChoosePlaceRequest request,
+			Place manualPlace) {
 		Meeting meeting = meetingRepository.findByIdForUpdate(meetingId)
 				.orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "MEETING_NOT_FOUND", "모임을 찾을 수 없습니다."));
 		if (!meeting.getHost().getId().equals(userId)) {
@@ -229,36 +253,18 @@ public class PlaceDecisionService {
 		}
 		FinalResultCandidate chosen = result.getCandidates().stream()
 				.filter(candidate -> candidate.matches(hasId ? request.placeId() : null, request.name()))
-				.findFirst()
-				.orElseThrow(() -> new BusinessException(HttpStatus.BAD_REQUEST, "INVALID_CANDIDATE", "후보에 없는 장소입니다."));
+				.findFirst().orElse(null);
+		if (chosen == null && result.getCandidates().isEmpty() && manualPlace != null
+				&& manualPlace.id().equals(request.placeId())) {
+			chosen = new FinalResultCandidate(cut(manualPlace.name(), 100), manualPlace.id(),
+					cut(manualPlace.address(), 255), cut(manualPlace.categoryName(), 100), manualPlace.latitude(),
+					manualPlace.longitude(), 0, "호스트가 직접 검색해 선택한 장소");
+		}
+		if (chosen == null) {
+			throw new BusinessException(HttpStatus.BAD_REQUEST, "INVALID_CANDIDATE", "후보에 없는 장소입니다.");
+		}
 		result.decidePlace(chosen, DecisionType.HOST_CHOICE, "호스트가 후보 중에서 최종 장소를 선택했습니다.");
 		return MeetingResultResponse.forHost(result);
-	}
-
-	/**
-	 * 호스트가 시한 안에 고르지 않은 모임의 장소를 첫 번째 후보로 확정한다. 시한 전이거나 이미 정해졌으면 하지 않는다.
-	 *
-	 * @return 이번 호출에서 실제로 정했으면 true
-	 */
-	public boolean autoPick(Long meetingId) {
-		Boolean picked = inNewTransaction(false).execute(status -> {
-			Meeting meeting = meetingRepository.findByIdForUpdate(meetingId).orElse(null);
-			FinalResult result = finalResultRepository.findByMeetingId(meetingId).orElse(null);
-			if (meeting == null || result == null || result.getPlaceStatus() != PlaceStatus.AWAITING_HOST
-					|| result.getHostDecisionDeadline() == null
-					|| result.getHostDecisionDeadline().isAfter(Instant.now())) {
-				return false;
-			}
-			if (result.getCandidates().isEmpty()) {
-				result.leaveUndecided("장소 후보가 없어 추후 협의로 남겼습니다.");
-				return true;
-			}
-			FinalResultCandidate first = result.getCandidates().get(0);
-			result.decidePlace(first, DecisionType.AUTO_PICK,
-					"호스트가 시한 안에 고르지 않아 첫 번째 후보를 자동으로 선정했습니다.");
-			return true;
-		});
-		return Boolean.TRUE.equals(picked);
 	}
 
 	private TransactionTemplate inNewTransaction(boolean readOnly) {

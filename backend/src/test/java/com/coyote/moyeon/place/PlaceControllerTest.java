@@ -142,6 +142,9 @@ class PlaceControllerTest {
 		mockMvc.perform(get("/api/places/search").header("Authorization", "Bearer " + token)
 				.param("latitude", "48.85").param("longitude", "2.35"))
 				.andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
+		mockMvc.perform(get("/api/places/search").header("Authorization", "Bearer " + token)
+				.param("latitude", "NaN").param("longitude", "127.0"))
+				.andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
 	}
 
 	@Test

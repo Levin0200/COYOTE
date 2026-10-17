@@ -100,7 +100,7 @@ class SpatialConsensusTest {
 	}
 
 	@Test
-	void whenClustersTieOnVotesTheTighterOneWinsEvenIfItCameLater() {
+	void equallyLargeClustersAreCombinedInsteadOfFavoringTheTighterOne() {
 		// 홍대 쪽 두 곳은 900m, 강남 쪽 두 곳은 300m 떨어져 있다. 둘 다 2표지만 강남이 더 촘촘하다.
 		List<Proposal> proposals = List.of(
 				proposal(at("h1", HONGDAE, 0, 0), 1), proposal(at("h2", HONGDAE, 90, 900), 2),
@@ -108,11 +108,12 @@ class SpatialConsensusTest {
 
 		ConsensusOutcome.Spatial result = spatial(SpatialConsensus.decide(proposals));
 
-		assertThat(ids(result)).containsExactly("g1", "g2");
+		assertThat(ids(result)).containsExactly("g1", "g2", "h1", "h2");
+		assertThat(result.cluster().totalVotes()).isEqualTo(4);
 	}
 
 	@Test
-	void whenVotesAndTightnessTieTheClusterNearestToTheOverallCenterWins() {
+	void equallyLargeSinglePlaceClustersUseACompromiseCenter() {
 		// 동쪽으로 5km 간격의 세 곳. 전체의 중심은 가운데 장소이고, 그 장소는 가장 늦게 제안됐다.
 		Place west = at("west", GANGNAM, 90, 0);
 		Place middle = at("middle", GANGNAM, 90, 5000);
@@ -121,21 +122,23 @@ class SpatialConsensusTest {
 		ConsensusOutcome.Spatial result = spatial(SpatialConsensus.decide(
 				List.of(proposal(west, 1), proposal(east, 2), proposal(middle, 3))));
 
-		assertThat(ids(result)).containsExactly("middle");
+		assertThat(ids(result)).containsExactly("east", "middle", "west");
+		assertThat(GeoMath.distanceMeters(result.centerLatitude(), result.centerLongitude(), middle.latitude(),
+				middle.longitude())).isLessThan(1);
 	}
 
 	@Test
-	void whenEverythingTiesTheEarlierProposalWinsRegardlessOfInputOrder() {
+	void twoFarApartTiedProposalsAreBothKeptRegardlessOfResponseOrder() {
 		Place first = at("first", GANGNAM, 0, 0);
 		Place second = at("second", HONGDAE, 0, 0);
 		List<Proposal> proposals = new ArrayList<>(List.of(proposal(first, 1), proposal(second, 2)));
 
-		assertThat(ids(spatial(SpatialConsensus.decide(proposals)))).containsExactly("first");
+		assertThat(ids(spatial(SpatialConsensus.decide(proposals)))).containsExactly("first", "second");
 		Collections.reverse(proposals);
-		assertThat(ids(spatial(SpatialConsensus.decide(proposals)))).containsExactly("first");
-		// 순서를 바꾸면 결과도 바뀐다(순서만이 판단 기준이므로).
+		assertThat(ids(spatial(SpatialConsensus.decide(proposals)))).containsExactly("first", "second");
+		// 응답 순서 자체를 바꿔도 어느 한쪽이 탈락하지 않는다.
 		assertThat(ids(spatial(SpatialConsensus.decide(
-				List.of(proposal(first, 2), proposal(second, 1)))))).containsExactly("second");
+				List.of(proposal(first, 2), proposal(second, 1)))))).containsExactly("first", "second");
 	}
 
 	@Test

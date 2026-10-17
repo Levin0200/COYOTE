@@ -11,6 +11,7 @@ import java.util.Map;
 public final class RegionLabeler {
 
 	public static final String FALLBACK = "선택한 장소 주변";
+	public static final String TIED_REGIONS = "여러 지역의 절충 지점";
 
 	private RegionLabeler() {
 	}
@@ -23,15 +24,13 @@ public final class RegionLabeler {
 				counts.merge(area, member.votes(), Integer::sum);
 			}
 		}
-		String best = null;
-		int bestCount = 0;
-		for (Map.Entry<String, Integer> entry : counts.entrySet()) {
-			if (entry.getValue() > bestCount) {
-				best = entry.getKey();
-				bestCount = entry.getValue();
-			}
+		int bestCount = counts.values().stream().mapToInt(Integer::intValue).max().orElse(0);
+		List<String> best = counts.entrySet().stream().filter(entry -> entry.getValue() == bestCount)
+				.map(Map.Entry::getKey).toList();
+		if (best.isEmpty()) {
+			return FALLBACK;
 		}
-		return best == null ? FALLBACK : best + " 일대";
+		return best.size() == 1 ? best.get(0) + " 일대" : TIED_REGIONS;
 	}
 
 	static String areaOf(String address) {

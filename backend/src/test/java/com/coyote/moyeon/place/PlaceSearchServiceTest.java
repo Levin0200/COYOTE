@@ -197,7 +197,7 @@ class PlaceSearchServiceTest {
 	}
 
 	@Test
-	void atMostTwoPlacesPerAddressAreReturned() {
+	void onlyOnePlacePerAddressIsReturned() {
 		PlaceSearchProvider oneBuilding = new PlaceSearchProvider() {
 			@Override
 			public boolean isAvailable() {
@@ -226,7 +226,7 @@ class PlaceSearchServiceTest {
 				.search(LAT, LON, 500, null, 4);
 
 		assertThat(result.places()).extracting(Place::name)
-				.containsExactly("같은건물카페0", "같은건물카페1", "옆건물카페", "먼건물카페");
+				.containsExactly("같은건물카페0", "옆건물카페", "먼건물카페");
 	}
 
 	@Test

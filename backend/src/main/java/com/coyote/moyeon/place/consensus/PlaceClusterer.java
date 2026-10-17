@@ -8,7 +8,7 @@ import java.util.List;
 /**
  * 가까운 장소끼리 묶는다. 군집의 중심(득표 가중 평균) 사이 거리가 기준 이하인 두 군집을 가장 가까운 것부터 합친다.
  * 단순히 "하나라도 가까우면 같은 군집"으로 잇는 방식은 장소가 줄줄이 이어질 때 한 군집이 길게 늘어나므로 쓰지 않는다.
- * 같은 거리면 앞선 군집(제안 순서가 빠른 쪽)부터 합쳐서 입력 순서와 상관없이 결과가 같다.
+ * 같은 거리에서는 좌표와 장소 ID로 정렬된 순서를 사용한다. 따라서 누가 먼저 응답했는지는 군집 결과에 영향을 주지 않는다.
  */
 public final class PlaceClusterer {
 
@@ -19,7 +19,8 @@ public final class PlaceClusterer {
 
 	public static List<Cluster> cluster(List<PlaceVote> votes, double thresholdMeters) {
 		List<List<PlaceVote>> groups = new ArrayList<>();
-		votes.stream().sorted(Comparator.comparingInt(PlaceVote::order).thenComparing(vote -> vote.place().id()))
+		votes.stream().sorted(Comparator.comparingDouble((PlaceVote vote) -> vote.place().latitude())
+				.thenComparingDouble(vote -> vote.place().longitude()).thenComparing(vote -> vote.place().id()))
 				.forEach(vote -> groups.add(new ArrayList<>(List.of(vote))));
 
 		while (groups.size() > 1) {

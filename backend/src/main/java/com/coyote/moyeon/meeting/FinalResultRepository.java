@@ -21,7 +21,4 @@ public interface FinalResultRepository extends JpaRepository<FinalResult, Long> 
 	List<Long> findMeetingIdsByPlaceStatusCreatedBefore(@Param("status") PlaceStatus status,
 			@Param("before") Instant before);
 
-	/** 호스트의 선택 시한이 지난 모임. */
-	@Query("select f.meeting.id from FinalResult f where f.placeStatus = :status and f.hostDecisionDeadline <= :now")
-	List<Long> findMeetingIdsByPlaceStatusDeadlineUntil(@Param("status") PlaceStatus status, @Param("now") Instant now);
 }

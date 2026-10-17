@@ -11,8 +11,8 @@ import java.util.List;
 /**
  * 마감 후 공개되는 집계 결과. 개별 응답과 닉네임은 포함하지 않는다.
  *
- * <p>placeStatus가 DECIDED가 아니면 selectedPlaces는 비어 있다. PENDING(후보 분석 중)·AWAITING_HOST(호스트 선택 대기)에는
- * hostDecisionDeadline(AWAITING_HOST일 때만)까지 호스트가 고르지 않으면 자동으로 정해진다. 후보 목록(placeCandidates)은
+ * <p>placeStatus가 DECIDED가 아니면 selectedPlaces는 비어 있다. PENDING은 후보 분석 중이고,
+ * AWAITING_HOST는 호스트가 최종 장소를 선택하기 전까지 유지된다. 후보 목록(placeCandidates)은
  * 호스트에게만 내려주고 게스트에게는 빈 목록이다.</p>
  */
 public record MeetingResultResponse(
@@ -61,8 +61,7 @@ public record MeetingResultResponse(
 		return new MeetingResultResponse(result.getSelectedDate(), places, details,
 				places.isEmpty() ? UNDECIDED_PLACE : String.join(" · ", places), result.getDecisionType(),
 				result.getReason(), result.getDateVoteCount(), result.getPlaceVoteCount(),
-				result.getTotalResponses(), result.getCreatedAt(), result.getPlaceStatus(),
-				result.getPlaceStatus() == PlaceStatus.AWAITING_HOST ? result.getHostDecisionDeadline() : null,
+				result.getTotalResponses(), result.getCreatedAt(), result.getPlaceStatus(), null,
 				candidates);
 	}
 }

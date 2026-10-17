@@ -12,8 +12,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 /**
- * 장소 결정의 뒷정리. 호스트가 시한 안에 고르지 않은 모임을 자동으로 확정하고, 후보 분석 중에 서버가 멈춰 PENDING으로
- * 남은 모임을 다시 처리한다. 서버 시작 시에도 한 번 실행한다.
+ * 후보 분석 중에 서버가 멈춰 PENDING으로 남은 모임을 다시 처리한다. 서버 시작 시에도 한 번 실행한다.
  */
 @Component
 public class PlaceDecisionScheduler {
@@ -48,7 +47,7 @@ public class PlaceDecisionScheduler {
 		}
 	}
 
-	/** 처리한 모임 수(자동 확정 + 다시 처리)를 돌려준다. 한 건이 실패해도 나머지는 계속한다. */
+	/** 다시 처리한 모임 수를 돌려준다. 한 건이 실패해도 나머지는 계속한다. */
 	public int run() {
 		int handled = 0;
 		Instant now = Instant.now();
@@ -60,16 +59,6 @@ public class PlaceDecisionScheduler {
 				handled++;
 			} catch (RuntimeException e) {
 				log.error("Failed to retry place candidates for meeting {}", id, e);
-			}
-		}
-		List<Long> overdue = finalResultRepository.findMeetingIdsByPlaceStatusDeadlineUntil(PlaceStatus.AWAITING_HOST, now);
-		for (Long id : overdue) {
-			try {
-				if (placeDecisionService.autoPick(id)) {
-					handled++;
-				}
-			} catch (RuntimeException e) {
-				log.error("Failed to auto-pick the place for meeting {}", id, e);
 			}
 		}
 		return handled;

@@ -33,7 +33,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 
 /**
- * 마감 이후의 장소 결정: 공동 1위와 흩어진 제안은 호스트가 후보 중에서 고르고, 시한이 지나면 자동으로 정한다.
+ * 마감 이후의 장소 결정: 공동 1위와 흩어진 제안은 호스트가 후보 중에서 최종 장소를 고른다.
  * 테스트에서는 fake 장소 제공자를 쓰며 "fake-N"은 N번째 가짜 장소다.
  */
 @SpringBootTest
@@ -174,32 +174,34 @@ class MeetingPlaceDecisionTest {
 	}
 
 	@Test
-	void theFirstCandidateIsPickedAutomaticallyAfterTheDeadline() throws Exception {
+	void awaitingHostIsNeverPickedAutomatically() throws Exception {
 		Created meeting = createRecommendTie();
 		close(meeting);
 
-		// 시한 전에는 아무것도 하지 않는다.
 		assertEquals(0, scheduler.run());
 		hostResult(meeting).andExpect(jsonPath("$.placeStatus").value("AWAITING_HOST"));
 
+		// 예전 데이터에 선택 시한이 남아 있어도 자동 선정하지 않고 호스트 선택을 기다린다.
 		passDeadline(meeting.id());
-		assertEquals(1, scheduler.run());
-		hostResult(meeting).andExpect(jsonPath("$.placeStatus").value("DECIDED"))
-				.andExpect(jsonPath("$.decisionType").value("AUTO_PICK"))
-				.andExpect(jsonPath("$.selectedPlaceDetails[0].id").value("fake-1"))
-				.andExpect(jsonPath("$.reason").value(containsString("자동")));
-
-		// 이미 정해진 모임은 다시 처리하지 않는다.
 		assertEquals(0, scheduler.run());
+		hostResult(meeting).andExpect(jsonPath("$.placeStatus").value("AWAITING_HOST"))
+				.andExpect(jsonPath("$.selectedPlaces", hasSize(0)));
 	}
 
 	@Test
-	void anOpenMeetingWithoutProposalsEndsUndecided() throws Exception {
+	void anOpenMeetingWithoutProposalsWaitsForManualHostChoice() throws Exception {
 		Created meeting = createOpenMeeting();
 		close(meeting);
 
-		hostResult(meeting).andExpect(jsonPath("$.placeStatus").value("NONE"))
-				.andExpect(jsonPath("$.selectedPlace").value("추후 협의"));
+		hostResult(meeting).andExpect(jsonPath("$.placeStatus").value("AWAITING_HOST"))
+				.andExpect(jsonPath("$.placeCandidates", hasSize(0)))
+				.andExpect(jsonPath("$.reason").value(containsString("호스트가 최종 장소를 직접 선택")));
+
+		choose(meeting.hostToken(), meeting.id(), "{\"placeId\":\"fake-1\"}")
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.placeStatus").value("DECIDED"))
+				.andExpect(jsonPath("$.decisionType").value("HOST_CHOICE"))
+				.andExpect(jsonPath("$.selectedPlaceDetails[0].id").value("fake-1"));
 	}
 
 	@Test
@@ -229,7 +231,7 @@ class MeetingPlaceDecisionTest {
 				.andExpect(jsonPath("$.decisionType").value("SPATIAL"))
 				.andExpect(jsonPath("$.selectedPlaces", hasSize(0)))
 				.andExpect(jsonPath("$.placeCandidates", hasSize(3)))
-				.andExpect(jsonPath("$.hostDecisionDeadline").isNotEmpty())
+				.andExpect(jsonPath("$.hostDecisionDeadline").doesNotExist())
 				.andExpect(jsonPath("$.reason").value(containsString("호스트가 최종 장소를 고릅니다")));
 		mockMvc.perform(get("/api/meetings/" + meeting.id()).header("Authorization", "Bearer " + meeting.hostToken()))
 				.andExpect(jsonPath("$.status").value("COMPLETED"));

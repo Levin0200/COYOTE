@@ -86,9 +86,10 @@ class VoteCountResultGeneratorTest {
 	}
 
 	@Test
-	void openWithoutProposalsIsLeftUndecided() {
+	void openWithoutProposalsWaitsForTheHostToSearchAndChoose() {
 		GeneratedResult result = generator.generate(input(PlacePolicyMode.OPEN, List.of(), response(PlaceMode.OPEN, null)));
 
-		assertEquals(PlaceStatus.NONE, result.placeStatus());
+		assertEquals(PlaceStatus.AWAITING_HOST, result.placeStatus());
+		assertTrue(result.candidates().isEmpty());
 	}
 }

@@ -4,6 +4,8 @@ HELP.md
 ### Local data / secrets ###
 data/
 .env
+.env.*
+!.env.example
 /src/main/resources/application-local.properties
 build/
 !gradle/wrapper/gradle-wrapper.jar

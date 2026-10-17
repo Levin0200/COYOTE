@@ -4,7 +4,7 @@ package com.coyote.moyeon.meeting;
 public enum PlaceStatus {
 	/** 참여자 제안을 분석해 후보를 만드는 중(마감 직후). */
 	PENDING,
-	/** 후보가 정해졌고 호스트가 하나를 고르기를 기다린다. 시한이 지나면 자동으로 정한다. */
+	/** 후보가 정해졌고 호스트가 하나를 고르기를 기다린다. */
 	AWAITING_HOST,
 	/** 장소가 정해졌다. */
 	DECIDED,

@@ -415,7 +415,21 @@ public class MeetingService {
 				if (fixedPlace == null) {
 					throw invalid("확정 장소를 입력해주세요.");
 				}
-				return new PolicyValues(PlacePolicyMode.FIXED, null, null, null, fixedPlace, List.of());
+				List<PlaceOptionData> given = data.options() == null ? List.of() : data.options();
+				if (given.size() > 1) {
+					throw invalid("확정 장소는 하나만 선택할 수 있습니다.");
+				}
+				if (given.isEmpty()) {
+					// 좌표 없이 저장된 기존 클라이언트 요청도 계속 허용한다.
+					return new PolicyValues(PlacePolicyMode.FIXED, null, null, null, fixedPlace, List.of());
+				}
+				PlaceOptionData option = given.get(0);
+				PlaceInfo info = placeInfoOf(option.placeId(), places);
+				if (info == null) {
+					throw invalid("지도 검색 결과에서 확정 장소를 선택해주세요.");
+				}
+				return new PolicyValues(PlacePolicyMode.FIXED, null, null, null, info.name(),
+						List.of(PlaceOption.of(info, blankToNull(option.distance()))));
 			}
 			case RECOMMEND -> {
 				String region = blankToNull(data.region());
@@ -498,7 +512,9 @@ public class MeetingService {
 				if (place != null && !place.equals(meeting.getFixedPlace())) {
 					throw invalid("확정된 장소와 다른 장소는 선택할 수 없습니다.");
 				}
-				return new NormalizedResponse(dates, PlaceMode.FIXED, null, meeting.getFixedPlace(), null, null, null);
+				PlaceInfo fixedInfo = meeting.getPlaceOptions().isEmpty()
+						? null : meeting.getPlaceOptions().get(0).toPlaceInfo();
+				return new NormalizedResponse(dates, PlaceMode.FIXED, null, meeting.getFixedPlace(), null, null, fixedInfo);
 			}
 			case RECOMMEND -> {
 				if (mode != PlaceMode.RECOMMEND) {

@@ -16,7 +16,8 @@ public record RecommendRequest(
 		@Size(max = 100) String keyword,
 		@Size(max = 100) String title,
 		@Size(max = 1000) String description,
-		@Min(1) @Max(200) Integer participantCount) {
+		@Size(max = 100) String region,
+		@Min(1) @Max(100) Integer participantCount) {
 
 	public int radiusOrDefault() {
 		return radiusMeters == null ? 1000 : radiusMeters;

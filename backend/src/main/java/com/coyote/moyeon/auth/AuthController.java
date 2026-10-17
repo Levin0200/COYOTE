@@ -4,11 +4,16 @@ import com.coyote.moyeon.auth.dto.ConfirmCodeRequest;
 import com.coyote.moyeon.auth.dto.LoginRequest;
 import com.coyote.moyeon.auth.dto.SendCodeRequest;
 import com.coyote.moyeon.auth.dto.SignupRequest;
+import com.coyote.moyeon.auth.dto.SessionResponse;
 import com.coyote.moyeon.auth.dto.TokenResponse;
 import com.coyote.moyeon.user.dto.UserResponse;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -20,9 +25,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
 	private final AuthService authService;
+	private final AuthCookieService cookies;
 
-	public AuthController(AuthService authService) {
+	public AuthController(AuthService authService, AuthCookieService cookies) {
 		this.authService = authService;
+		this.cookies = cookies;
 	}
 
 	@PostMapping("/email-verification")
@@ -57,8 +64,21 @@ public class AuthController {
 	 * 이메일, 비밀번호 검증 후 JWT 토큰 반환
 	 */
 	@PostMapping("/login")
-	public TokenResponse login(@Valid @RequestBody LoginRequest request, HttpServletRequest http) {
-		//로그인 검증 후 JWT 토큰 발급
-		return authService.login(request, http.getRemoteAddr());
+	public SessionResponse login(@Valid @RequestBody LoginRequest request, HttpServletRequest http,
+			HttpServletResponse response) {
+		TokenResponse token = authService.login(request, http.getRemoteAddr());
+		cookies.login(response, token);
+		return new SessionResponse(true, token.expiresIn());
+	}
+
+	@GetMapping("/session")
+	public SessionResponse session(@AuthenticationPrincipal Jwt jwt) {
+		return new SessionResponse(jwt != null, 0);
+	}
+
+	@PostMapping("/logout")
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	public void logout(HttpServletResponse response) {
+		cookies.logout(response);
 	}
 }

@@ -12,7 +12,8 @@ public sealed interface ConsensusOutcome {
 	}
 
 	/**
-	 * 단독 1위가 없어서 공간적으로 합의한 지역. cluster는 가장 큰 군집, center는 그 군집의 대표 중심점이다.
+	 * 단독 1위가 없어서 공간적으로 합의한 지역. cluster는 유일한 최대 군집이거나, 최대 군집까지 동률이면
+	 * 동률 군집의 제안을 모두 담은 절충 묶음이다. center는 해당 제안들의 대표 중심점이다.
 	 * clusterCount는 만들어진 군집 수, totalVotes는 전체 제안 수다.
 	 */
 	record Spatial(String regionLabel, double centerLatitude, double centerLongitude, Cluster cluster, int clusterCount,

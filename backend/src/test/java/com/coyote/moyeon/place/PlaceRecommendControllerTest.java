@@ -1,7 +1,6 @@
 package com.coyote.moyeon.place;
 
 import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.startsWith;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -70,11 +69,11 @@ class PlaceRecommendControllerTest {
 
 	/** 테스트용 가짜 데이터에는 반경 2km 안에 노래방이 정확히 6곳이라 후보가 고를 개수와 같다. */
 	@Test
-	void withFewCandidatesNoAiIsUsedAndAllAreReturned() throws Exception {
+	void withExactlySixCandidatesAiStillOrdersAndExplainsThem() throws Exception {
 		recommend(newHostToken(), body(",\"radiusMeters\":2000,\"keyword\":\"노래방\"")).andExpect(status().isOk())
-				.andExpect(jsonPath("$.aiUsed").value(false))
+				.andExpect(jsonPath("$.aiUsed").value(true))
 				.andExpect(jsonPath("$.places", hasSize(6)))
-				.andExpect(jsonPath("$.places[0].reason").value(nullValue()));
+				.andExpect(jsonPath("$.places[0].reason", startsWith("테스트 이유")));
 	}
 
 	@Test

@@ -72,6 +72,11 @@ public class VoteCountResultGenerator implements FinalResultGenerator {
 		static PlaceOutcome none(String reason) {
 			return new PlaceOutcome(PlaceStatus.NONE, List.of(), 0, List.of(), reason, null);
 		}
+
+		static PlaceOutcome awaitManualHostChoice(String reason) {
+			return new PlaceOutcome(PlaceStatus.AWAITING_HOST, List.of(), 0, List.of(), reason,
+					DecisionType.TIE_BREAK);
+		}
 	}
 
 	/** FIXED·RECOMMEND(그리고 이름만 받은 OPEN 제안): 장소 ID가 있으면 ID로, 없으면 이름으로 득표를 센다. */
@@ -112,7 +117,8 @@ public class VoteCountResultGenerator implements FinalResultGenerator {
 			boolean hasNameOnly = input.responses().stream()
 					.anyMatch(r -> r.placeMode() == PlaceMode.PROPOSE && r.placePreference() != null);
 			return hasNameOnly ? decideByVotes(input)
-					: PlaceOutcome.none("유효한 장소 응답이 없어 장소는 추후 협의로 남겼습니다.");
+					: PlaceOutcome.awaitManualHostChoice(
+							"모든 참여자가 장소 의견을 건너뛰어 호스트가 최종 장소를 직접 선택합니다.");
 		}
 		ConsensusOutcome outcome = SpatialConsensus.decide(proposals);
 		if (outcome instanceof ConsensusOutcome.Majority majority) {

@@ -31,6 +31,7 @@ import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -75,7 +76,8 @@ public class SecurityConfig {
 
 	@Bean
 	SecurityFilterChain securityFilterChain(HttpSecurity http, RateLimiter rateLimiter,
-			RateLimitProperties rateLimitProperties) throws Exception {
+			RateLimitProperties rateLimitProperties, CookieBearerTokenResolver tokenResolver,
+			@Value("${app.auth.cookie-name:moyeon_auth}") String authCookieName) throws Exception {
 		http
 				.csrf(AbstractHttpConfigurer::disable)
 				.cors(Customizer.withDefaults())
@@ -84,12 +86,15 @@ public class SecurityConfig {
 						.contentSecurityPolicy(csp -> csp.policyDirectives("default-src 'none'; frame-ancestors 'none'"))
 						.referrerPolicy(referrer -> referrer.policy(ReferrerPolicy.NO_REFERRER)))
 				.addFilterAfter(new IpRateLimitFilter(rateLimiter, rateLimitProperties), CorsFilter.class)
+				.addFilterBefore(new CookieCsrfFilter(authCookieName), BearerTokenAuthenticationFilter.class)
 				.sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 				.authorizeHttpRequests(auth -> auth
 						.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 						.requestMatchers("/api/health", "/api/auth/**", "/api/invites/**").permitAll()
 						.anyRequest().authenticated())
-				.oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()));
+				.oauth2ResourceServer(oauth2 -> oauth2
+						.bearerTokenResolver(tokenResolver)
+						.jwt(Customizer.withDefaults()));
 		return http.build();
 	}
 
@@ -98,8 +103,9 @@ public class SecurityConfig {
 		CorsConfiguration config = new CorsConfiguration();
 		config.setAllowedOrigins(allowedOrigins);
 		config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-		// 프론트가 실제로 보내는 헤더만 허용한다(Authorization: 호스트 JWT, X-Guest-Id: 게스트 식별자).
-		config.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Guest-Id"));
+		// 프론트가 실제로 보내는 헤더만 허용한다. X-XSRF-TOKEN은 인증 쿠키 요청의 CSRF 방어용이다.
+		config.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Guest-Id", "X-XSRF-TOKEN"));
+		config.setAllowCredentials(true);
 		// 429 응답의 Retry-After 를 프론트가 읽을 수 있게 노출한다.
 		config.setExposedHeaders(List.of("Retry-After"));
 		config.setMaxAge(Duration.ofHours(1));

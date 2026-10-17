@@ -39,6 +39,11 @@ tasks.named('test') {
 	useJUnitPlatform()
 }
 
+// 로컬 비밀 설정은 소스 트리에 실수로 놓이더라도 실행 JAR에 포함하지 않는다.
+tasks.named('processResources') {
+	exclude 'application-local.properties', '.env', '.env.*'
+}
+
 tasks.withType(JavaCompile).configureEach {
-	options.compilerArgs += '-parameters'
+	options.compilerArgs += ['-parameters', '-Xlint:deprecation']
 }

@@ -241,7 +241,7 @@ class MeetingParticipationTest {
 				.andExpect(jsonPath("$[1].result.selectedDate").value(day(2)))
 				.andExpect(jsonPath("$[1].result.selectedPlaces", hasSize(0)))
 				.andExpect(jsonPath("$[1].result.selectedPlace").value("추후 협의"))
-				.andExpect(jsonPath("$[1].result.decisionType").value("MAJORITY"))
+				.andExpect(jsonPath("$[1].result.decisionType").value("TIE_BREAK"))
 				.andExpect(jsonPath("$[0].result").doesNotExist());
 
 		// 다른 사용자의 목록에는 내 모임이 보이지 않는다.

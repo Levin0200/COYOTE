@@ -93,19 +93,13 @@ public class FinalResult {
 		return placeStatus == null ? PlaceStatus.DECIDED : placeStatus;
 	}
 
-	/** 호스트가 후보를 고르기를 기다리는 시한을 시작한다. */
-	public void startHostWindow(Instant deadline) {
-		this.hostDecisionDeadline = deadline;
-	}
-
-	/** 마감 직후 만든 후보로 호스트의 선택을 기다리는 상태가 된다. 후보가 없으면 장소 없이 끝낸다. */
-	public void awaitHost(List<FinalResultCandidate> candidates, Instant deadline, int placeVoteCount,
-			String placeReason) {
+	/** 마감 직후 호스트의 선택을 기다리는 상태가 된다. 후보가 없으면 호스트가 직접 검색해 고른다. */
+	public void awaitHost(List<FinalResultCandidate> candidates, int placeVoteCount, String placeReason) {
 		this.candidates = new ArrayList<>(candidates);
 		this.selectedPlaces = new ArrayList<>();
 		this.placeVoteCount = placeVoteCount;
 		this.placeStatus = PlaceStatus.AWAITING_HOST;
-		this.hostDecisionDeadline = deadline;
+		this.hostDecisionDeadline = null;
 		this.reason = cut(datePart() + placeReason);
 	}
 
@@ -118,7 +112,7 @@ public class FinalResult {
 		this.reason = cut(datePart() + placeReason);
 	}
 
-	/** 후보 중 하나로 장소를 확정한다(호스트 선택 또는 자동 선정). */
+	/** 후보 중 하나로 장소를 확정한다. */
 	public void decidePlace(FinalResultCandidate chosen, DecisionType type, String placeReason) {
 		this.selectedPlaces = new ArrayList<>(List.of(chosen.toSelectedPlace()));
 		this.placeVoteCount = chosen.votes();

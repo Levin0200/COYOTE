@@ -51,4 +51,12 @@ class RegionLabelerTest {
 	void usesAGenericLabelWhenNoAddressIsKnown() {
 		assertThat(RegionLabeler.label(List.of(vote("", 1)))).isEqualTo(RegionLabeler.FALLBACK);
 	}
+
+	@Test
+	void equallyVotedDifferentDistrictsUseANeutralCompromiseLabel() {
+		List<PlaceVote> members = List.of(vote("서울특별시 강남구 테헤란로 1", 1),
+				vote("서울특별시 마포구 양화로 1", 1));
+
+		assertThat(RegionLabeler.label(members)).isEqualTo(RegionLabeler.TIED_REGIONS);
+	}
 }
