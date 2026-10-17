@@ -16,7 +16,6 @@ public class PlaceProperties {
 	private String provider = "public-data";
 
 	private final DataGoKr dataGoKr = new DataGoKr();
-	private final TourApi tourApi = new TourApi();
 	private final Mois mois = new Mois();
 
 	@Getter
@@ -30,19 +29,6 @@ public class PlaceProperties {
 		private int pageSize = 1000;
 		/** 한 조회에서 이어서 받는 최대 페이지 수 */
 		private int maxPages = 5;
-	}
-
-	@Getter
-	@Setter
-	public static class TourApi {
-		private String serviceKey = "";
-		private String baseUrl = "https://apis.data.go.kr/B551011/KorService2";
-		private String mobileOs = "ETC";
-		private String mobileApp = "COYOTE";
-		private int connectTimeoutMillis = 3000;
-		private int readTimeoutMillis = 8000;
-		private int pageSize = 100;
-		private int maxPages = 3;
 	}
 
 	@Getter

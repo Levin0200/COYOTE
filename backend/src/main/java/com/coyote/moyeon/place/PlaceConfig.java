@@ -23,17 +23,6 @@ class PlaceConfig {
 	}
 
 	@Bean
-	@ConditionalOnProperty(name = "app.place.provider", havingValue = "tour-api")
-	RestClient tourApiRestClient(PlaceProperties properties) {
-		PlaceProperties.TourApi config = properties.getTourApi();
-		HttpClient httpClient = HttpClient.newBuilder()
-				.connectTimeout(Duration.ofMillis(config.getConnectTimeoutMillis())).build();
-		JdkClientHttpRequestFactory requestFactory = new JdkClientHttpRequestFactory(httpClient);
-		requestFactory.setReadTimeout(Duration.ofMillis(config.getReadTimeoutMillis()));
-		return RestClient.builder().baseUrl(config.getBaseUrl()).requestFactory(requestFactory).build();
-	}
-
-	@Bean
 	RestClient moisRestClient(PlaceProperties properties) {
 		PlaceProperties.Mois config = properties.getMois();
 		HttpClient httpClient = HttpClient.newBuilder()
