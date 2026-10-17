@@ -5,7 +5,8 @@ const toDateKey = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1)
 
 function AvailabilityCalendar({ selectedDates = [], onChange, minDate, maxDate }) {
   const [visibleMonth, setVisibleMonth] = useState(() => {
-    const initial = selectedDates[0] ? new Date(`${selectedDates[0]}T00:00:00`) : new Date();
+    const initialKey = selectedDates[0] || minDate;
+    const initial = initialKey ? new Date(`${initialKey}T00:00:00`) : new Date();
     return new Date(initial.getFullYear(), initial.getMonth(), 1);
   });
   const days = useMemo(() => {

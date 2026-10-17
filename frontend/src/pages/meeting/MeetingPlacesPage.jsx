@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Navigate, useLocation, useNavigate, useParams } from "react-router-dom";
 import KakaoMap from "../../components/KakaoMap";
 import PlaceCandidateList from "../../components/place/PlaceCandidateList";
-import { recommendPlaces, searchPlacesAsGuest } from "../../services/meetingService";
+import { recommendPlaces, searchPlaces, searchPlacesAsGuest } from "../../services/meetingService";
 import { getMeetingErrorMessage } from "../../utils/meetingErrors";
 import { DEFAULT_CENTER } from "../../utils/kakaoMap";
 import { centerOf, fromOption, fromPlaceDetail, fromSearchResult, hasCoordinates, toOption, toPlaceDetail } from "../../utils/placeCandidates";
@@ -39,10 +39,13 @@ function MeetingPlacesPage() {
   const [region, setRegion] = useState(isGuest ? policy.region || "" : draft.region || "");
   const [radius, setRadius] = useState(Number(isGuest ? policy.radius || 2 : draft.recommendationRadius || 2));
   const [keyword, setKeyword] = useState(isGuest ? policy.keyword || "" : draft.recommendationKeyword || "");
-  const [fixedPlace, setFixedPlace] = useState(isGuest ? policy.fixedPlace || "" : draft.fixedPlace || draft.placePreference || "");
+  const [fixedPlace] = useState(isGuest ? policy.fixedPlace || "" : draft.fixedPlace || draft.placePreference || "");
 
   // 지도에서 고른 기준 위치와 장소 후보. results.places 앞에서 visibleCount개만 보여 준다.
-  const initialPlaces = startMode === "RECOMMEND" && savedOptions.length
+  const fixedOptions = isGuest ? policy.options || [] : draft.fixedPlaceOption ? [draft.fixedPlaceOption] : [];
+  const initialPlaces = startMode === "FIXED" && fixedOptions.length
+    ? fixedOptions.map(fromOption)
+    : startMode === "RECOMMEND" && savedOptions.length
     ? savedOptions.map(fromOption)
     : startMode === "PROPOSE" && draft.place?.name ? [fromPlaceDetail(draft.place)] : [];
   const [results, setResults] = useState(initialPlaces.length ? { places: initialPlaces, aiUsed: null } : null);
@@ -52,11 +55,18 @@ function MeetingPlacesPage() {
   const [center, setCenter] = useState(draft.recommendationCenter || centerOf(initialPlaces) || DEFAULT_CENTER);
   const [centerChosen, setCenterChosen] = useState(Boolean(draft.recommendationCenter || initialPlaces.length));
   const [searching, setSearching] = useState(false);
+  const [slowSearch, setSlowSearch] = useState(false);
   const [message, setMessage] = useState("");
 
   const guestProposalFlow = isGuest && policy.mode === "OPEN";
+
+  useEffect(() => {
+    if (!searching) return undefined;
+    const id = window.setTimeout(() => setSlowSearch(true), 5000);
+    return () => window.clearTimeout(id);
+  }, [searching]);
   // 위치를 고르고 장소를 찾는 화면: 호스트의 추천 설정, 게스트의 장소 제안
-  const searchable = (!isGuest && placeMode === "RECOMMEND" && !locked) || (isGuest && placeMode === "PROPOSE");
+  const searchable = (!isGuest && ["FIXED", "RECOMMEND"].includes(placeMode) && !locked) || (isGuest && placeMode === "PROPOSE");
   // 이미 정해진 후보 중에서 고르기만 하는 화면: 게스트의 추천 후보 선택, 잠긴 호스트 수정
   const choosingOnly = placeMode === "RECOMMEND" && !searchable;
   const candidates = results ? results.places.slice(0, visibleCount) : [];
@@ -73,7 +83,16 @@ function MeetingPlacesPage() {
   const pickCenter = ({ lat, lng, label }) => {
     setCenter({ lat, lng });
     setCenterChosen(true);
-    if (label && !region.trim()) setRegion(label.slice(0, 40));
+    if (label) {
+      setRegion(label.slice(0, 40));
+      if (placeMode === "FIXED") setKeyword(label.slice(0, 50));
+    }
+    resetResults();
+  };
+
+  const changeRegionSearch = (value) => {
+    setRegion(value.slice(0, 40));
+    setCenterChosen(false);
     resetResults();
   };
   const applyResults = (places, aiUsed) => {
@@ -85,22 +104,27 @@ function MeetingPlacesPage() {
   };
   const findPlaces = async () => {
     if (!centerChosen) return setMessage("지도에서 기준 위치를 먼저 선택해주세요.");
-    if (!isGuest && !region.trim()) return setMessage("기준 지역 이름을 입력해주세요.");
+    if (!isGuest && !region.trim()) return setMessage(placeMode === "FIXED" ? "지도 검색창에서 확정 장소를 먼저 찾아주세요." : "기준 지역 이름을 입력해주세요.");
     if (isGuest && !keyword.trim()) return setMessage("어떤 장소를 찾을지 장소 유형을 입력해주세요.");
     setSearching(true);
+    setSlowSearch(false);
     setMessage("");
     try {
       if (isGuest) {
         const data = await searchPlacesAsGuest(inviteToken, draft.guestId, { latitude: center.lat, longitude: center.lng, radiusMeters: radius * 1000, keyword: keyword.trim(), limit: 10 });
         applyResults(data.places.map(fromSearchResult), null);
+      } else if (placeMode === "FIXED") {
+        const data = await searchPlaces({ latitude: center.lat, longitude: center.lng, radiusMeters: 1000, keyword: keyword.trim() || region.trim(), limit: 10 });
+        applyResults(data.places.map(fromSearchResult), null);
       } else {
-        const data = await recommendPlaces({ latitude: center.lat, longitude: center.lng, radiusMeters: radius * 1000, keyword: keyword.trim() || undefined, title: draft.title, description: draft.description });
+        const data = await recommendPlaces({ latitude: center.lat, longitude: center.lng, radiusMeters: radius * 1000, keyword: keyword.trim() || undefined, title: draft.title, description: draft.description, region: region.trim(), participantCount: 1 });
         applyResults(data.places.map(fromSearchResult), data.aiUsed);
       }
     } catch (error) {
       setMessage(getMeetingErrorMessage(error));
     } finally {
       setSearching(false);
+      setSlowSearch(false);
     }
   };
   const showMore = () => {
@@ -110,9 +134,9 @@ function MeetingPlacesPage() {
 
   const saveAndNext = () => {
     if (!placeMode) return alert("장소 방식을 선택해주세요.");
-    if (placeMode === "FIXED" && !fixedPlace.trim()) return alert("확정된 장소를 입력해주세요.");
-    const choosing = ["RECOMMEND", "PROPOSE"].includes(placeMode);
+    const choosing = ["FIXED", "RECOMMEND", "PROPOSE"].includes(placeMode);
     const chosen = choosing ? candidates.find((place) => place.key === selectedKey) : null;
+    if (placeMode === "FIXED" && !chosen) return alert("지도에서 확정 장소를 검색하고 하나를 선택해주세요.");
     if (placeMode === "RECOMMEND" && searchable && (!region.trim() || candidates.length === 0)) return alert("기준 지역과 위치를 정하고 장소를 추천받아 주세요.");
     if (placeMode === "RECOMMEND" && !chosen) return alert("추천 장소를 선택해주세요.");
     if (placeMode === "PROPOSE" && !chosen) return alert("지도에서 위치를 정해 장소를 찾은 뒤 하나를 선택해주세요.");
@@ -121,8 +145,9 @@ function MeetingPlacesPage() {
       ...draft,
       placeMode,
       region: choosing ? region.trim() : "",
-      fixedPlace: placeMode === "FIXED" ? fixedPlace.trim() : "",
-      placePreference: placeMode === "FIXED" ? fixedPlace.trim() : chosen ? chosen.name : "",
+      fixedPlace: placeMode === "FIXED" ? chosen.name : "",
+      fixedPlaceOption: placeMode === "FIXED" ? toOption(chosen) : null,
+      placePreference: chosen ? chosen.name : "",
       placeId: chosen ? chosen.placeId : "",
       place: chosen ? toPlaceDetail(chosen) : null,
       recommendationRadius: choosing ? radius : null,
@@ -149,19 +174,22 @@ function MeetingPlacesPage() {
 
     {guestProposalFlow && <section className="mb-6 rounded-[2rem] border border-blue-100 bg-white p-6 shadow-sm"><p className="mb-4 text-sm font-black text-blue-600">장소 의견을 선택하세요</p><div className="grid gap-4 md:grid-cols-2"><button onClick={() => { setPlaceMode("PROPOSE"); setRegion(""); setKeyword(""); setRadius(2); setCenterChosen(false); resetResults(); }} className={`rounded-2xl border-2 p-5 text-left ${placeMode === "PROPOSE" ? "border-blue-500 bg-blue-50" : "border-slate-100 bg-slate-50"}`}><span className="text-2xl">✨</span><h2 className="mt-3 text-lg font-black">장소 제안하기</h2><p className="mt-1 text-sm text-slate-500">지도에서 원하는 위치를 정하고 장소 유형을 입력해 후보를 찾은 뒤 하나를 제안해요.</p></button><button onClick={() => { setPlaceMode("OPEN"); setRegion(""); setKeyword(""); resetResults(); }} className={`rounded-2xl border-2 p-5 text-left ${placeMode === "OPEN" ? "border-blue-500 bg-blue-50" : "border-slate-100 bg-slate-50"}`}><span className="text-2xl">⏭️</span><h2 className="mt-3 text-lg font-black">내 장소 의견 건너뛰기</h2><p className="mt-1 text-sm text-slate-500">다른 게스트의 장소 제안에는 영향을 주지 않습니다.</p></button></div></section>}
 
-    {placeMode === "FIXED" && <section className="rounded-[2rem] border border-slate-200 bg-white p-7 shadow-sm"><h2 className="text-xl font-black">이미 정해진 장소</h2><p className="mt-2 text-sm text-slate-500">투표 없이 이 장소를 최종 장소로 사용합니다.</p>{isGuest ? <div className="mt-5 rounded-2xl border border-blue-100 bg-blue-50 p-5"><p className="text-xs font-bold text-blue-500">확정 장소</p><p className="mt-2 text-lg font-black text-blue-950">📍 {fixedPlace}</p></div> : <input value={fixedPlace} maxLength={100} disabled={locked} onChange={(e) => setFixedPlace(e.target.value)} className="mt-5 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 disabled:bg-slate-100 disabled:text-slate-400" placeholder="예) 강남역 3번 출구 앞" />}</section>}
+    {placeMode === "FIXED" && isGuest && <section className="rounded-[2rem] border border-slate-200 bg-white p-7 shadow-sm"><h2 className="text-xl font-black">확정 장소</h2><p className="mt-2 text-sm text-slate-500">호스트가 지도 검색으로 확인한 장소입니다.</p><div className="mt-5 rounded-2xl border border-blue-100 bg-blue-50 p-5"><p className="text-lg font-black text-blue-950">📍 {fixedPlace}</p>{initialPlaces[0]?.address && <p className="mt-2 text-sm text-blue-600">{initialPlaces[0].address}</p>}</div>{markers.length > 0 && <div className="mt-5"><KakaoMap center={centerOf(initialPlaces)} markers={markers} selectedId={markers[0]?.id} /></div>}</section>}
 
     {searchable && <section className="rounded-[2rem] border border-slate-200 bg-white p-7 shadow-sm">
-      <h2 className="text-xl font-black">{isGuest ? "원하는 위치 정하기" : "모임 기준 위치"}</h2>
-      <p className="mt-1 text-sm text-slate-500">지도를 누르거나 핀을 끌어 위치를 정해 주세요. 위쪽 검색창에 지역 이름을 입력하면 지도가 그곳으로 이동해요.</p>
-      <div className="mt-5"><KakaoMap center={center} radiusMeters={radius * 1000} markers={markers} selectedId={selectedKey} pickable showSearch onPick={pickCenter} onSelectMarker={setSelectedKey} /></div>
-      <div className="mt-5 grid gap-4 md:grid-cols-3">
-        <Field label={isGuest ? "지역 이름 (선택)" : "추천 기준 지역 이름 *"}><input value={region} maxLength={40} onChange={(e) => { setRegion(e.target.value); resetResults(); }} className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3" placeholder="예) 송도, 강남역" /></Field>
+      <h2 className="text-xl font-black">{placeMode === "FIXED" ? "확정 장소 검색·확인" : isGuest ? "원하는 위치 정하기" : "모임 기준 위치"}</h2>
+      <p className="mt-1 text-sm text-slate-500">{placeMode === "FIXED" ? "지도 검색창에 장소 이름을 입력해 이동한 뒤, 아래 검색 결과에서 실제 장소를 하나 선택해 주세요." : "지도 위 검색창에 지역이나 장소를 입력하고 ‘이동’을 눌러 기준 위치를 정해 주세요. 지도 클릭이나 핀 이동으로 세부 위치를 조정할 수도 있어요."}</p>
+      <div className="mt-5"><KakaoMap center={center} radiusMeters={radius * 1000} markers={markers} selectedId={selectedKey} pickable showSearch searchValue={region} onSearchValueChange={changeRegionSearch} onPick={pickCenter} onSelectMarker={setSelectedKey} /></div>
+      <div className={`mt-4 rounded-2xl px-4 py-3 text-sm font-bold ${centerChosen ? "bg-blue-50 text-blue-700" : "bg-amber-50 text-amber-700"}`}>
+        {centerChosen ? `📍 ${placeMode === "FIXED" ? "현재 확인 위치" : "현재 추천 기준 위치"}: ${region || "지도에서 선택한 위치"}` : `위 검색창에서 ${placeMode === "FIXED" ? "장소" : "지역"}을 검색하고 ‘이동’을 눌러 위치를 확정해 주세요.`}
+      </div>
+      {placeMode !== "FIXED" && <div className="mt-5 grid gap-4 md:grid-cols-2">
         <Field label="찾을 범위"><select value={radius} onChange={(e) => { setRadius(Number(e.target.value)); resetResults(); }} className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">{radiusChoices.map((value) => <option key={value} value={value}>반경 {value}km</option>)}</select></Field>
         <Field label={isGuest ? "원하는 장소 유형 *" : "추천 키워드"}><input value={keyword} maxLength={50} onChange={(e) => { setKeyword(e.target.value); resetResults(); }} className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3" placeholder="예) 카페, 한식, 고기, 노래방" /></Field>
-      </div>
+      </div>}
       {message && <p role="alert" className="mt-4 rounded-xl bg-rose-50 px-4 py-3 text-sm font-bold text-rose-600">{message}</p>}
-      <button type="button" onClick={findPlaces} disabled={searching} className="mt-5 w-full rounded-2xl bg-slate-900 px-5 py-3 font-bold text-white disabled:bg-slate-400">{searching ? (isGuest ? "찾는 중..." : "추천 중...") : isGuest ? "입력한 기준으로 장소 찾기" : "이 조건으로 장소 추천받기"}</button>
+      {slowSearch && <p role="status" className="mt-4 rounded-xl bg-amber-50 px-4 py-3 text-sm font-bold text-amber-700">공공데이터와 영업 상태를 확인하고 있어 평소보다 오래 걸리고 있습니다. 최대 20초까지 기다린 뒤 자동으로 중단됩니다.</p>}
+      <button type="button" onClick={findPlaces} disabled={searching} className="mt-5 w-full rounded-2xl bg-slate-900 px-5 py-3 font-bold text-white disabled:bg-slate-400">{searching ? "장소를 확인하는 중..." : placeMode === "FIXED" ? "이 위치에서 실제 장소 확인하기" : isGuest ? "입력한 기준으로 장소 찾기" : "이 조건으로 장소 추천받기"}</button>
     </section>}
 
     {choosingOnly && <section className="rounded-[2rem] border border-slate-200 bg-white p-7 shadow-sm">
@@ -170,7 +198,7 @@ function MeetingPlacesPage() {
     </section>}
 
     {(searchable || choosingOnly) && results && candidates.length > 0 && <section className="mt-6 rounded-[2rem] border border-slate-200 bg-white p-7 shadow-sm">
-      <h2 className="text-xl font-black">{isGuest && placeMode === "PROPOSE" ? "찾은 장소" : choosingOnly ? "공통 추천 장소" : "추천 장소"}</h2>
+      <h2 className="text-xl font-black">{placeMode === "FIXED" ? "확정할 장소" : isGuest && placeMode === "PROPOSE" ? "찾은 장소" : choosingOnly ? "공통 추천 장소" : "추천 장소"}</h2>
       <p className="mt-1 text-sm text-slate-500">지도와 목록의 번호는 같아요. 하나를 선택하세요.</p>
       {aiNote && <p className="mt-2 text-xs font-bold text-purple-600">✨ {aiNote}</p>}
       <div className="mt-5"><PlaceCandidateList candidates={candidates} selectedKey={selectedKey} onSelect={setSelectedKey} /></div>

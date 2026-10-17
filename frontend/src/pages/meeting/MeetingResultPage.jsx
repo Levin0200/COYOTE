@@ -1,14 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { FiCalendar, FiCheck, FiClock, FiHome, FiMapPin, FiShare2, FiStar, FiUsers } from "react-icons/fi";
+import { FiCalendar, FiCheck, FiHome, FiMapPin, FiShare2, FiStar, FiUsers } from "react-icons/fi";
 import KakaoMap from "../../components/KakaoMap";
 import PlaceCandidateList from "../../components/place/PlaceCandidateList";
-import { centerOf, hasCoordinates } from "../../utils/placeCandidates";
-import { PLACE_STATUS, decisionLabel, placeStatusOf, remainingText } from "../../utils/placeStatus";
+import { centerOf, fromSearchResult, hasCoordinates } from "../../utils/placeCandidates";
+import { DEFAULT_CENTER } from "../../utils/kakaoMap";
+import { PLACE_STATUS, decisionLabel, placeStatusOf } from "../../utils/placeStatus";
 import { formatSelectedDate } from "../../utils/dateFormat";
 import { getErrorCode } from "../../services/api";
 import { getMeetingErrorMessage } from "../../utils/meetingErrors";
-import { choosePlace, fetchGuestResult, fetchHostMeeting, fetchHostResult, fetchInviteInfo } from "../../services/meetingService";
+import { choosePlace, fetchGuestResult, fetchHostMeeting, fetchHostResult, fetchInviteInfo, recommendPlaces } from "../../services/meetingService";
 
 function MeetingResultPage() {
   const navigate = useNavigate();
@@ -23,16 +24,8 @@ function MeetingResultPage() {
   const [reloadKey, setReloadKey] = useState(0);
   const [progress, setProgress] = useState(18);
   const [revealed, setRevealed] = useState(false);
-  const [now, setNow] = useState(0);
   const [pendingExpired, setPendingExpired] = useState(false);
   const pollTicks = useRef(0);
-
-  useEffect(() => {
-    const refresh = () => setNow(Date.now());
-    refresh();
-    const id = window.setInterval(refresh, 60000);
-    return () => window.clearInterval(id);
-  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -99,14 +92,8 @@ function MeetingResultPage() {
   if (!meeting || !result) return <div className="flex min-h-screen items-center justify-center bg-slate-50"><div className="rounded-3xl bg-white p-8 text-center shadow-sm"><h1 className="text-2xl font-black">모임을 찾을 수 없습니다.</h1>{loadError && loadError.code !== "MEETING_NOT_FOUND" && <p className="mt-3 text-slate-500">{loadError.message}</p>}</div></div>;
 
   const completed = revealed && placeStatus !== PLACE_STATUS.PENDING;
-  const linkExpired = Boolean(meeting.linkExpirationDate && now >= new Date(meeting.linkExpirationDate).getTime());
   // 호스트는 로그인이 필요한 호스트 전용 주소 대신 게스트가 열 수 있는 결과 주소를 복사한다.
   const copyResultLink = async () => { const url = isGuest ? window.location.href : `${window.location.origin}/invite/${meeting.inviteToken}/result`; try { await navigator.clipboard.writeText(url); alert("결과 링크를 복사했습니다."); } catch { window.prompt("결과 링크를 복사해 주세요.", url); } };
-  const recommendAgain = () => {
-    if (isGuest) return;
-    if (linkExpired) return alert("링크가 만료되어 더 이상 재추천할 수 없습니다.");
-    alert("다시 추천 기능은 준비 중입니다.");
-  };
 
   const decided = placeStatus === PLACE_STATUS.DECIDED;
   const awaitingHost = placeStatus === PLACE_STATUS.AWAITING_HOST;
@@ -155,14 +142,9 @@ function MeetingResultPage() {
               </div>
             </section>
             {awaitingHost && (isGuest
-              ? <GuestWaiting deadline={result.hostDecisionDeadline} now={now} />
-              : <HostPlacePicker meetingId={meetingId} result={result} now={now} onDecided={setResult} onReload={reload} />)}
-            {!isGuest && (
-              <div className="mt-6 grid gap-3 sm:grid-cols-2">
-                <button onClick={copyResultLink} className="flex items-center justify-center gap-2 rounded-2xl bg-blue-600 py-4 font-black text-white shadow-sm transition hover:bg-blue-700"><FiShare2 /> 결과 링크 복사</button>
-                <button onClick={recommendAgain} disabled={linkExpired} className="rounded-2xl bg-purple-600 py-4 font-black text-white shadow-sm transition hover:bg-purple-700 disabled:cursor-not-allowed disabled:bg-slate-300">{linkExpired ? "링크 만료 · 재추천 불가" : "이전 응답으로 다시 추천"}</button>
-              </div>
-            )}
+              ? <GuestWaiting />
+              : <HostPlacePicker meetingId={meetingId} meeting={meeting} result={result} onDecided={setResult} onReload={reload} />)}
+            {!isGuest && <button onClick={copyResultLink} className="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-blue-600 py-4 font-black text-white shadow-sm transition hover:bg-blue-700"><FiShare2 /> 결과 링크 복사</button>}
           </>
         )}
         {!isGuest && (
@@ -174,8 +156,8 @@ function MeetingResultPage() {
 }
 
 /** 호스트가 후보 중에서 최종 장소를 고르는 패널. 확정은 되돌릴 수 없어서 한 번 더 확인한다. */
-function HostPlacePicker({ meetingId, result, now, onDecided, onReload }) {
-  const candidates = (result.placeCandidates || []).map((candidate) => ({
+function HostPlacePicker({ meetingId, meeting, result, onDecided, onReload }) {
+  const savedCandidates = (result.placeCandidates || []).map((candidate) => ({
     key: candidate.id || candidate.name,
     placeId: candidate.id || "",
     name: candidate.name,
@@ -187,16 +169,54 @@ function HostPlacePicker({ meetingId, result, now, onDecided, onReload }) {
     distanceLabel: candidate.votes > 0 ? `${candidate.votes}표` : "",
     reason: candidate.reason || "",
   }));
+  const manualChoice = savedCandidates.length === 0;
+  const [manualCandidates, setManualCandidates] = useState([]);
   const [selectedKey, setSelectedKey] = useState(null);
   const [confirming, setConfirming] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [center, setCenter] = useState(DEFAULT_CENTER);
+  const [region, setRegion] = useState("");
+  const [centerChosen, setCenterChosen] = useState(false);
+  const [radius, setRadius] = useState(2);
+  const [keyword, setKeyword] = useState("");
+  const [searching, setSearching] = useState(false);
+  const candidates = manualChoice ? manualCandidates : savedCandidates;
   const selected = candidates.find((candidate) => candidate.key === selectedKey) || null;
   const located = candidates.filter(hasCoordinates);
-  const center = centerOf(candidates);
-  const remaining = remainingText(result.hostDecisionDeadline, now);
+  const candidateCenter = centerOf(candidates);
 
   const select = (key) => { setSelectedKey(key); setConfirming(false); setError(""); };
+  const resetManualResults = () => { setManualCandidates([]); setSelectedKey(null); setConfirming(false); setError(""); };
+  const pickCenter = ({ lat, lng, label }) => {
+    setCenter({ lat, lng });
+    setCenterChosen(true);
+    if (label) setRegion(label.slice(0, 40));
+    resetManualResults();
+  };
+  const searchManualCandidates = async () => {
+    if (!centerChosen) return setError("지도에서 기준 위치를 먼저 정해 주세요.");
+    setSearching(true);
+    setError("");
+    try {
+      const data = await recommendPlaces({
+        latitude: center.lat,
+        longitude: center.lng,
+        radiusMeters: radius * 1000,
+        keyword: keyword.trim() || undefined,
+        title: meeting.title,
+        description: meeting.description,
+      });
+      const places = data.places.map(fromSearchResult);
+      setManualCandidates(places);
+      setSelectedKey(null);
+      if (places.length === 0) setError("이 위치 주변에서 장소를 찾지 못했습니다. 범위나 키워드를 바꿔 보세요.");
+    } catch (e) {
+      setError(getMeetingErrorMessage(e));
+    } finally {
+      setSearching(false);
+    }
+  };
   const confirm = async () => {
     if (!selected) return;
     setSaving(true);
@@ -217,13 +237,21 @@ function HostPlacePicker({ meetingId, result, now, onDecided, onReload }) {
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-2xl font-black text-slate-950">최종 장소를 골라 주세요</h2>
-          <p className="mt-1 text-sm text-slate-500">후보 중에서 하나를 고르면 모든 참여자에게 확정 장소로 보입니다.</p>
+          <p className="mt-1 text-sm text-slate-500">{manualChoice ? "모두 장소 의견을 건너뛰었습니다. 기준 위치에서 장소를 검색한 뒤 하나를 확정해 주세요." : "후보 중에서 하나를 고르면 모든 참여자에게 확정 장소로 보입니다."}</p>
         </div>
-        {remaining && <span className="flex items-center gap-2 rounded-full bg-amber-50 px-4 py-2 text-sm font-bold text-amber-700"><FiClock /> {remaining}</span>}
       </div>
-      <p className="mb-5 text-xs text-slate-400">시간 안에 고르지 않으면 첫 번째 후보가 자동으로 선정됩니다.</p>
-      {center && <div className="mb-5"><KakaoMap center={center} markers={located.map((place) => ({ id: place.key, name: place.name, lat: place.latitude, lng: place.longitude }))} selectedId={selectedKey} onSelectMarker={select} height={300} /></div>}
-      <PlaceCandidateList candidates={candidates} selectedKey={selectedKey} onSelect={select} disabled={saving} />
+      {manualChoice ? (
+        <>
+          <KakaoMap center={center} radiusMeters={radius * 1000} markers={located.map((place) => ({ id: place.key, name: place.name, lat: place.latitude, lng: place.longitude }))} selectedId={selectedKey} onSelectMarker={select} pickable showSearch searchValue={region} onSearchValueChange={(value) => { setRegion(value.slice(0, 40)); setCenterChosen(false); resetManualResults(); }} onPick={pickCenter} height={360} />
+          <div className={`mt-4 rounded-2xl px-4 py-3 text-sm font-bold ${centerChosen ? "bg-blue-50 text-blue-700" : "bg-amber-50 text-amber-700"}`}>{centerChosen ? `📍 현재 검색 기준 위치: ${region || "지도에서 선택한 위치"}` : "위 검색창에서 지역을 검색하고 ‘이동’을 눌러 기준 위치를 정해 주세요."}</div>
+          <div className="mt-4 grid gap-4 md:grid-cols-2">
+            <label className="text-sm font-bold text-slate-700">찾을 범위<select value={radius} onChange={(e) => { setRadius(Number(e.target.value)); resetManualResults(); }} className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3"><option value={1}>반경 1km</option><option value={2}>반경 2km</option><option value={3}>반경 3km</option></select></label>
+            <label className="text-sm font-bold text-slate-700">추천 키워드<input value={keyword} maxLength={50} onChange={(e) => { setKeyword(e.target.value); resetManualResults(); }} className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3" placeholder="예) 식당, 카페, 볼링장" /></label>
+          </div>
+          <button type="button" onClick={searchManualCandidates} disabled={searching} className="mt-4 w-full rounded-2xl bg-slate-900 py-3 font-black text-white disabled:bg-slate-400">{searching ? "추천 중..." : "이 위치에서 장소 추천받기"}</button>
+        </>
+      ) : candidateCenter && <div className="mb-5"><KakaoMap center={candidateCenter} markers={located.map((place) => ({ id: place.key, name: place.name, lat: place.latitude, lng: place.longitude }))} selectedId={selectedKey} onSelectMarker={select} height={300} /></div>}
+      {candidates.length > 0 && <div className="mt-5"><PlaceCandidateList candidates={candidates} selectedKey={selectedKey} onSelect={select} disabled={saving} /></div>}
       {error && <p role="alert" className="mt-4 text-sm font-bold text-rose-600">{error}</p>}
       {confirming && selected ? (
         <div className="mt-5 rounded-2xl border border-blue-100 bg-blue-50 p-5">
@@ -242,14 +270,12 @@ function HostPlacePicker({ meetingId, result, now, onDecided, onReload }) {
 }
 
 /** 게스트가 호스트의 장소 선택을 기다리는 안내. 결과 화면이 30초마다 새로고침되어 확정되면 바로 바뀐다. */
-function GuestWaiting({ deadline, now }) {
-  const remaining = remainingText(deadline, now);
+function GuestWaiting() {
   return (
     <section className="mt-6 rounded-[2rem] border border-blue-100 bg-white p-8 text-center shadow-sm">
       <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-50 text-3xl">📍</div>
       <h2 className="mt-4 text-2xl font-black text-slate-950">호스트가 장소를 정하고 있어요</h2>
       <p className="mt-2 text-sm text-slate-500">정해지면 이 화면에 자동으로 나타납니다.</p>
-      {remaining && <p className="mt-4 inline-flex items-center gap-2 rounded-full bg-amber-50 px-4 py-2 text-sm font-bold text-amber-700"><FiClock /> {remaining}</p>}
     </section>
   );
 }

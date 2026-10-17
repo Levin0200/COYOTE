@@ -116,6 +116,7 @@ function MeetingStatusPage() {
       responseDeadline: meeting.responseDeadline,
       linkExpirationDate: meeting.linkExpirationDate || "",
       fixedPlace: policy.fixedPlace || "",
+      fixedPlaceOption: policy.mode === "FIXED" ? policy.options?.[0] || null : null,
       recommendationRadius: policy.radius || null,
       recommendationKeyword: policy.keyword || "",
       recommendationOptions: policy.options || [],

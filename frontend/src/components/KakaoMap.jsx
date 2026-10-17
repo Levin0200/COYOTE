@@ -6,13 +6,14 @@ const ERROR_MESSAGES = {
   [KAKAO_ERRORS.LOAD_FAILED]: "카카오 지도를 불러오지 못했습니다. 키와 등록한 사이트 주소, 카카오맵 사용 설정을 확인해 주세요.",
 };
 
-const markerStyle = (selected) =>
+const markerStyle = (selected, hasLabel = false) =>
   [
     "display:flex",
     "align-items:center",
     "justify-content:center",
-    "width:34px",
+    hasLabel ? "min-width:54px" : "width:34px",
     "height:34px",
+    hasLabel ? "padding:0 10px" : "padding:0",
     "border-radius:9999px",
     "border:3px solid #fff",
     "box-shadow:0 4px 10px rgba(15,23,42,.3)",
@@ -29,10 +30,11 @@ const markerStyle = (selected) =>
  *   검색으로 옮기면 onPick({lat, lng, label})로 검색어(label)도 함께 알려 준다.
  * - radiusMeters: 기준 위치 둘레에 반경 원을 그린다.
  * - markers: 후보 장소 [{id, name, lat, lng}]. 번호가 붙은 마커로 표시하고 누르면 onSelectMarker(id)가 호출된다.
- * - showSearch: 지역 이름으로 검색해 지도를 옮기는 입력창(카카오 검색은 화면 이동에만 쓰고 결과를 저장하지 않는다).
+ * - showSearch: 지역 이름으로 검색해 지도를 옮기는 입력창.
+ *   searchValue/onSearchValueChange를 넘기면 부모의 지역 이름과 같은 값으로 제어할 수 있다.
  * 지도를 쓸 수 없을 때(키 없음 등)는 안내와 함께 대표 위치 버튼을 보여 준다.
  */
-function KakaoMap({ center = DEFAULT_CENTER, radiusMeters = null, markers = [], selectedId = null, pickable = false, showSearch = false, onPick, onSelectMarker, height = 360 }) {
+function KakaoMap({ center = DEFAULT_CENTER, radiusMeters = null, markers = [], selectedId = null, pickable = false, showSearch = false, searchValue, onSearchValueChange, onPick, onSelectMarker, height = 360, level = 5 }) {
   const containerRef = useRef(null);
   const kakaoRef = useRef(null);
   const mapRef = useRef(null);
@@ -57,18 +59,33 @@ function KakaoMap({ center = DEFAULT_CENTER, radiusMeters = null, markers = [], 
         if (cancelled || !containerRef.current) return;
         kakaoRef.current = kakao;
         const position = new kakao.maps.LatLng(center.lat, center.lng);
-        const map = new kakao.maps.Map(containerRef.current, { center: position, level: 5 });
+        const map = new kakao.maps.Map(containerRef.current, { center: position, level });
         mapRef.current = map;
         if (pickable) {
+          const notifyPick = (picked) => {
+            const lat = picked.getLat();
+            const lng = picked.getLng();
+            const geocoder = new kakao.maps.services.Geocoder();
+            geocoder.coord2RegionCode(lng, lat, (regions, state) => {
+              const region = state === kakao.maps.services.Status.OK
+                ? regions.find((item) => item.region_type === "H") || regions[0]
+                : null;
+              const label = region
+                ? [region.region_1depth_name, region.region_2depth_name, region.region_3depth_name]
+                    .filter(Boolean)
+                    .join(" ")
+                : undefined;
+              callbacksRef.current.onPick?.({ lat, lng, label });
+            });
+          };
           const pin = new kakao.maps.Marker({ position, draggable: true, map });
           pinRef.current = pin;
           kakao.maps.event.addListener(pin, "dragend", () => {
-            const moved = pin.getPosition();
-            callbacksRef.current.onPick?.({ lat: moved.getLat(), lng: moved.getLng() });
+            notifyPick(pin.getPosition());
           });
           kakao.maps.event.addListener(map, "click", (event) => {
             pin.setPosition(event.latLng);
-            callbacksRef.current.onPick?.({ lat: event.latLng.getLat(), lng: event.latLng.getLng() });
+            notifyPick(event.latLng);
           });
         }
         setStatus("ready");
@@ -94,7 +111,7 @@ function KakaoMap({ center = DEFAULT_CENTER, radiusMeters = null, markers = [], 
     if (!mapRef.current.getBounds().contain(position)) mapRef.current.setCenter(position);
   }, [status, center.lat, center.lng]);
 
-  const markersKey = JSON.stringify(markers.map((marker) => [marker.id, marker.lat, marker.lng]));
+  const markersKey = JSON.stringify(markers.map((marker) => [marker.id, marker.lat, marker.lng, marker.label, marker.kind]));
 
   // 반경 원
   useEffect(() => {
@@ -126,8 +143,8 @@ function KakaoMap({ center = DEFAULT_CENTER, radiusMeters = null, markers = [], 
       const element = document.createElement("button");
       element.type = "button";
       element.title = marker.name;
-      element.textContent = String(index + 1);
-      element.setAttribute("style", markerStyle(marker.id === selectedId));
+      element.textContent = marker.label || String(index + 1);
+      element.setAttribute("style", markerStyle(marker.id === selectedId || marker.kind === "user", marker.kind === "user"));
       element.addEventListener("click", () => callbacksRef.current.onSelectMarker?.(marker.id));
       const overlay = new kakao.maps.CustomOverlay({
         position: new kakao.maps.LatLng(marker.lat, marker.lng),
@@ -146,21 +163,37 @@ function KakaoMap({ center = DEFAULT_CENTER, radiusMeters = null, markers = [], 
   useEffect(() => {
     if (status !== "ready" || markers.length === 0) return;
     const kakao = kakaoRef.current;
+    const points = [center, ...markers.map((marker) => ({ lat: marker.lat, lng: marker.lng }))];
+    const uniquePoints = new Set(points.map((point) => `${Number(point.lat).toFixed(6)},${Number(point.lng).toFixed(6)}`));
+
+    // 한 지점만 표시할 때 setBounds를 쓰면 건물 단위까지 과도하게 확대된다.
+    // 동네와 인근 도로가 함께 보이는 기본 배율을 유지한다.
+    if (uniquePoints.size === 1) {
+      mapRef.current.setCenter(new kakao.maps.LatLng(center.lat, center.lng));
+      mapRef.current.setLevel(level);
+      return;
+    }
+
     const bounds = new kakao.maps.LatLngBounds();
     bounds.extend(new kakao.maps.LatLng(center.lat, center.lng));
     markers.forEach((marker) => bounds.extend(new kakao.maps.LatLng(marker.lat, marker.lng)));
     mapRef.current.setBounds(bounds);
     // 범위는 후보가 바뀔 때(markersKey)만 맞춘다. 기준 위치를 옮길 때마다 지도가 움직이면 불편하다.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status, markersKey]);
+  }, [status, markersKey, level]);
 
   const search = (event) => {
     event.preventDefault();
-    const text = query.trim();
+    const text = (searchValue ?? query).trim();
     if (!text || status !== "ready") return;
     const kakao = kakaoRef.current;
     setSearchMessage("");
-    const moveTo = (item) => callbacksRef.current.onPick?.({ lat: parseFloat(item.y), lng: parseFloat(item.x), label: text });
+    const moveTo = (item) => {
+      const position = new kakao.maps.LatLng(parseFloat(item.y), parseFloat(item.x));
+      mapRef.current.setCenter(position);
+      mapRef.current.setLevel(level);
+      callbacksRef.current.onPick?.({ lat: position.getLat(), lng: position.getLng(), label: text });
+    };
     new kakao.maps.services.Places().keywordSearch(text, (places, state) => {
       if (state === kakao.maps.services.Status.OK && places.length) return moveTo(places[0]);
       new kakao.maps.services.Geocoder().addressSearch(text, (addresses, geoState) => {
@@ -177,7 +210,15 @@ function KakaoMap({ center = DEFAULT_CENTER, radiusMeters = null, markers = [], 
       <div ref={containerRef} style={{ width: "100%", height, visibility: failed ? "hidden" : "visible" }} />
       {showSearch && status === "ready" && (
         <form onSubmit={search} className="absolute left-3 right-3 top-3 z-10 flex gap-2">
-          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="지역·장소 이름으로 지도 이동 (예: 송도, 강남역)" className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white/95 px-3 py-2 text-sm shadow-sm" />
+          <input
+            value={searchValue ?? query}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              onSearchValueChange?.(e.target.value);
+            }}
+            placeholder="추천 기준 지역·장소 검색 (예: 송도, 강남역)"
+            className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white/95 px-3 py-2 text-sm shadow-sm"
+          />
           <button type="submit" className="shrink-0 rounded-xl bg-slate-900 px-4 py-2 text-sm font-bold text-white shadow-sm">이동</button>
         </form>
       )}

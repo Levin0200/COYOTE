@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import AppHeader from "../../components/AppHeader";
+import KakaoMap from "../../components/KakaoMap";
 import { deleteMe, fetchMe, logout, updateMe } from "../../services/authService";
 import { getErrorMessage } from "../../services/api";
 import { fetchMeetingVotes, fetchMyMeetings } from "../../services/meetingService";
 import { getMeetingErrorMessage } from "../../utils/meetingErrors";
-import { placeSummaryText } from "../../utils/placeStatus";
+import { buildCalendarDays, dateKey, formatCalendarDate, maxVoteCount, mostVotedDates, toConfirmedMeetings, voteSummary } from "./myPageModel";
+import useMyPageMap from "./useMyPageMap";
 
-function MainPage() {
+function MyPage() {
   const navigate = useNavigate();
 
   // --------------------------------------------------
@@ -209,18 +210,7 @@ function MainPage() {
     setMeetingsReloadKey((value) => value + 1);
   };
 
-  const confirmedMeetings = meetings
-    .filter((meeting) => meeting.result)
-    .map((meeting) => ({
-      id: meeting.meetingId,
-      date: meeting.result.selectedDate,
-      title: meeting.title,
-      description: meeting.description || "",
-      location: meeting.placeRegion || "",
-      // 장소가 아직 정해지지 않았으면 상태 문구("장소 선택 대기 중" 등)를 보여 준다.
-      place: placeSummaryText(meeting.result),
-      memberCount: meeting.participantCount,
-    }));
+  const confirmedMeetings = toConfirmedMeetings(meetings);
 
   // 투표 상세(상세정보 팝업) 조회 상태
   const [votesState, setVotesState] = useState({ meetingId: null, loading: false, error: "", data: null });
@@ -244,66 +234,13 @@ function MainPage() {
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
 
-  const firstDay = new Date(year, month, 1).getDay();
-
-  const lastDate = new Date(year, month + 1, 0).getDate();
-
-  const previousMonthLastDate = new Date(year, month, 0).getDate();
-
-  // --------------------------------------------------
-  // 캘린더 날짜 생성
-  // --------------------------------------------------
-
-  const calendarDays = [];
-
-  // 이전 달
-  for (let i = firstDay - 1; i >= 0; i--) {
-    calendarDays.push({
-      day: previousMonthLastDate - i,
-      currentMonth: false,
-      date: null,
-    });
-  }
-
-  // 현재 달
-  for (let day = 1; day <= lastDate; day++) {
-    const dateString =
-      `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(
-        2,
-        "0"
-      )}`;
-
-    calendarDays.push({
-      day,
-      currentMonth: true,
-      date: dateString,
-    });
-  }
-
-  // 다음 달
-  let nextMonthDay = 1;
-
-  while (calendarDays.length < 42) {
-    calendarDays.push({
-      day: nextMonthDay,
-      currentMonth: false,
-      date: null,
-    });
-
-    nextMonthDay++;
-  }
+  const calendarDays = buildCalendarDays(currentDate);
 
   // --------------------------------------------------
   // 오늘
   // --------------------------------------------------
 
-  const today = new Date();
-
-  const todayString =
-    `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(
-      2,
-      "0"
-    )}-${String(today.getDate()).padStart(2, "0")}`;
+  const todayString = dateKey();
 
     // --------------------------------------------------
 // 가장 가까운 예정 모임
@@ -318,6 +255,13 @@ const nextMeeting =
     ? upcomingMeetings[0]
     : null;
 
+const nextMeetingId = nextMeeting?.id || null;
+const { mapError, mapLoading, meetingPlaces, myLocationError, myLocationMarker, meetingMapMarkers, mapMarkers, meetingMapCenter } = useMyPageMap({
+  address: user?.address,
+  addressLabel: userAddress,
+  meetingId: nextMeetingId,
+});
+
   // --------------------------------------------------
   // 특정 날짜의 확정 모임 찾기
   // --------------------------------------------------
@@ -330,11 +274,7 @@ const nextMeeting =
   // 날짜 포맷
   // --------------------------------------------------
 
-  const formatDate = (dateString) => {
-    const [year, month, day] = dateString.split("-");
-
-    return `${year}년 ${Number(month)}월 ${Number(day)}일`;
-  };
+  const formatDate = formatCalendarDate;
 
   // --------------------------------------------------
   // 이전 / 다음 달
@@ -425,37 +365,9 @@ const nextMeeting =
   // 투표 현황 계산
   // --------------------------------------------------
 
-  const getVoteSummary = (votes) => {
-    const voteCounts = {};
-
-    (votes?.dateCounts || []).forEach(({ date, count }) => {
-      voteCounts[date] = count;
-    });
-
-    return voteCounts;
-  };
-
-  const getMaxVoteCount = (votes) => {
-    const voteCounts = getVoteSummary(votes);
-
-    const values = Object.values(voteCounts);
-
-    if (values.length === 0) {
-      return 0;
-    }
-
-    return Math.max(...values);
-  };
-
-  const getMostVotedDates = (votes) => {
-    const voteCounts = getVoteSummary(votes);
-
-    const maxCount = getMaxVoteCount(votes);
-
-    return Object.entries(voteCounts)
-      .filter(([, count]) => count === maxCount)
-      .map(([date]) => date);
-  };
+  const getVoteSummary = voteSummary;
+  const getMaxVoteCount = maxVoteCount;
+  const getMostVotedDates = mostVotedDates;
 
   // 현재 열린 상세정보 팝업에 해당하는 투표 조회 상태
   const votesView =
@@ -473,15 +385,12 @@ const nextMeeting =
         minHeight: "100vh",
         backgroundColor: "#F8FAFC",
         color: "#1E293B",
-        fontFamily: "Arial, sans-serif",
       }}
     >
 
       {/* ==================================================
           HEADER
       ================================================== */}
-
-      <AppHeader />
 
       {profileEditOpen && (
         <div
@@ -1489,206 +1398,76 @@ const nextMeeting =
               {/* 지도 영역 */}
 
 <div
-  onClick={() => setShowMapModal(true)}
   style={{
     height: "260px",
     borderRadius: "18px",
     border: "1px solid #E5EAF0",
-    background:
-      "linear-gradient(135deg, #EDF3EA 0%, #F8F6ED 50%, #EAF1F5 100%)",
+    backgroundColor: "#F1F5F9",
     position: "relative",
     overflow: "hidden",
-    cursor: "pointer",
   }}
 >
-  {/* 지도 도로 */}
-
-  <div
-    style={{
-      position: "absolute",
-      width: "130%",
-      height: "22px",
-      backgroundColor: "#FFFFFF",
-      top: "55%",
-      left: "-15%",
-      transform: "rotate(-12deg)",
-      boxShadow: "0 0 0 1px #E5E7EB",
-    }}
-  />
-
-  <div
-    style={{
-      position: "absolute",
-      width: "120%",
-      height: "17px",
-      backgroundColor: "#FFFFFF",
-      top: "22%",
-      left: "-10%",
-      transform: "rotate(20deg)",
-      boxShadow: "0 0 0 1px #E5E7EB",
-    }}
-  />
-
-  <div
-    style={{
-      position: "absolute",
-      width: "15px",
-      height: "130%",
-      backgroundColor: "#FFFFFF",
-      top: "-15%",
-      left: "63%",
-      transform: "rotate(15deg)",
-      boxShadow: "0 0 0 1px #E5E7EB",
-    }}
-  />
-
-  {/* 공원 */}
-
-  <div
-    style={{
-      position: "absolute",
-      width: "75px",
-      height: "55px",
-      borderRadius: "50%",
-      backgroundColor: "#DCEBD8",
-      left: "18px",
-      bottom: "25px",
-    }}
-  />
-
-  <div
-    style={{
-      position: "absolute",
-      width: "55px",
-      height: "55px",
-      borderRadius: "50%",
-      backgroundColor: "#DCEBD8",
-      right: "18px",
-      top: "20px",
-    }}
-  />
-
-  {/* 내 위치 */}
-
-  <div
-    style={{
-      position: "absolute",
-      left: "27%",
-      top: "60%",
-      transform: "translate(-50%, -50%)",
-    }}
-  >
-    <div
-      style={{
-        width: "18px",
-        height: "18px",
-        borderRadius: "50%",
-        backgroundColor: "#4F7DF3",
-        border: "4px solid #FFFFFF",
-        boxShadow: "0 2px 8px rgba(15,23,42,0.2)",
-      }}
+  {meetingMapCenter ? (
+    <KakaoMap
+      center={meetingMapCenter}
+      markers={mapMarkers}
+      selectedId={myLocationMarker[0]?.id || meetingMapMarkers[0]?.id}
+      height={260}
+      level={5}
     />
-
+  ) : (
     <div
       style={{
-        position: "absolute",
-        top: "26px",
-        left: "50%",
-        transform: "translateX(-50%)",
-        whiteSpace: "nowrap",
-        padding: "4px 7px",
-        borderRadius: "6px",
-        backgroundColor: "#FFFFFF",
+        height: "100%",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "24px",
+        textAlign: "center",
         color: "#64748B",
-        fontSize: "9px",
+        fontSize: "12px",
         fontWeight: "700",
-        boxShadow: "0 2px 6px rgba(15,23,42,0.08)",
       }}
     >
-      내 위치
-    </div>
-  </div>
-
-  {/* 가장 가까운 모임 핀 */}
-
-  {nextMeeting && (
-    <div
-      style={{
-        position: "absolute",
-        right: "25%",
-        top: "38%",
-        transform: "translate(50%, -50%)",
-      }}
-    >
-      {/* 모임 제목 */}
-
-      <div
-        style={{
-          position: "absolute",
-          bottom: "34px",
-          left: "50%",
-          transform: "translateX(-50%)",
-          whiteSpace: "nowrap",
-          padding: "6px 9px",
-          borderRadius: "8px",
-          backgroundColor: "#4F7DF3",
-          color: "#FFFFFF",
-          fontSize: "10px",
-          fontWeight: "700",
-          boxShadow: "0 3px 8px rgba(59,130,246,0.25)",
-        }}
-      >
-        {nextMeeting.title}
-      </div>
-
-      {/* 핀 */}
-
-      <div
-        style={{
-          width: "30px",
-          height: "30px",
-          borderRadius: "50% 50% 50% 0",
-          backgroundColor: "#4F7DF3",
-          transform: "rotate(-45deg)",
-          border: "3px solid #FFFFFF",
-          boxShadow: "0 3px 8px rgba(15,23,42,0.18)",
-          position: "relative",
-        }}
-      >
-        <div
-          style={{
-            width: "8px",
-            height: "8px",
-            borderRadius: "50%",
-            backgroundColor: "#FFFFFF",
-            position: "absolute",
-            top: "8px",
-            left: "8px",
-          }}
-        />
-      </div>
+      {mapLoading
+        ? "확정된 모임 위치를 불러오는 중..."
+        : myLocationError || mapError || "저장한 내 위치나 좌표가 등록된 확정 장소가 없습니다."}
     </div>
   )}
 
-  {/* 지도 클릭 안내 */}
-
-  <div
-    style={{
-      position: "absolute",
-      bottom: "12px",
-      left: "50%",
-      transform: "translateX(-50%)",
-      whiteSpace: "nowrap",
-      padding: "6px 10px",
-      borderRadius: "12px",
-      backgroundColor: "rgba(255,255,255,0.94)",
-      color: "#64748B",
-      fontSize: "10px",
-      boxShadow: "0 2px 8px rgba(15,23,42,0.08)",
-    }}
-  >
-    지도를 클릭하면 크게 볼 수 있어요
-  </div>
+  {meetingMapCenter && (
+    <button
+      type="button"
+      onClick={() => setShowMapModal(true)}
+      aria-label="모임 위치 지도 크게 보기"
+      style={{
+        position: "absolute",
+        inset: 0,
+        zIndex: 5,
+        border: "none",
+        padding: 0,
+        backgroundColor: "transparent",
+        cursor: "pointer",
+      }}
+    >
+      <span
+        style={{
+          position: "absolute",
+          right: "12px",
+          bottom: "12px",
+          borderRadius: "12px",
+          padding: "8px 12px",
+          backgroundColor: "rgba(255,255,255,0.96)",
+          color: "#334155",
+          fontSize: "11px",
+          fontWeight: "800",
+          boxShadow: "0 3px 10px rgba(15,23,42,0.14)",
+        }}
+      >
+        지도를 클릭하면 크게 볼 수 있어요
+      </span>
+    </button>
+  )}
 </div>
 
 {/* 가장 가까운 모임 */}
@@ -2466,10 +2245,11 @@ const nextMeeting =
               style={{
                 marginTop: "4px",
                 fontSize: "12px",
-                color: "#94A3B8",
+                color: "#64748B",
+                fontWeight: "700",
               }}
             >
-              {nextMeeting.title}
+              {nextMeeting.title} · {formatDate(nextMeeting.date)}
             </div>
           )}
         </div>
@@ -2498,194 +2278,17 @@ const nextMeeting =
           flex: 1,
           position: "relative",
           overflow: "hidden",
-          background:
-            "linear-gradient(135deg, #EDF3EA 0%, #F8F6ED 50%, #EAF1F5 100%)",
+          backgroundColor: "#F1F5F9",
         }}
       >
-        {/* 도로 */}
-
-        <div
-          style={{
-            position: "absolute",
-            width: "130%",
-            height: "45px",
-            backgroundColor: "#FFFFFF",
-            top: "45%",
-            left: "-15%",
-            transform: "rotate(-8deg)",
-            boxShadow: "0 0 0 1px #E5E7EB",
-          }}
-        />
-
-        <div
-          style={{
-            position: "absolute",
-            width: "130%",
-            height: "30px",
-            backgroundColor: "#FFFFFF",
-            top: "17%",
-            left: "-15%",
-            transform: "rotate(18deg)",
-            boxShadow: "0 0 0 1px #E5E7EB",
-          }}
-        />
-
-        <div
-          style={{
-            position: "absolute",
-            width: "28px",
-            height: "130%",
-            backgroundColor: "#FFFFFF",
-            top: "-15%",
-            left: "57%",
-            transform: "rotate(18deg)",
-            boxShadow: "0 0 0 1px #E5E7EB",
-          }}
-        />
-
-        <div
-          style={{
-            position: "absolute",
-            width: "24px",
-            height: "130%",
-            backgroundColor: "#FFFFFF",
-            top: "-15%",
-            left: "23%",
-            transform: "rotate(-23deg)",
-            boxShadow: "0 0 0 1px #E5E7EB",
-          }}
-        />
-
-        {/* 공원 */}
-
-        <div
-          style={{
-            position: "absolute",
-            width: "150px",
-            height: "100px",
-            borderRadius: "50%",
-            backgroundColor: "#DCEBD8",
-            left: "6%",
-            bottom: "12%",
-          }}
-        />
-
-        <div
-          style={{
-            position: "absolute",
-            width: "110px",
-            height: "110px",
-            borderRadius: "50%",
-            backgroundColor: "#DCEBD8",
-            right: "8%",
-            top: "10%",
-          }}
-        />
-
-        {/* 내 위치 */}
-
-        <div
-          style={{
-            position: "absolute",
-            left: "28%",
-            top: "56%",
-            transform: "translate(-50%, -50%)",
-          }}
-        >
-          <div
-            style={{
-              width: "28px",
-              height: "28px",
-              borderRadius: "50%",
-              backgroundColor: "#4F7DF3",
-              border: "5px solid #FFFFFF",
-              boxShadow:
-                "0 4px 12px rgba(15,23,42,0.2)",
-            }}
+        {meetingMapCenter && (
+          <KakaoMap
+            center={meetingMapCenter}
+            markers={mapMarkers}
+            selectedId={myLocationMarker[0]?.id || meetingMapMarkers[0]?.id}
+            height={578}
+            level={5}
           />
-
-          <div
-            style={{
-              position: "absolute",
-              top: "42px",
-              left: "50%",
-              transform: "translateX(-50%)",
-              whiteSpace: "nowrap",
-              padding: "6px 10px",
-              borderRadius: "8px",
-              backgroundColor: "#FFFFFF",
-              color: "#64748B",
-              fontSize: "11px",
-              fontWeight: "700",
-              boxShadow:
-                "0 2px 8px rgba(15,23,42,0.1)",
-            }}
-          >
-            내 위치
-          </div>
-        </div>
-
-        {/* 모임 위치 */}
-
-        {nextMeeting && (
-          <div
-            style={{
-              position: "absolute",
-              right: "28%",
-              top: "38%",
-              transform: "translate(50%, -50%)",
-            }}
-          >
-            {/* 모임 제목 */}
-
-            <div
-              style={{
-                position: "absolute",
-                bottom: "48px",
-                left: "50%",
-                transform: "translateX(-50%)",
-                whiteSpace: "nowrap",
-                padding: "8px 12px",
-                borderRadius: "9px",
-                backgroundColor: "#4F7DF3",
-                color: "#FFFFFF",
-                fontSize: "12px",
-                fontWeight: "800",
-                boxShadow:
-                  "0 4px 12px rgba(59,130,246,0.25)",
-              }}
-            >
-              {nextMeeting.title}
-            </div>
-
-            {/* 핀 */}
-
-            <div
-              style={{
-                width: "42px",
-                height: "42px",
-                borderRadius: "50% 50% 50% 0",
-                backgroundColor: "#4F7DF3",
-                transform: "rotate(-45deg)",
-                border: "4px solid #FFFFFF",
-                boxShadow:
-                  "0 4px 12px rgba(15,23,42,0.2)",
-                position: "relative",
-              }}
-            >
-              <div
-                style={{
-                  width: "11px",
-                  height: "11px",
-                  borderRadius: "50%",
-                  backgroundColor: "#FFFFFF",
-                  position: "absolute",
-                  top: "11px",
-                  left: "11px",
-                }}
-              />
-            </div>
-          </div>
         )}
 
         {/* 하단 모임 정보 */}
@@ -2697,41 +2300,75 @@ const nextMeeting =
               left: "24px",
               right: "24px",
               bottom: "24px",
+              zIndex: 10,
               backgroundColor: "rgba(255,255,255,0.96)",
               borderRadius: "16px",
               padding: "16px 18px",
               boxShadow:
                 "0 4px 15px rgba(15,23,42,0.1)",
+              maxHeight: "190px",
+              overflowY: "auto",
             }}
           >
-            <div
-              style={{
-                fontSize: "14px",
-                fontWeight: "800",
-                color: "#172033",
-              }}
-            >
-              {nextMeeting.title}
+            <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "8px 14px" }}>
+              <div
+                style={{
+                  fontSize: "15px",
+                  fontWeight: "800",
+                  color: "#172033",
+                }}
+              >
+                {nextMeeting.title}
+              </div>
+              <div style={{ fontSize: "12px", color: "#64748B", fontWeight: "700" }}>
+                📅 {formatDate(nextMeeting.date)}
+              </div>
             </div>
 
-            <div
-              style={{
-                marginTop: "5px",
-                fontSize: "12px",
-                color: "#64748B",
-              }}
-            >
-              📅 {formatDate(nextMeeting.date)}
+            <div style={{ marginTop: "10px", display: "grid", gap: "7px" }}>
+              {meetingPlaces.length > 0 ? (
+                meetingPlaces.map((place, index) => (
+                  <div
+                    key={place.id || `${place.name}-${index}`}
+                    style={{ display: "flex", alignItems: "flex-start", gap: "9px", fontSize: "12px" }}
+                  >
+                    <span
+                      style={{
+                        display: "inline-flex",
+                        flexShrink: 0,
+                        alignItems: "center",
+                        justifyContent: "center",
+                        width: "22px",
+                        height: "22px",
+                        borderRadius: "50%",
+                        backgroundColor: index === 0 ? "#2563EB" : "#1E293B",
+                        color: "#FFFFFF",
+                        fontSize: "11px",
+                        fontWeight: "800",
+                      }}
+                    >
+                      {index + 1}
+                    </span>
+                    <span style={{ color: "#64748B", lineHeight: 1.55 }}>
+                      <strong style={{ color: "#172033" }}>{place.name}</strong>
+                      {place.address && <span> · {place.address}</span>}
+                    </span>
+                  </div>
+                ))
+              ) : (
+                <div style={{ fontSize: "12px", color: "#64748B" }}>
+                  📍 {nextMeeting.location ? `${nextMeeting.location} · ` : ""}{nextMeeting.place}
+                </div>
+              )}
             </div>
-
             <div
               style={{
-                marginTop: "3px",
-                fontSize: "12px",
-                color: "#64748B",
+                marginTop: "9px",
+                fontSize: "11px",
+                color: "#94A3B8",
               }}
             >
-              📍 {nextMeeting.location ? `${nextMeeting.location} · ` : ""}{nextMeeting.place}
+              마우스 휠로 확대·축소하고 드래그해서 주변을 확인할 수 있어요.
             </div>
           </div>
         )}
@@ -2744,4 +2381,4 @@ const nextMeeting =
   );
 }
 
-export default MainPage;
+export default MyPage;

@@ -1,10 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import AppHeader from "../../components/AppHeader";
 import { fetchMyMeetings } from "../../services/meetingService";
 import { getMeetingErrorMessage } from "../../utils/meetingErrors";
 import { formatSelectedDate } from "../../utils/dateFormat";
-import { PLACE_STATUS, placeStatusOf, placeSummaryText } from "../../utils/placeStatus";
+import { PLACE_STATUS, isMeetingCompleted, placeStatusOf, placeSummaryText } from "../../utils/placeStatus";
 
 const POLL_MS = 60000;
 const pad = (value) => String(value).padStart(2, "0");
@@ -54,13 +53,13 @@ function MainPage() {
 
   const reload = () => { setLoading(true); setLoadError(""); setReloadKey((value) => value + 1); };
 
-  const ongoingMeetings = meetings.filter((meeting) => !meeting.closed);
-  const completedMeetings = meetings.filter((meeting) => meeting.closed);
+  const ongoingMeetings = meetings.filter((meeting) => !isMeetingCompleted(meeting));
+  const completedMeetings = meetings.filter(isMeetingCompleted);
   const responseCount = ongoingMeetings.reduce((total, meeting) => total + meeting.responseCount, 0);
   const memberCount = ongoingMeetings.reduce((total, meeting) => total + meeting.participantCount, 0);
   const visibleMeetings = meetings.filter((meeting) => {
-    if (activeFilter === "ongoing") return !meeting.closed;
-    if (activeFilter === "completed") return meeting.closed;
+    if (activeFilter === "ongoing") return !isMeetingCompleted(meeting);
+    if (activeFilter === "completed") return isMeetingCompleted(meeting);
     return true;
   });
 
@@ -71,12 +70,7 @@ function MainPage() {
   ];
 
   return (
-    <main
-      className="min-h-screen bg-slate-50 text-slate-900"
-      style={{ fontFamily: "Arial, sans-serif" }}
-    >
-      <AppHeader />
-
+    <main className="min-h-screen bg-slate-50 text-slate-900">
       <div className="mx-auto max-w-[1280px] px-6 pb-[60px] pt-[34px]">
         <section className="mb-8 flex flex-wrap items-end justify-between gap-5">
           <div>
@@ -127,15 +121,20 @@ function MainPage() {
             <p className="mt-1 text-xs text-slate-400">새 모임을 만들어 보세요.</p>
           </div> : visibleMeetings.length > 0 ? <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             {visibleMeetings.map((meeting) => {
-              const ongoing = !meeting.closed;
-              const progress = progressOf(meeting);
               const result = meeting.result;
+              const ongoing = !isMeetingCompleted(meeting);
+              const awaitingHost = meeting.closed && result && placeStatusOf(result) === PLACE_STATUS.AWAITING_HOST;
+              const analyzing = meeting.closed && result && placeStatusOf(result) === PLACE_STATUS.PENDING;
+              const statusLabel = awaitingHost ? "장소 선택 대기" : analyzing ? "후보 분석 중" : ongoing ? "진행 중" : "완료";
+              const progress = progressOf(meeting);
               return <article key={meeting.meetingId} className="rounded-[20px] border border-slate-200 bg-white p-5 transition duration-200 hover:border-blue-200 hover:shadow-md sm:p-[22px]">
                 <div className="mb-4 flex items-center justify-between gap-3">
                   <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-bold ${ongoing ? "bg-blue-50 text-[#3D6BE5]" : "bg-emerald-50 text-emerald-700"}`}>
-                    <span className={`h-1.5 w-1.5 rounded-full ${ongoing ? "bg-[#4F7DF3]" : "bg-emerald-500"}`} />{ongoing ? "진행 중" : "완료"}
+                    <span className={`h-1.5 w-1.5 rounded-full ${ongoing ? "bg-[#4F7DF3]" : "bg-emerald-500"}`} />{statusLabel}
                   </span>
-                  {ongoing && <span className="text-xs font-medium text-slate-400">마감 {formatDeadline(meeting.responseDeadline)}</span>}
+                  {!meeting.closed && <span className="text-xs font-medium text-slate-400">마감 {formatDeadline(meeting.responseDeadline)}</span>}
+                  {awaitingHost && <span className="text-xs font-bold text-amber-600">호스트 선택 필요</span>}
+                  {analyzing && <span className="text-xs font-bold text-purple-600">결과 처리 중</span>}
                 </div>
 
                 <h3 className="mb-5 text-lg font-extrabold tracking-[-0.03em] text-slate-900">{meeting.title}</h3>
@@ -152,7 +151,7 @@ function MainPage() {
                   <span className={`font-bold ${ongoing ? "text-[#3D6BE5]" : "text-emerald-700"}`}>{progress}%</span>
                 </div>
 
-                {ongoing ? <button type="button" onClick={() => navigate(`/meeting/${meeting.meetingId}/status`)} className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#4F7DF3] px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-[#3D6BE5] focus:outline-none focus:ring-4 focus:ring-blue-100">
+                {!meeting.closed ? <button type="button" onClick={() => navigate(`/meeting/${meeting.meetingId}/status`)} className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#4F7DF3] px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-[#3D6BE5] focus:outline-none focus:ring-4 focus:ring-blue-100">
                   현황 보기<span aria-hidden="true">→</span>
                 </button> : <div className="border-t border-slate-100 pt-4">
                   <div className="grid gap-3 sm:grid-cols-2">

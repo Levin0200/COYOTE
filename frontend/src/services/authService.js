@@ -1,5 +1,5 @@
 import api from "./api";
-import { clearToken, setToken } from "../utils/authToken";
+import { clearAuthenticated, markAuthenticated } from "../utils/authSession";
 
 export const sendVerificationCode = (email) =>
   api.post("/api/auth/email-verification", { email });
@@ -28,11 +28,20 @@ export const signup = ({
 
 export const login = async (email, password) => {
   const { data } = await api.post("/api/auth/login", { email, password });
-  setToken(data.accessToken);
+  markAuthenticated();
   return data;
 };
 
-export const logout = () => clearToken();
+export const logout = async () => {
+  try {
+    await api.post("/api/auth/logout");
+  } finally {
+    clearAuthenticated();
+  }
+};
+
+export const checkSession = () =>
+  api.get("/api/auth/session").then((response) => Boolean(response.data?.authenticated));
 
 export const fetchMe = () =>
   api.get("/api/users/me").then((response) => response.data);
