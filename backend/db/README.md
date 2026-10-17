@@ -1,7 +1,8 @@
 # MariaDB 스키마 (backend/db)
 
-백엔드의 JPA 엔티티와 맞춘 MariaDB 테이블 정의입니다. `mariadb`/`prod` 프로필은 `ddl-auto=validate`라서 이 SQL과
-엔티티가 다르면 서버가 시작되지 않습니다. (개발용 H2는 `ddl-auto=update`로 자동 생성하므로 이 파일을 쓰지 않습니다.)
+백엔드의 JPA 엔티티와 맞춘 MariaDB 테이블 정의입니다. 로컬과 운영 실행은 MariaDB만 사용하며,
+`mariadb`/`prod` 프로필은 `ddl-auto=validate`라서 이 SQL과 엔티티가 다르면 서버가 시작되지 않습니다.
+H2는 실행 환경에서 사용하지 않고 자동화 테스트에서만 사용합니다.
 
 | 파일 | 용도 |
 |---|---|
@@ -15,6 +16,9 @@
 ```bash
 mariadb -u root -p < backend/db/coyote_backend_mj_schema.sql
 ```
+
+이후 `.env.example`을 `.env`로 복사해 `DB_USERNAME`, `DB_PASSWORD`, `JWT_SECRET`을 설정하면
+별도 프로필 지정 없이도 기본 `mariadb` 프로필로 실행됩니다.
 
 이미 만든 DB(예전 스키마):
 
