@@ -1,39 +1,45 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
-import { FaGoogle, FaApple } from "react-icons/fa";
-import { SiNaver, SiKakaotalk } from "react-icons/si";
+import { login } from "../../services/authService";
+import { getErrorMessage } from "../../services/api";
 
 function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleLogin = () => {
-    const savedUser = localStorage.getItem("user");
-
-    if (!savedUser) {
-      alert("가입된 회원정보가 없습니다. 먼저 회원가입을 해주세요.");
+  const handleLogin = async (event) => {
+    event?.preventDefault();
+    if (!email.trim() || !password) {
+      alert("이메일과 비밀번호를 입력해주세요.");
       return;
     }
 
-    const user = JSON.parse(savedUser);
+    setSubmitting(true);
 
-    if (email === user.email && password === user.password) {
-      localStorage.setItem("isLoggedIn", "true");
+    try {
+      await login(email.trim(), password);
 
       alert("로그인되었습니다.");
-
-            navigate("/mypage");
-    } else {
-      alert("이메일 또는 비밀번호가 일치하지 않습니다.");
+      const requestedPath = typeof location.state?.from === "string" && location.state.from.startsWith("/")
+        ? location.state.from
+        : "/mypage";
+      navigate(requestedPath, { replace: true });
+    } catch (error) {
+      alert(getErrorMessage(error));
+    } finally {
+      setSubmitting(false);
     }
   };
 
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center px-6">
-      <div
+      <form
+        onSubmit={handleLogin}
         className="
           w-full
           max-w-md
@@ -66,6 +72,8 @@ function LoginPage() {
 
           <input
             type="email"
+            autoComplete="email"
+            required
             placeholder="example@email.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -89,6 +97,8 @@ function LoginPage() {
 
           <input
             type="password"
+            autoComplete="current-password"
+            required
             placeholder="비밀번호 입력"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
@@ -106,7 +116,8 @@ function LoginPage() {
         </div>
 
         <button
-          onClick={handleLogin}
+          type="submit"
+          disabled={submitting}
           className="
             w-full
             bg-[#4F7DF3]
@@ -115,6 +126,7 @@ function LoginPage() {
             rounded-xl
             font-medium
             hover:bg-[#3D6BE5]
+            disabled:opacity-60
             transition
           "
         >
@@ -123,125 +135,13 @@ function LoginPage() {
 
         <div className="mt-5 text-sm text-center">
           <button
+            type="button"
             onClick={() => navigate("/signup")}
             className="text-[#4F7DF3] hover:underline"
           >
             회원가입
           </button>
 
-          <span className="mx-2 text-gray-300">|</span>
-
-          <button
-            onClick={() =>
-              alert("비밀번호 재설정 기능은 준비 중입니다.")
-            }
-            className="text-gray-500 hover:text-gray-700"
-          >
-            비밀번호 재설정
-          </button>
-
-          <span className="mx-2 text-gray-300">|</span>
-
-          <button
-            onClick={() =>
-              alert("문의하기 기능은 준비 중입니다.")
-            }
-            className="text-gray-500 hover:text-gray-700"
-          >
-            문의하기
-          </button>
-        </div>
-
-        <div className="flex items-center my-8">
-          <div className="flex-1 h-px bg-gray-200" />
-
-          <span className="px-4 text-sm text-gray-400">
-            SNS로 로그인하기
-          </span>
-
-          <div className="flex-1 h-px bg-gray-200" />
-        </div>
-
-        <div className="flex justify-center gap-4">
-          <button
-            onClick={() =>
-              alert("네이버 로그인은 준비 중입니다.")
-            }
-            className="
-              w-12
-              h-12
-              rounded-full
-              border
-              border-gray-200
-              flex
-              items-center
-              justify-center
-              hover:bg-gray-50
-              transition
-            "
-          >
-            <SiNaver size={20} />
-          </button>
-
-          <button
-            onClick={() =>
-              alert("카카오 로그인은 준비 중입니다.")
-            }
-            className="
-              w-12
-              h-12
-              rounded-full
-              border
-              border-gray-200
-              flex
-              items-center
-              justify-center
-              hover:bg-gray-50
-              transition
-            "
-          >
-            <SiKakaotalk size={20} />
-          </button>
-
-          <button
-            onClick={() =>
-              alert("Google 로그인은 준비 중입니다.")
-            }
-            className="
-              w-12
-              h-12
-              rounded-full
-              border
-              border-gray-200
-              flex
-              items-center
-              justify-center
-              hover:bg-gray-50
-              transition
-            "
-          >
-            <FaGoogle size={20} />
-          </button>
-
-          <button
-            onClick={() =>
-              alert("Apple 로그인은 준비 중입니다.")
-            }
-            className="
-              w-12
-              h-12
-              rounded-full
-              border
-              border-gray-200
-              flex
-              items-center
-              justify-center
-              hover:bg-gray-50
-              transition
-            "
-          >
-            <FaApple size={20} />
-          </button>
         </div>
 
         <div className="mt-8 pt-6 border-t border-gray-100 text-center">
@@ -249,7 +149,7 @@ function LoginPage() {
             © 2026 모여ON. All rights reserved.
           </p>
         </div>
-      </div>
+      </form>
     </div>
   );
 }

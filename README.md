@@ -14,9 +14,4 @@ BackEnd: Spring Boot<br>
 SQL: Maria DB<br>
 
 
-<b>브랜치 구조</b> <br>
-main = 최종본, 릴리즈 단계 출시본
-develop = main으로 넘기기 전 코드들 합치고, 검수하는 부분
-frontend = frontend 작업
-backend = backend 작업
-ERD_SQL = ERD 및 쿼리 작업
+아 다시 짜야겠다

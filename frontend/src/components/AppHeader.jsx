@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 
 
 const navItems = [
@@ -23,19 +23,14 @@ function ArrowRightIcon() {
 
 function AppHeader() {
   const navigate = useNavigate();
-  const { pathname } = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
-
-  const visibleNavItems = navItems.filter(
-    (item) => !(pathname === "/mypage" && item.to === "/mypage")
-  );
 
   const closeMenu = () => setMenuOpen(false);
 
   return (
-    <header className="relative z-40 border-b border-slate-100 bg-white shadow-[0_2px_8px_rgba(15,23,42,0.035)]">
+    <header className="sticky top-0 z-50 border-b border-slate-100 bg-white shadow-[0_2px_8px_rgba(15,23,42,0.035)]">
       <div className="mx-auto flex h-[76px] max-w-6xl items-center justify-between px-5 sm:px-6">
-        <button type="button" onClick={() => navigate("/main")} aria-label="모여ON 모임 현황으로 이동" className="flex shrink-0 items-center gap-3 border-0 bg-transparent p-0 text-left">
+        <button type="button" onClick={() => navigate("/main")} aria-label="모여ON 모임 현황으로 이동" title="모임 현황으로 이동" className="flex shrink-0 items-center gap-3 border-0 bg-transparent p-0 text-left">
           <span className="flex h-[42px] w-[42px] items-center justify-center rounded-xl bg-[#4F7DF3] text-2xl font-black leading-none text-white shadow-[0_4px_10px_rgba(79,125,243,0.2)]">
             M
           </span>
@@ -45,7 +40,7 @@ function AppHeader() {
         </button>
 
         <nav aria-label="주요 메뉴" className="hidden items-center gap-1 md:flex">
-          {visibleNavItems.map((item) => (
+          {navItems.map((item) => (
             <NavLink key={item.to} to={item.to} end={item.end} className={({ isActive }) => "rounded-xl px-4 py-2.5 text-sm font-semibold transition " + (isActive ? "bg-blue-50 text-[#3D6BE5]" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900")}>
               {item.label}
             </NavLink>
@@ -65,7 +60,7 @@ function AppHeader() {
       {menuOpen && (
         <nav id="mobile-main-menu" aria-label="모바일 주요 메뉴" className="absolute left-0 right-0 top-full border-t border-slate-100 bg-white px-5 pb-5 pt-3 shadow-lg md:hidden">
           <div className="mx-auto grid max-w-6xl gap-1">
-            {visibleNavItems.map((item) => (
+            {navItems.map((item) => (
               <NavLink key={item.to} to={item.to} end={item.end} onClick={closeMenu} className={({ isActive }) => "rounded-xl px-4 py-3 text-sm font-semibold transition " + (isActive ? "bg-blue-50 text-[#3D6BE5]" : "text-slate-700 hover:bg-slate-50")}>
                 {item.label}
               </NavLink>

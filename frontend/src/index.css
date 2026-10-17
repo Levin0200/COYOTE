@@ -1,5 +1,19 @@
 @import "tailwindcss";
 
+:root {
+  font-family: "Malgun Gothic", "맑은 고딕", sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
 html {
   scrollbar-gutter: stable;
+}
+
+body,
+button,
+input,
+select,
+textarea {
+  font: inherit;
 }
