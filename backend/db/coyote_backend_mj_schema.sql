@@ -127,6 +127,8 @@ CREATE TABLE IF NOT EXISTS final_result (
   total_responses INT NOT NULL,
   decision_type VARCHAR(20) NOT NULL,
   reason VARCHAR(500) NOT NULL,
+  place_status VARCHAR(20) NULL,
+  host_decision_deadline TIMESTAMP(6) NULL,
   created_at TIMESTAMP(6) NOT NULL,
   PRIMARY KEY (id),
   UNIQUE KEY uq_final_result_meeting (meeting_id),
@@ -143,6 +145,21 @@ CREATE TABLE IF NOT EXISTS final_result_place (
   sort_order INT NOT NULL,
   PRIMARY KEY (final_result_id, sort_order),
   CONSTRAINT fk_final_result_place_result FOREIGN KEY (final_result_id) REFERENCES final_result (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS final_result_candidate (
+  final_result_id BIGINT NOT NULL,
+  candidate_name VARCHAR(100) NOT NULL,
+  place_id VARCHAR(64) NULL,
+  address VARCHAR(255) NULL,
+  category VARCHAR(100) NULL,
+  latitude DOUBLE NULL,
+  longitude DOUBLE NULL,
+  votes INT NOT NULL,
+  reason VARCHAR(200) NULL,
+  sort_order INT NOT NULL,
+  PRIMARY KEY (final_result_id, sort_order),
+  CONSTRAINT fk_final_result_candidate_result FOREIGN KEY (final_result_id) REFERENCES final_result (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 SHOW TABLES;

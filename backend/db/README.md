@@ -7,6 +7,7 @@
 |---|---|
 | `coyote_backend_mj_schema.sql` | **새 DB**를 만들 때 실행하는 전체 스크립트(데이터베이스 `coyote_db_backend_mj` 생성 포함) |
 | `migrations/001_place_details.sql` | 이미 만든 DB에 장소 구조화 컬럼을 더하는 스크립트(여러 번 실행해도 안전) |
+| `migrations/002_place_decision.sql` | 이미 만든 DB에 마감 후 장소 결정(호스트 선택·자동 선정) 컬럼과 후보 테이블을 더하는 스크립트(여러 번 실행해도 안전) |
 
 ## 적용 방법
 새 DB:
@@ -19,7 +20,9 @@ mariadb -u root -p < backend/db/coyote_backend_mj_schema.sql
 
 ```bash
 mariadb -u root -p < backend/db/migrations/001_place_details.sql
+mariadb -u root -p < backend/db/migrations/002_place_decision.sql
 ```
+(001을 이미 실행했다면 002만 실행하면 됩니다. 번호 순서대로 실행하세요.)
 
 ## 규칙
 - 엔티티(`@Entity`, `@Embeddable`)의 컬럼을 바꾸면 **두 곳을 같이** 바꿉니다.
@@ -34,3 +37,11 @@ mariadb -u root -p < backend/db/migrations/001_place_details.sql
 | `meeting_place_option` | `place_id`, `address`, `latitude`, `longitude`, `category` |
 | `meeting_response` | `place_id`, `place_address`, `place_category` (`latitude`, `longitude`는 기존 컬럼 사용) |
 | `final_result_place` | `place_id`, `address`, `latitude`, `longitude` |
+
+## 002 변경 내용
+| 테이블 | 변경 |
+|---|---|
+| `final_result` | `place_status`, `host_decision_deadline` 추가 (`place_status`가 NULL인 기존 결과는 확정으로 취급) |
+| `final_result_candidate` | 새 테이블: 호스트가 고를 후보(이름·장소 ID·주소·업종·좌표·득표 수·AI 이유, `sort_order`로 순서 유지) |
+
+`place_status` 값: `PENDING`(후보 분석 중) / `AWAITING_HOST`(호스트 선택 대기) / `DECIDED`(확정) / `NONE`(추후 협의).

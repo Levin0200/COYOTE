@@ -3,6 +3,7 @@ package com.coyote.moyeon.meeting.dto;
 import com.coyote.moyeon.meeting.DecisionType;
 import com.coyote.moyeon.meeting.FinalResult;
 import com.coyote.moyeon.meeting.MeetingStatus;
+import com.coyote.moyeon.meeting.PlaceStatus;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
@@ -26,12 +27,13 @@ public record MeetingSummaryResponse(
 			LocalDate selectedDate,
 			List<String> selectedPlaces,
 			String selectedPlace,
-			DecisionType decisionType) {
+			DecisionType decisionType,
+			PlaceStatus placeStatus) {
 
 		public static ResultSummary from(FinalResult result) {
 			MeetingResultResponse full = MeetingResultResponse.from(result);
 			return new ResultSummary(full.selectedDate(), full.selectedPlaces(), full.selectedPlace(),
-					full.decisionType());
+					full.decisionType(), full.placeStatus());
 		}
 	}
 }

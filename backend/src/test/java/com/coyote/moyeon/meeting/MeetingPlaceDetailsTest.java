@@ -248,17 +248,21 @@ class MeetingPlaceDetailsTest {
 	}
 
 	@Test
-	void tiedPlacesAreAllReturnedWithTheirDetails() throws Exception {
+	void tiedPlacesBecomeHostCandidatesWithTheirDetails() throws Exception {
 		Created meeting = createRecommendMeeting();
 		respond(meeting.inviteToken(), UUID.randomUUID().toString(), "RECOMMEND", ",\"placeId\":\"fake-2\"").andExpect(status().isCreated());
 
 		// 호스트는 fake-1, 게스트는 fake-2를 골라 1:1 동률이다.
 		closeAndGetResult(meeting).andExpect(status().isOk())
 				.andExpect(jsonPath("$.decisionType").value("TIE_BREAK"))
-				.andExpect(jsonPath("$.selectedPlaces", contains("테스트백반집 1", "테스트치킨집 2")))
-				.andExpect(jsonPath("$.selectedPlaceDetails[0].id").value("fake-1"))
-				.andExpect(jsonPath("$.selectedPlaceDetails[1].id").value("fake-2"))
-				.andExpect(jsonPath("$.selectedPlace").value("테스트백반집 1 · 테스트치킨집 2"));
+				.andExpect(jsonPath("$.placeStatus").value("AWAITING_HOST"))
+				.andExpect(jsonPath("$.selectedPlaces", hasSize(0)))
+				.andExpect(jsonPath("$.placeCandidates[0].id").value("fake-1"))
+				.andExpect(jsonPath("$.placeCandidates[0].name").value("테스트백반집 1"))
+				.andExpect(jsonPath("$.placeCandidates[0].address").value("테스트시 테스트로 1"))
+				.andExpect(jsonPath("$.placeCandidates[0].latitude").isNumber())
+				.andExpect(jsonPath("$.placeCandidates[1].id").value("fake-2"))
+				.andExpect(jsonPath("$.placeCandidates[1].name").value("테스트치킨집 2"));
 	}
 
 	@Test

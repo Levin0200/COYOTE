@@ -165,12 +165,12 @@ public class MeetingService {
 
 	@Transactional
 	public MeetingResultResponse getResultForHost(Long userId, Long meetingId) {
-		return resultOf(findHostMeeting(userId, meetingId));
+		return resultOf(findHostMeeting(userId, meetingId), true);
 	}
 
 	@Transactional
 	public MeetingResultResponse getResultForGuest(String inviteToken) {
-		return resultOf(findAccessibleByToken(inviteToken, Instant.now()));
+		return resultOf(findAccessibleByToken(inviteToken, Instant.now()), false);
 	}
 
 	/** 마감 시각이 지났는데 아직 열려 있으면 이 시점에 마감한다(스케줄러보다 먼저 조회가 온 경우). */
@@ -183,10 +183,10 @@ public class MeetingService {
 		}
 	}
 
-	private MeetingResultResponse resultOf(Meeting meeting) {
+	private MeetingResultResponse resultOf(Meeting meeting, boolean forHost) {
 		ensureClosed(meeting);
 		return finalResultRepository.findByMeetingId(meeting.getId())
-				.map(MeetingResultResponse::from)
+				.map(forHost ? MeetingResultResponse::forHost : MeetingResultResponse::from)
 				.orElseThrow(() -> new BusinessException(HttpStatus.CONFLICT, "RESULT_NOT_READY", "결과를 준비하고 있습니다."));
 	}
 

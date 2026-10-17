@@ -125,6 +125,16 @@ public class Meeting {
 		this.manuallyClosed = manuallyClosed;
 	}
 
+	/** 응답을 마감했지만 장소 후보를 만드는 중이다. 후보가 만들어지면 {@link #finishProcessing()}으로 끝낸다. */
+	public void close(boolean manuallyClosed) {
+		this.status = MeetingStatus.CLOSED;
+		this.manuallyClosed = manuallyClosed;
+	}
+
+	public void finishProcessing() {
+		this.status = MeetingStatus.COMPLETED;
+	}
+
 	public boolean isLinkExpired(Instant now) {
 		return linkExpirationDate != null && !now.isBefore(linkExpirationDate);
 	}

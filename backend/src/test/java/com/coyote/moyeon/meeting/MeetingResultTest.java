@@ -178,7 +178,7 @@ class MeetingResultTest {
 	}
 
 	@Test
-	void ties_pickNearestDate_andKeepEveryTiedPlace() throws Exception {
+	void ties_pickNearestDate_andLeaveTheTiedPlacesToTheHost() throws Exception {
 		String host = newHostToken();
 		Created meeting = createMeeting(host, RECOMMEND_POLICY, dates(5), "RECOMMEND", "송도 카페 A");
 		guestRespond(meeting.inviteToken(), dates(2), "RECOMMEND", "송도 카페 B");
@@ -186,16 +186,25 @@ class MeetingResultTest {
 		close(host, meeting.id()).andExpect(status().isOk());
 		hostResult(host, meeting.id()).andExpect(status().isOk())
 				.andExpect(jsonPath("$.selectedDate").value(day(2)))
-				.andExpect(jsonPath("$.selectedPlaces", hasSize(2)))
-				.andExpect(jsonPath("$.selectedPlaces[0]").value("송도 카페 A"))
-				.andExpect(jsonPath("$.selectedPlaces[1]").value("송도 카페 B"))
-				.andExpect(jsonPath("$.selectedPlace").value("송도 카페 A · 송도 카페 B"))
+				// 장소 공동 1위는 호스트가 고르므로 아직 확정된 장소가 없다.
+				.andExpect(jsonPath("$.placeStatus").value("AWAITING_HOST"))
+				.andExpect(jsonPath("$.selectedPlaces", hasSize(0)))
+				.andExpect(jsonPath("$.selectedPlace").value("추후 협의"))
+				.andExpect(jsonPath("$.hostDecisionDeadline").isNotEmpty())
+				.andExpect(jsonPath("$.placeCandidates", hasSize(2)))
+				.andExpect(jsonPath("$.placeCandidates[0].name").value("송도 카페 A"))
+				.andExpect(jsonPath("$.placeCandidates[1].name").value("송도 카페 B"))
 				.andExpect(jsonPath("$.decisionType").value("TIE_BREAK"))
 				.andExpect(jsonPath("$.dateVoteCount").value(1))
 				.andExpect(jsonPath("$.placeVoteCount").value(1))
 				.andExpect(jsonPath("$.totalResponses").value(2))
 				.andExpect(jsonPath("$.reason").value(containsString("날짜 공동 1위")))
 				.andExpect(jsonPath("$.reason").value(containsString("장소 공동 1위")));
+
+		// 후보 목록은 호스트에게만 보인다.
+		guestResult(meeting.inviteToken()).andExpect(status().isOk())
+				.andExpect(jsonPath("$.placeStatus").value("AWAITING_HOST"))
+				.andExpect(jsonPath("$.placeCandidates", hasSize(0)));
 	}
 
 	@Test

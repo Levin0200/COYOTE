@@ -1,5 +1,6 @@
 package com.coyote.moyeon.meeting;
 
+import com.coyote.moyeon.meeting.dto.ChoosePlaceRequest;
 import com.coyote.moyeon.meeting.dto.CreateMeetingRequest;
 import com.coyote.moyeon.meeting.dto.MeetingDetailResponse;
 import com.coyote.moyeon.meeting.dto.MeetingResultResponse;
@@ -27,10 +28,13 @@ public class MeetingController {
 
 	private final MeetingService meetingService;
 	private final PlaceLookupService placeLookupService;
+	private final PlaceDecisionService placeDecisionService;
 
-	public MeetingController(MeetingService meetingService, PlaceLookupService placeLookupService) {
+	public MeetingController(MeetingService meetingService, PlaceLookupService placeLookupService,
+			PlaceDecisionService placeDecisionService) {
 		this.meetingService = meetingService;
 		this.placeLookupService = placeLookupService;
+		this.placeDecisionService = placeDecisionService;
 	}
 
 	@PostMapping
@@ -58,6 +62,13 @@ public class MeetingController {
 	@GetMapping("/{id}/result")
 	public MeetingResultResponse result(@AuthenticationPrincipal Jwt jwt, @PathVariable("id") Long id) {
 		return meetingService.getResultForHost(Long.valueOf(jwt.getSubject()), id);
+	}
+
+	/** 후보 중에서 최종 장소를 확정한다(호스트만, 장소 상태가 AWAITING_HOST일 때만). */
+	@PostMapping("/{id}/result/place")
+	public MeetingResultResponse choosePlace(@AuthenticationPrincipal Jwt jwt, @PathVariable("id") Long id,
+			@Valid @RequestBody ChoosePlaceRequest request) {
+		return placeDecisionService.chooseByHost(Long.valueOf(jwt.getSubject()), id, request);
 	}
 
 	@GetMapping("/{id}/votes")
