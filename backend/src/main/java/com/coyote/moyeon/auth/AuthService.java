@@ -17,6 +17,8 @@ import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.util.Locale;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -26,7 +28,9 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class AuthService {
 
-	private static final Duration CODE_VALID_FOR = Duration.ofMinutes(5);
+	private static final Logger log = LoggerFactory.getLogger(AuthService.class);
+	/** 인증번호 유효 시간. 메일 본문의 안내 문구도 이 값을 쓴다. */
+	static final Duration CODE_VALID_FOR = Duration.ofMinutes(5);
 	private static final Duration SIGNUP_WINDOW = Duration.ofMinutes(30);
 	private static final int MAX_FAILED_ATTEMPTS = 5;
 
@@ -65,7 +69,14 @@ public class AuthService {
 				.orElseGet(() -> new EmailVerification(email));
 		verification.issue(code, CODE_VALID_FOR);
 		verificationRepository.save(verification);
-		emailSender.sendVerificationCode(email, code);
+		try {
+			emailSender.sendVerificationCode(email, code);
+		} catch (EmailSendException e) {
+			// 발송에 실패하면 예외로 트랜잭션이 되돌아가 저장한 인증번호도 남지 않는다. 번호와 전체 주소는 로그에 남기지 않는다.
+			log.warn("인증 메일 발송 실패: to={}, cause={}", EmailSendException.mask(email), e.getMessage());
+			throw new BusinessException(HttpStatus.SERVICE_UNAVAILABLE, "EMAIL_SEND_FAILED",
+					"인증 메일을 보내지 못했습니다. 잠시 후 다시 시도해 주세요.");
+		}
 	}
 
 	@Transactional(noRollbackFor = BusinessException.class)
