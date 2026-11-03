@@ -2,7 +2,7 @@ import axios from "axios";
 import { clearAuthenticated } from "../utils/authSession";
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL,
+  baseURL: import.meta.env.VITE_API_BASE_URL || "",
   // 백엔드의 외부 장소/AI 호출 제한(최대 25초)보다 여유 있게 둔다.
   timeout: 35000,
   withCredentials: true,
