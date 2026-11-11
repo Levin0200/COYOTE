@@ -127,7 +127,7 @@ function SignupPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center px-6 py-10">
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center px-3 py-6 sm:px-6 sm:py-10">
       <div
         className="
           w-full
@@ -136,7 +136,7 @@ function SignupPage() {
           rounded-3xl
           border
           border-gray-100
-          p-8
+          p-5 sm:p-8
           shadow-sm
         "
       >
@@ -184,17 +184,17 @@ function SignupPage() {
             </div>
 
             <div className="border border-gray-200 rounded-2xl overflow-hidden">
-              <label className="flex items-center gap-3 p-4 bg-slate-50 cursor-pointer">
+              <label className="flex items-center gap-2 p-3 bg-slate-50 cursor-pointer sm:gap-3 sm:p-4">
                 <input
                   type="checkbox"
                   checked={serviceAgree && privacyAgree}
                   onChange={(e) =>
                     handleAllAgree(e.target.checked)
                   }
-                  className="w-5 h-5 accent-[#4F7DF3]"
+                  className="h-5 w-5 shrink-0 accent-[#4F7DF3]"
                 />
 
-                <div className="flex-1">
+                <div className="min-w-0 flex-1">
                   <p className="font-semibold text-gray-800">
                     전체 동의하기
                   </p>
@@ -206,17 +206,17 @@ function SignupPage() {
               </label>
 
               <div className="border-t border-gray-200">
-                <div className="flex items-center gap-3 px-4 py-4">
+                <div className="flex items-center gap-2 px-3 py-4 sm:gap-3 sm:px-4">
                   <input
                     type="checkbox"
                     checked={serviceAgree}
                     onChange={(e) =>
                       setServiceAgree(e.target.checked)
                     }
-                    className="w-5 h-5 accent-[#4F7DF3]"
+                    className="h-5 w-5 shrink-0 accent-[#4F7DF3]"
                   />
 
-                  <div className="flex-1">
+                  <div className="min-w-0 flex-1">
                     <span className="text-sm text-gray-800">
                       서비스 이용약관 동의
                     </span>
@@ -235,7 +235,7 @@ function SignupPage() {
                           : "service"
                       )
                     }
-                    className="text-sm text-gray-400 hover:text-[#4F7DF3]"
+                    className="shrink-0 text-sm text-gray-400 hover:text-[#4F7DF3]"
                   >
                     {openTerm === "service"
                       ? "닫기"
@@ -296,17 +296,17 @@ function SignupPage() {
                   </div>
                 )}
 
-                <div className="flex items-center gap-3 px-4 py-4 border-t border-gray-100">
+                <div className="flex items-center gap-2 border-t border-gray-100 px-3 py-4 sm:gap-3 sm:px-4">
                   <input
                     type="checkbox"
                     checked={privacyAgree}
                     onChange={(e) =>
                       setPrivacyAgree(e.target.checked)
                     }
-                    className="w-5 h-5 accent-[#4F7DF3]"
+                    className="h-5 w-5 shrink-0 accent-[#4F7DF3]"
                   />
 
-                  <div className="flex-1">
+                  <div className="min-w-0 flex-1">
                     <span className="text-sm text-gray-800">
                       개인정보 수집 및 이용 동의
                     </span>
@@ -325,7 +325,7 @@ function SignupPage() {
                           : "privacy"
                       )
                     }
-                    className="text-sm text-gray-400 hover:text-[#4F7DF3]"
+                    className="shrink-0 text-sm text-gray-400 hover:text-[#4F7DF3]"
                   >
                     {openTerm === "privacy"
                       ? "닫기"

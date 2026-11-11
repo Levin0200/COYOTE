@@ -7,6 +7,7 @@ import { fetchMeetingVotes, fetchMyMeetings } from "../../services/meetingServic
 import { getMeetingErrorMessage } from "../../utils/meetingErrors";
 import { buildCalendarDays, dateKey, formatCalendarDate, maxVoteCount, mostVotedDates, toConfirmedMeetings, voteSummary } from "./myPageModel";
 import useMyPageMap from "./useMyPageMap";
+import "./MyPage.css";
 
 function MyPage() {
   const navigate = useNavigate();
@@ -794,6 +795,7 @@ const { mapError, mapLoading, meetingPlaces, myLocationError, myLocationMarker, 
       ================================================== */}
 
       <main
+        className="mypage-main"
         style={{
           maxWidth: "1280px",
           margin: "0 auto",
@@ -802,6 +804,7 @@ const { mapError, mapLoading, meetingPlaces, myLocationError, myLocationMarker, 
       >
 
         <div
+          className="mypage-layout"
           style={{
             display: "grid",
             gridTemplateColumns: "minmax(0, 1fr) 330px",
@@ -815,6 +818,7 @@ const { mapError, mapLoading, meetingPlaces, myLocationError, myLocationMarker, 
           ================================================== */}
 
           <section
+            className="mypage-calendar"
             style={{
               backgroundColor: "#FFFFFF",
               border: "1px solid #E8EDF3",
@@ -1010,6 +1014,7 @@ const { mapError, mapLoading, meetingPlaces, myLocationError, myLocationMarker, 
             ================================================== */}
 
             <div
+              className="mypage-weekdays"
               style={{
                 display: "grid",
                 gridTemplateColumns: "repeat(7, 1fr)",
@@ -1053,6 +1058,7 @@ const { mapError, mapLoading, meetingPlaces, myLocationError, myLocationMarker, 
             ================================================== */}
 
             <div
+              className="mypage-days"
               style={{
                 display: "grid",
                 gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
@@ -1073,6 +1079,7 @@ const { mapError, mapLoading, meetingPlaces, myLocationError, myLocationMarker, 
                 return (
                   <div
                     key={index}
+                    className="mypage-day"
                     onClick={() => {
                       if (item.currentMonth) {
                         handleDateClick(item.date);
@@ -1107,6 +1114,7 @@ const { mapError, mapLoading, meetingPlaces, myLocationError, myLocationMarker, 
                     >
 
                       <span
+                        className="mypage-day-number"
                         style={{
                           width: "28px",
                           height: "28px",
@@ -1137,6 +1145,8 @@ const { mapError, mapLoading, meetingPlaces, myLocationError, myLocationMarker, 
                     {(expandedDate === item.date ? dayMeetings : dayMeetings.slice(0, 2)).map((meeting, chipIndex) => (
                       <div
                         key={meeting.id}
+                        className="mypage-meeting-chip"
+                        title={meeting.title}
                         onClick={(event) => {
                           event.stopPropagation();
                           openMeetingFromChip(meeting);
@@ -1194,6 +1204,7 @@ const { mapError, mapLoading, meetingPlaces, myLocationError, myLocationMarker, 
           ================================================== */}
 
           <aside
+            className="mypage-sidebar"
             style={{
               display: "flex",
               flexDirection: "column",
@@ -1206,6 +1217,7 @@ const { mapError, mapLoading, meetingPlaces, myLocationError, myLocationMarker, 
             ================================================== */}
 
             <section
+              className="mypage-profile"
               style={{
                 backgroundColor: "#FFFFFF",
                 border: "1px solid #E8EDF3",
@@ -1273,6 +1285,7 @@ const { mapError, mapLoading, meetingPlaces, myLocationError, myLocationMarker, 
             ================================================== */}
 
             <section
+              className="mypage-account-actions"
               style={{
                 backgroundColor: "#FFFFFF",
                 border: "1px solid #E8EDF3",
@@ -1354,6 +1367,7 @@ const { mapError, mapLoading, meetingPlaces, myLocationError, myLocationMarker, 
             ================================================== */}
 
             <section
+              className="mypage-location"
               style={{
                 backgroundColor: "#FFFFFF",
                 border: "1px solid #E8EDF3",

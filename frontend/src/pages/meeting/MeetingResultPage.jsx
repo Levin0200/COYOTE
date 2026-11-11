@@ -102,7 +102,7 @@ function MeetingResultPage() {
   const heading = !completed ? "결과 분석 중" : decided || placeStatus === PLACE_STATUS.NONE ? "최종 결과" : "날짜가 정해졌어요";
 
   return (
-    <div className="min-h-screen bg-slate-50 px-6 py-10 text-slate-800">
+    <div className="min-h-screen bg-slate-50 px-4 py-8 text-slate-800 sm:px-6 sm:py-10">
       <div className="mx-auto max-w-5xl">
         <header className="mb-10">
           <p className="mb-3 flex items-center gap-2 text-sm font-semibold text-purple-600"><FiStar /> AI Meeting Report</p>
@@ -293,6 +293,6 @@ function PlaceDetails({ places }) {
   );
 }
 
-function ResultCard({ icon, label, value }) { return <div className="rounded-3xl bg-white p-6 shadow-sm"><span className="flex h-11 w-11 items-center justify-center rounded-xl bg-purple-50 text-xl text-purple-600">{icon}</span><p className="mt-5 text-sm font-bold text-slate-400">{label}</p><p className="mt-2 text-2xl font-black text-slate-900">{value}</p></div>; }
+function ResultCard({ icon, label, value }) { return <div className="min-w-0 rounded-3xl bg-white p-6 shadow-sm"><span className="flex h-11 w-11 items-center justify-center rounded-xl bg-purple-50 text-xl text-purple-600">{icon}</span><p className="mt-5 text-sm font-bold text-slate-400">{label}</p><p className="mt-2 break-words text-2xl font-black text-slate-900">{value}</p></div>; }
 
 export default MeetingResultPage;

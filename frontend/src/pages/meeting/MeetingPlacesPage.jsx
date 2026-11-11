@@ -163,8 +163,8 @@ function MeetingPlacesPage() {
   const aiNote = results?.aiUsed === true ? "AI가 모임 제목·설명과 주변 장소를 보고 골랐어요."
     : results?.aiUsed === false ? "가까운 순서와 업종 다양성으로 골랐어요(지금은 AI 추천을 쓸 수 없어요)." : "";
 
-  return <div className="min-h-screen bg-slate-50 px-6 py-10 text-slate-800"><div className="mx-auto max-w-5xl">
-    <header className="mb-10"><p className="mb-3 text-sm font-semibold text-blue-600">Place preference</p><h1 className="mb-3 text-4xl font-black text-slate-950">장소는 어떻게 정할까요?</h1><p className="text-slate-500">{isGuest ? "호스트가 정한 장소 정책 안에서 응답해 주세요." : "확정 장소를 안내하거나, 모든 참여자가 함께 볼 추천 범위를 정해 주세요."}</p></header>
+  return <div className="min-h-screen bg-slate-50 px-4 py-8 text-slate-800 sm:px-6 sm:py-10"><div className="mx-auto max-w-5xl">
+    <header className="mb-10"><p className="mb-3 text-sm font-semibold text-blue-600">Place preference</p><h1 className="mb-3 text-3xl font-black text-slate-950 sm:text-4xl">장소는 어떻게 정할까요?</h1><p className="text-slate-500">{isGuest ? "호스트가 정한 장소 정책 안에서 응답해 주세요." : "확정 장소를 안내하거나, 모든 참여자가 함께 볼 추천 범위를 정해 주세요."}</p></header>
     {locked && <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-5"><p className="text-sm font-black text-amber-800">게스트 응답이 있어 장소 선택은 수정 불가합니다.</p></div>}
 
     {!isGuest && <><div className="mb-6 grid gap-4 md:grid-cols-2">{PLACE_STATUS.map((status) => <button key={status.id} disabled={locked} onClick={() => { setPlaceStatus(status.id); setPlaceMode(status.id === "FIXED" ? "FIXED" : ""); resetResults(); }} className={`rounded-3xl border-2 p-6 text-left transition ${placeStatus === status.id ? "border-blue-500 bg-blue-50 shadow-md" : "border-transparent bg-white shadow-sm hover:border-blue-100"} disabled:cursor-not-allowed disabled:opacity-60`}><span className="text-3xl">{status.icon}</span><h2 className="mt-4 text-xl font-black">{status.title}</h2><p className="mt-2 text-sm leading-6 text-slate-500">{status.description}</p></button>)}</div>

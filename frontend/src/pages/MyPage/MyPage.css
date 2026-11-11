@@ -73,3 +73,75 @@
   gap: 12px !important;
 }
 */
+
+@media (max-width: 768px) {
+  .mypage-main {
+    padding: 24px 16px 48px !important;
+  }
+
+  .mypage-layout {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 20px !important;
+  }
+
+  .mypage-calendar {
+    min-width: 0;
+    padding: 20px !important;
+  }
+
+  .mypage-days {
+    grid-auto-rows: 72px !important;
+  }
+
+  .mypage-location {
+    order: 1;
+  }
+
+  .mypage-profile {
+    order: 2;
+  }
+
+  .mypage-account-actions {
+    order: 3;
+  }
+}
+
+@media (max-width: 480px) {
+  .mypage-main {
+    padding: 18px 12px 40px !important;
+  }
+
+  .mypage-calendar {
+    padding: 12px !important;
+    border-radius: 18px !important;
+  }
+
+  .mypage-weekdays > div {
+    height: 36px !important;
+  }
+
+  .mypage-days {
+    grid-auto-rows: 64px !important;
+  }
+
+  .mypage-day {
+    padding: 2px !important;
+    overflow: hidden !important;
+  }
+
+  .mypage-day-number {
+    width: 22px !important;
+    height: 22px !important;
+    font-size: 11px !important;
+  }
+
+  .mypage-meeting-chip {
+    height: 8px;
+    margin-top: 3px !important;
+    padding: 0 !important;
+    border-radius: 4px !important;
+    background-color: #3b82f6 !important;
+    font-size: 0 !important;
+    line-height: 0;
+  }
+}
