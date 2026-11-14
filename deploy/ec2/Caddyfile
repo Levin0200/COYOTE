@@ -1,0 +1,21 @@
+54-66-7-72.sslip.io {
+    @not_worker not header X-Coyote-Origin {$ORIGIN_TOKEN}
+    respond @not_worker "Forbidden" 403
+
+    encode zstd gzip
+    reverse_proxy backend:8080 {
+        header_up X-Forwarded-For {http.request.header.X-Coyote-Client-IP}
+        header_up -X-Coyote-Client-IP
+        header_up -X-Coyote-Origin
+    }
+
+    header {
+        X-Content-Type-Options "nosniff"
+        Referrer-Policy "same-origin"
+    }
+
+    log {
+        output stdout
+        format console
+    }
+}

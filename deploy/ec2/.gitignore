@@ -1,0 +1,7 @@
+/.env
+/app.env
+/app.env.upload
+/caddy.env
+/release-*.tar.gz
+/backups/
+/moyeoon_backup.sql
