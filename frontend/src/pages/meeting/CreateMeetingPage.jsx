@@ -37,11 +37,11 @@ function CreateMeetingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white px-6 py-12 text-gray-900">
+    <div className="min-h-screen bg-white px-3 py-8 text-gray-900 sm:px-6 sm:py-12">
       <div className="mx-auto max-w-5xl">
-        <header className="mb-12"><p className="mb-3 font-semibold text-[#4F7DF3]">Create new meeting</p><h1 className="mb-4 text-5xl font-black tracking-tight">모임 생성</h1><p className="text-lg text-gray-500">기본 정보와 응답 기간을 설정해 주세요.</p></header>
+        <header className="mb-8 sm:mb-12"><p className="mb-3 font-semibold text-[#4F7DF3]">Create new meeting</p><h1 className="mb-4 text-4xl font-black tracking-tight sm:text-5xl">모임 생성</h1><p className="text-lg text-gray-500">기본 정보와 응답 기간을 설정해 주세요.</p></header>
         <main className="grid gap-8 lg:grid-cols-3">
-          <section className="rounded-[2rem] border border-gray-100 bg-white p-8 shadow-xl lg:col-span-2">
+          <section className="min-w-0 rounded-[2rem] border border-gray-100 bg-white p-5 shadow-xl sm:p-8 lg:col-span-2">
             <div className="space-y-5">
               <label className="block"><span className="mb-2 block text-sm font-bold text-slate-700">모임 제목 *</span><input value={title} maxLength={100} onChange={(e) => setTitle(e.target.value)} className="w-full rounded-2xl border border-gray-200 bg-slate-50 px-5 py-4 outline-none focus:ring-2 focus:ring-[#4F7DF3]" placeholder="예) 캡스톤 프로젝트 회식" /></label>
               <label className="block"><span className="mb-2 block text-sm font-bold text-slate-700">모임 설명</span><textarea value={description} maxLength={1000} onChange={(e) => setDescription(e.target.value)} className="h-32 w-full resize-none rounded-2xl border border-gray-200 bg-slate-50 px-5 py-4 outline-none focus:ring-2 focus:ring-[#4F7DF3]" placeholder="모임 목적이나 안내사항을 적어주세요." /></label>
@@ -70,7 +70,7 @@ function DateTimePicker({ label, value, onChange, required = false }) {
     if (!nextDate) return onChange("");
     onChange(`${nextDate}T${nextHour || "09"}:${nextMinute || "00"}`);
   };
-  return <fieldset><legend className="mb-2 text-sm font-bold text-slate-700">{label}</legend><div className="grid grid-cols-[minmax(0,1fr)_82px_82px] gap-2"><input aria-label={`${label} 날짜`} type="date" min={today} value={date} onChange={(e) => update(e.target.value, hour, minute)} className="min-w-0 rounded-2xl border border-gray-200 bg-slate-50 px-3 py-4 outline-none focus:ring-2 focus:ring-[#4F7DF3]" required={required} /><select aria-label={`${label} 시`} value={hour} disabled={!date} onChange={(e) => update(date, e.target.value, minute)} className="rounded-2xl border border-gray-200 bg-slate-50 px-2 py-4 outline-none disabled:text-slate-300">{hours.map((item) => <option key={item} value={item}>{item}시</option>)}</select><select aria-label={`${label} 분`} value={minute} disabled={!date} onChange={(e) => update(date, hour, e.target.value)} className="rounded-2xl border border-gray-200 bg-slate-50 px-2 py-4 outline-none disabled:text-slate-300">{minutes.map((item) => <option key={item} value={item}>{item}분</option>)}</select></div><span className="mt-2 block text-xs text-slate-400">시간은 10분 단위로 선택합니다.</span></fieldset>;
+  return <fieldset className="min-w-0"><legend className="mb-2 text-sm font-bold text-slate-700">{label}</legend><div className="grid grid-cols-2 gap-2 sm:grid-cols-[minmax(0,1fr)_82px_82px]"><input aria-label={`${label} 날짜`} type="date" min={today} value={date} onChange={(e) => update(e.target.value, hour, minute)} className="col-span-2 w-full min-w-0 rounded-2xl border border-gray-200 bg-slate-50 px-3 py-4 outline-none focus:ring-2 focus:ring-[#4F7DF3] sm:col-span-1" required={required} /><select aria-label={`${label} 시`} value={hour} disabled={!date} onChange={(e) => update(date, e.target.value, minute)} className="min-w-0 rounded-2xl border border-gray-200 bg-slate-50 px-2 py-4 outline-none disabled:text-slate-300">{hours.map((item) => <option key={item} value={item}>{item}시</option>)}</select><select aria-label={`${label} 분`} value={minute} disabled={!date} onChange={(e) => update(date, hour, e.target.value)} className="min-w-0 rounded-2xl border border-gray-200 bg-slate-50 px-2 py-4 outline-none disabled:text-slate-300">{minutes.map((item) => <option key={item} value={item}>{item}분</option>)}</select></div><span className="mt-2 block text-xs text-slate-400">시간은 10분 단위로 선택합니다.</span></fieldset>;
 }
 
 export default CreateMeetingPage;

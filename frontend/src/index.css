@@ -10,6 +10,12 @@ html {
   scrollbar-gutter: stable;
 }
 
+@media (max-width: 767px) {
+  html {
+    scrollbar-gutter: auto;
+  }
+}
+
 body,
 button,
 input,

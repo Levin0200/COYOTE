@@ -36,9 +36,9 @@ function MeetingTimeOptionsPage() {
   if (isGuest && !draft.guestId) return <Navigate to={`/invite/${inviteToken}`} replace />;
 
   return (
-    <div className="min-h-screen bg-slate-50 px-6 py-10 text-slate-800">
+    <div className="min-h-screen bg-slate-50 px-4 py-8 text-slate-800 sm:px-6 sm:py-10">
       <div className="mx-auto max-w-5xl">
-        <header className="mb-10"><p className="mb-3 text-sm font-semibold text-blue-600">Availability</p><h1 className="mb-3 text-4xl font-black text-slate-950">가능한 날짜 선택</h1><p className="text-slate-500">참여할 수 있는 날짜를 모두 눌러주세요. 다시 누르면 선택이 해제됩니다.</p></header>
+        <header className="mb-10"><p className="mb-3 text-sm font-semibold text-blue-600">Availability</p><h1 className="mb-3 text-3xl font-black text-slate-950 sm:text-4xl">가능한 날짜 선택</h1><p className="text-slate-500">참여할 수 있는 날짜를 모두 눌러주세요. 다시 누르면 선택이 해제됩니다.</p></header>
         <main className="grid gap-8 lg:grid-cols-3">
           <section className="lg:col-span-2">
             {candidateStartDate && candidateEndDate && <p className="mb-4 text-sm font-semibold text-slate-600">선택 가능 기간: {candidateStartDate} ~ {candidateEndDate}</p>}
