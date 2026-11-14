@@ -8,8 +8,8 @@
 </p>
 
 <p align="center">
-  <a href="https://coyote-meeting.namse-coyote.workers.dev"><strong>서비스 둘러보기 ↗</strong></a>
-  &nbsp; · &nbsp; <a href="#서비스-소개">서비스 소개</a>
+  <a href="https://coyote-meeting.namse-coyote.workers.dev"><strong>서비스 둘러보기 ↗</strong></a><br><br>
+  <a href="#서비스-소개">서비스 소개</a>
   &nbsp; · &nbsp; <a href="#아키텍처">아키텍처</a>
   &nbsp; · &nbsp; <a href="#erd">ERD</a>
   &nbsp; · &nbsp; <a href="#핵심-설계">핵심 설계</a>
@@ -48,32 +48,17 @@ COYOTE 팀은 **날짜와 장소를 정하는 과정이 따로 떨어져 있다�
 | **4. 집계·확정** | 날짜 집계와 장소 조율 결과를 확인합니다. 추가 선택이 필요한 경우 호스트가 장소를 정합니다. |
 | **5. 결과 확인** | 확정된 일정·장소·주소를 확인합니다. 회원은 캘린더와 지도에서 자신의 모임을 살펴봅니다. |
 
-### 모임 생성 화면
-
-후보 날짜, 응답 마감일과 장소 결정 방식을 설정합니다.
+### 서비스 랜딩 페이지
 
 <p align="center">
-  <a href="https://github.com/Levin0200/COYOTE/blob/main/frontend/public/images/landing/step-01-create.png">
-    <img src="frontend/public/images/landing/step-01-create.png" alt="모임 제목과 설명, 후보 기간, 응답 마감일을 설정하는 화면" width="1080">
+  <a href="https://coyote-meeting.namse-coyote.workers.dev/">
+    <img src="docs/assets/readme/landing.jpg" alt="모여ON 서비스 랜딩 페이지" width="1280">
   </a>
 </p>
 
-[모임 생성 화면 크게 보기 ↗](https://github.com/Levin0200/COYOTE/blob/main/frontend/public/images/landing/step-01-create.png)
-
-<details>
-<summary><strong>날짜 투표 화면 펼쳐보기</strong></summary>
-
-참여자는 달력에서 날짜를 고르고 장소 의견을 제출합니다.
-
 <p align="center">
-  <a href="https://github.com/Levin0200/COYOTE/blob/main/frontend/public/images/landing/step-03-dates.png">
-    <img src="frontend/public/images/landing/step-03-dates.png" alt="달력에서 참여 가능한 날짜를 여러 개 선택하는 화면" width="1080">
-  </a>
+  <sub>이미지를 클릭하면 모여ON 서비스로 이동합니다.</sub>
 </p>
-
-[날짜 투표 화면 크게 보기 ↗](https://github.com/Levin0200/COYOTE/blob/main/frontend/public/images/landing/step-03-dates.png)
-
-</details>
 
 <details>
 <summary>날짜 집계와 AI의 역할</summary>
