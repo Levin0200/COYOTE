@@ -1,0 +1,81 @@
+name: moyeoon
+
+services:
+  mariadb:
+    image: mariadb:10.11
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD}
+      MARIADB_DATABASE: coyote_db_backend_mj
+      MARIADB_USER: moyeoon
+      MARIADB_PASSWORD: ${MARIADB_PASSWORD}
+    command:
+      - --innodb-buffer-pool-size=256M
+      - --max-connections=50
+    volumes:
+      - mariadb_data:/var/lib/mysql
+      - ./app/db/coyote_backend_mj_schema.sql:/docker-entrypoint-initdb.d/001-coyote-schema.sql:ro
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 30s
+    mem_limit: 640m
+
+  backend:
+    image: coyote-backend:backend-mj-32e7166
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - ./app.env
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_URL: jdbc:mariadb://mariadb:3306/coyote_db_backend_mj
+      DB_USERNAME: moyeoon
+      DB_PASSWORD: ${MARIADB_PASSWORD}
+      CORS_ALLOWED_ORIGINS: https://coyote-meeting.namse-coyote.workers.dev
+      FORWARD_HEADERS_STRATEGY: native
+      MOIS_PLACE_STATUS_ENABLED: "false"
+      JAVA_TOOL_OPTIONS: -XX:MaxRAMPercentage=70.0 -XX:+ExitOnOutOfMemoryError -Dfile.encoding=UTF-8
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:8080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://127.0.0.1:8080/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 12
+      start_period: 60s
+    mem_limit: 800m
+
+  caddy:
+    image: caddy:2.10-alpine
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    env_file:
+      - ./caddy.env
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    mem_limit: 128m
+
+volumes:
+  mariadb_data:
+  caddy_data:
+  caddy_config:
