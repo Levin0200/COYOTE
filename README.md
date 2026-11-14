@@ -39,6 +39,16 @@ npm run dev
 
 기본 주소는 프론트엔드 `http://localhost:5173`, 백엔드 `http://localhost:8080`입니다.
 
+## 운영 배포 구성
+
+2026년 11월 14일 확인한 운영 구성은 Cloudflare Workers Static Assets의 프론트엔드와 단일 AWS EC2의 Docker Compose입니다. Worker가 같은 출처의 `/api/*` 요청을 EC2의 Caddy로 전달하고, Caddy는 Spring Boot 백엔드로 프록시합니다. MariaDB는 같은 EC2의 Compose 내부 네트워크에서 사용합니다.
+
+- 프론트엔드 Worker 설정: [`frontend/wrangler.jsonc`](frontend/wrangler.jsonc), [`frontend/worker.js`](frontend/worker.js)
+- 서버에서 가져온 비밀값 없는 배포 설정과 주의사항: [`deploy/ec2/README.md`](deploy/ec2/README.md)
+- 운영 환경파일과 API 키, DB 데이터, 릴리스 압축파일은 저장소에 포함하지 않습니다.
+
+현재 `frontend/` 소스는 운영 Cloudflare 빌드와 일치합니다. `develop`의 `package-lock.json`은 기존 보안 의존성 업데이트를 유지하므로 운영 배포물과 바이트 단위로 동일한 번들을 만들지는 않습니다. 이 브랜치를 새로 배포할 때는 빌드 결과를 별도로 검증해야 합니다.
+
 ## 검증
 
 ```bash
