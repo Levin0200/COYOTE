@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="344" viewBox="0 0 1280 344" fill="none" role="img" aria-labelledby="title description">
+  <title id="title">모여ON · TEAM COYOTE</title>
+  <desc id="description">언제, 어디서 만날지 함께 정해요. 초대 링크, 날짜 투표, 장소 조율을 연결하는 모임 조율 서비스.</desc>
+  <defs>
+    <clipPath id="banner-clip"><rect x="0.5" y="0.5" width="1279" height="343" rx="28"/></clipPath>
+  </defs>
+  <g clip-path="url(#banner-clip)">
+    <rect width="1280" height="344" fill="#F4F8FE"/>
+    <circle cx="1131" cy="174" r="225" fill="#EAF2FF"/>
+    <circle cx="1151" cy="175" r="154" stroke="#DCE8FA" stroke-width="1.5"/>
+    <path d="M755 344C812 244 864 210 930 198" stroke="#E0EAF8" stroke-width="1.5" stroke-dasharray="5 8"/>
+    <circle cx="793" cy="288" r="4" fill="#B8CCEB"/>
+
+    <g font-family="'Noto Sans CJK KR', 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif">
+      <text x="68" y="59" fill="#536F93" font-size="13" font-weight="700" letter-spacing="3.4">TEAM COYOTE</text>
+      <text x="64" y="151" fill="#163B69" font-size="76" font-weight="700" letter-spacing="-3">모여<tspan fill="#2563EB" letter-spacing="-2">ON</tspan></text>
+      <text x="68" y="202" fill="#355675" font-size="25" font-weight="500" letter-spacing="-0.7">언제, 어디서 만날지 함께 정해요.</text>
+      <g fill="#526C8B" font-size="16" font-weight="500" letter-spacing="-0.3">
+        <text x="68" y="276">초대 링크</text>
+        <circle cx="155" cy="270" r="2.2" fill="#A1B6D3"/>
+        <text x="177" y="276">날짜 투표</text>
+        <circle cx="265" cy="270" r="2.2" fill="#A1B6D3"/>
+        <text x="287" y="276">장소 조율</text>
+      </g>
+    </g>
+
+    <g transform="rotate(-5 1007 173)">
+      <rect x="858" y="61" width="266" height="226" rx="22" fill="#DCE9FC"/>
+    </g>
+    <g>
+      <rect x="874" y="52" width="266" height="226" rx="22" fill="white"/>
+      <rect x="874.5" y="52.5" width="265" height="225" rx="21.5" stroke="#DCE6F4"/>
+      <path d="M875 75C875 62.85 884.85 53 897 53H1117C1129.15 53 1139 62.85 1139 75V110H875V75Z" fill="#F9FBFF"/>
+      <path d="M875 110H1139" stroke="#E4EDF9"/>
+      <path d="M929 44V65M1085 44V65" stroke="#8BAADB" stroke-width="7" stroke-linecap="round"/>
+      <circle cx="897" cy="83" r="3" fill="#A3BADE"/>
+      <rect x="909" y="78" width="62" height="10" rx="5" fill="#A3BADE"/>
+      <path d="M1106 79L1102 83L1106 87" stroke="#94A9C7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M1120 79L1124 83L1120 87" stroke="#94A9C7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      <g fill="#D2DFF1">
+        <circle cx="902" cy="130" r="3"/><circle cx="937" cy="130" r="3"/><circle cx="972" cy="130" r="3"/>
+        <circle cx="1007" cy="130" r="3"/><circle cx="1042" cy="130" r="3"/><circle cx="1077" cy="130" r="3"/><circle cx="1112" cy="130" r="3"/>
+      </g>
+      <g fill="#F0F5FC">
+        <rect x="890" y="148" width="24" height="24" rx="7"/><rect x="925" y="148" width="24" height="24" rx="7"/>
+        <rect x="960" y="148" width="24" height="24" rx="7"/><rect x="995" y="148" width="24" height="24" rx="7"/>
+        <rect x="1030" y="148" width="24" height="24" rx="7"/><rect x="1065" y="148" width="24" height="24" rx="7"/><rect x="1100" y="148" width="24" height="24" rx="7"/>
+        <rect x="890" y="184" width="24" height="24" rx="7"/><rect x="925" y="184" width="24" height="24" rx="7"/>
+        <rect x="1030" y="184" width="24" height="24" rx="7"/><rect x="1065" y="184" width="24" height="24" rx="7"/><rect x="1100" y="184" width="24" height="24" rx="7"/>
+        <rect x="890" y="220" width="24" height="24" rx="7"/><rect x="925" y="220" width="24" height="24" rx="7"/>
+        <rect x="960" y="220" width="24" height="24" rx="7"/><rect x="995" y="220" width="24" height="24" rx="7"/>
+        <rect x="1030" y="220" width="24" height="24" rx="7"/><rect x="1065" y="220" width="24" height="24" rx="7"/><rect x="1100" y="220" width="24" height="24" rx="7"/>
+      </g>
+      <rect x="960" y="184" width="24" height="24" rx="7" fill="#2563EB"/>
+      <path d="M966 196L970 200L978 192" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+      <rect x="995" y="184" width="24" height="24" rx="7" fill="#DCE9FF"/>
+      <path d="M1001 196L1005 200L1013 192" stroke="#4A7DDD" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+    <g>
+      <circle cx="1149" cy="253" r="47" fill="white"/>
+      <circle cx="1149" cy="253" r="46.5" stroke="#DCE6F4"/>
+      <path d="M1149 220C1135.75 220 1125 230.66 1125 243.82C1125 261.42 1149 280 1149 280C1149 280 1173 261.42 1173 243.82C1173 230.66 1162.25 220 1149 220Z" fill="#2563EB"/>
+      <circle cx="1149" cy="243" r="8" fill="white"/>
+    </g>
+  </g>
+  <rect x="0.5" y="0.5" width="1279" height="343" rx="28" stroke="#DEE8F6"/>
+</svg>
