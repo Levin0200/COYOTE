@@ -2,8 +2,8 @@
 -- Generated from backend-mj JPA entity mappings.
 -- Creates a separate database to preserve the earlier coyote_db tables.
 -- Backend uses MariaDB only when configured with the mariadb/prod profile and DB_* env vars.
--- Kept in the repository (backend/db). Update it together with every JPA entity change; see backend/db/README.md.
--- Includes backend/db/migrations/001_place_details.sql (structured place columns).
+-- Kept in the repository (sql/). Update it together with every JPA entity change; see sql/README.md.
+-- Includes sql/migrations/001_place_details.sql (structured place columns).
 
 CREATE DATABASE IF NOT EXISTS coyote_db_backend_mj
   CHARACTER SET utf8mb4

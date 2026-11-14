@@ -1,4 +1,4 @@
-# MariaDB 스키마 (backend/db)
+# MariaDB 스키마 (sql/)
 
 백엔드의 JPA 엔티티와 맞춘 MariaDB 테이블 정의입니다. 로컬과 운영 실행은 MariaDB만 사용하며,
 `mariadb`/`prod` 프로필은 `ddl-auto=validate`라서 이 SQL과 엔티티가 다르면 서버가 시작되지 않습니다.
@@ -14,17 +14,17 @@ H2는 실행 환경에서 사용하지 않고 자동화 테스트에서만 사�
 새 DB:
 
 ```bash
-mariadb -u root -p < backend/db/coyote_backend_mj_schema.sql
+mariadb -u root -p < sql/coyote_backend_mj_schema.sql
 ```
 
-이후 `.env.example`을 `.env`로 복사해 `DB_USERNAME`, `DB_PASSWORD`, `JWT_SECRET`을 설정하면
+이후 `backend/.env.example`을 `backend/.env`로 복사해 `DB_USERNAME`, `DB_PASSWORD`, `JWT_SECRET`을 설정하면
 별도 프로필 지정 없이도 기본 `mariadb` 프로필로 실행됩니다.
 
 이미 만든 DB(예전 스키마):
 
 ```bash
-mariadb -u root -p < backend/db/migrations/001_place_details.sql
-mariadb -u root -p < backend/db/migrations/002_place_decision.sql
+mariadb -u root -p < sql/migrations/001_place_details.sql
+mariadb -u root -p < sql/migrations/002_place_decision.sql
 ```
 (001을 이미 실행했다면 002만 실행하면 됩니다. 번호 순서대로 실행하세요.)
 

@@ -12,7 +12,9 @@
 
 ## 파일 배치와 비밀값
 
-서버의 `/home/ubuntu/moyeoon` 루트에 `compose.yaml`, `Caddyfile`, `prepare-release.sh`, `deploy-release.sh`를 두고, `app/`에 `backend/` 소스를 배치한다. `app/Dockerfile`은 이 저장소의 `backend/Dockerfile`과 같다. 이 디렉터리의 파일을 그대로 실행하려면 서버의 디렉터리 구조와 릴리스 압축파일 이름이 일치해야 한다.
+서버의 `/home/ubuntu/moyeoon` 루트에 `compose.yaml`, `Caddyfile`, `prepare-release.sh`, `deploy-release.sh`를 두고, `app/`에 `backend/` 소스를 배치한다. `app/Dockerfile`은 이 저장소의 `backend/Dockerfile`과 같다.
+
+운영 스냅샷의 `app/db/` 경로는 기존 릴리스 압축파일 내부 구조를 가리킨다. 저장소의 SQL 원본은 루트 `sql/`에 있다. 새 릴리스를 만들 때는 `sql/` 내용을 서버의 `app/db/`에 포함하거나 배포 설정과 스크립트의 경로를 함께 변경해야 한다. 이 디렉터리의 파일을 그대로 실행하려면 서버의 디렉터리 구조와 릴리스 압축파일 이름이 일치해야 한다.
 
 실제 비밀값은 서버의 `.env`(DB), `app.env`(Spring), `caddy.env`(Origin 토큰)에 별도로 보관하고 권한을 `600`으로 제한한다. Cloudflare Worker의 `ORIGIN_TOKEN`도 별도로 설정한다. 세 환경파일과 실제 키는 Git에 올리지 않는다.
 

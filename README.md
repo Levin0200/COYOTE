@@ -6,14 +6,15 @@
 
 - `frontend/`: React 19 + Vite
 - `backend/`: Spring Boot 4.1.1 + Java 25 + Gradle
-- DB: MariaDB
+- `deploy/`: Cloudflare·EC2 배포 설정 및 운영 당시 서버 설정 스냅샷
+- `sql/`: MariaDB 전체 스키마와 기존 DB용 변경 스크립트
 
 ## 최초 실행
 
 ### 1. MariaDB 스키마 생성
 
 ```bash
-mariadb -u root -p < backend/db/coyote_backend_mj_schema.sql
+mariadb -u root -p < sql/coyote_backend_mj_schema.sql
 ```
 
 ### 2. 백엔드 환경 설정과 실행
@@ -45,6 +46,7 @@ npm run dev
 
 - 프론트엔드 Worker 설정: [`frontend/wrangler.jsonc`](frontend/wrangler.jsonc), [`frontend/worker.js`](frontend/worker.js)
 - 서버에서 가져온 비밀값 없는 배포 설정과 주의사항: [`deploy/ec2/README.md`](deploy/ec2/README.md)
+- 새 DB 생성과 기존 DB 변경 스크립트: [`sql/README.md`](sql/README.md)
 - 운영 환경파일과 API 키, DB 데이터, 릴리스 압축파일은 저장소에 포함하지 않습니다.
 
 현재 `frontend/` 소스는 운영 Cloudflare 빌드와 일치합니다. `develop`의 `package-lock.json`은 기존 보안 의존성 업데이트를 유지하므로 운영 배포물과 바이트 단위로 동일한 번들을 만들지는 않습니다. 이 브랜치를 새로 배포할 때는 빌드 결과를 별도로 검증해야 합니다.
