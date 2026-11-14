@@ -199,8 +199,27 @@ Caddy·Spring Boot·MariaDB는 단일 EC2의 Docker Compose 컨테이너 3개로
 
 참여자의 응답과 확정 결과를 분리해 저장하며, 회원 호스트와 비회원 게스트의 참여를 함께 지원합니다.
 
+- **관계 흐름도:** 주요 키와 테이블 사이의 외래키 연결
 - **전체 ERD:** 테이블·컬럼·관계를 담은 원본 PNG
-- **상세 보기:** 주요 키의 관계 개요와 영역별 컬럼·자료형·NULL 허용 여부
+- **영역별 상세:** 컬럼·자료형·NULL 허용 여부
+
+### 관계 흐름도
+
+원본 PNG와 [SQL 스키마](sql/coyote_backend_mj_schema.sql)를 기준으로 주요 관계를 정리했습니다.
+
+화살표는 **참조되는 테이블 → 외래키를 가진 테이블** 방향입니다.
+
+<p align="center">
+  <a href="https://github.com/Levin0200/COYOTE/blob/main/docs/assets/readme/erd-overview.svg">
+    <img src="docs/assets/readme/erd-overview.svg" alt="모여ON ERD 관계 흐름도: 회원·모임·참여자·응답·최종 결과의 주요 키와 10개 외래키 연결. 이메일 인증 테이블은 외래키 없이 독립적으로 저장" width="1000">
+  </a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/Levin0200/COYOTE/blob/main/docs/assets/readme/erd-overview.svg">관계 흐름도 SVG 보기 ↗</a>
+</p>
+
+### 전체 ERD · 원본 PNG
 
 <p align="center">
   <a href="https://github.com/Levin0200/COYOTE/blob/main/docs/assets/readme/erd.png">
@@ -213,19 +232,6 @@ Caddy·Spring Boot·MariaDB는 단일 EC2의 Docker Compose 컨테이너 3개로
   &nbsp; · &nbsp; <a href="sql/coyote_backend_mj_schema.sql">전체 SQL 스키마</a>
   &nbsp; · &nbsp; <a href="sql/README.md">스키마 적용·변경 안내</a>
 </p>
-
-<details>
-<summary><strong>주요 키·관계 개요 펼쳐보기</strong></summary>
-
-<p align="center">
-  <a href="https://github.com/Levin0200/COYOTE/blob/main/docs/assets/readme/erd-overview.svg">
-    <img src="docs/assets/readme/erd-overview.svg" alt="모여ON ERD 관계 개요: 10개 테이블의 주요 키와 외래키 연결. 회원·모임·응답·최종 결과의 관계와 독립된 이메일 인증 테이블" width="1000">
-  </a>
-</p>
-
-[관계 개요 SVG 보기](https://github.com/Levin0200/COYOTE/blob/main/docs/assets/readme/erd-overview.svg)
-
-</details>
 
 | 영역 | 주요 테이블 |
 | --- | --- |
@@ -514,5 +520,6 @@ Windows PowerShell의 백엔드 테스트 명령은 `./gradlew.bat test`입니�
 | [장소 데이터](backend/docs/PLACE_DATA.md) | 데이터 출처, 검증 범위, 병렬 조회와 캐시 설정 |
 | [DB 스키마](sql/README.md) | 새 DB 생성과 기존 DB 변경 절차 |
 | [백엔드 테스트](backend/src/test/java/com/coyote/moyeon/) | 인증, 참여, 투표, 결과와 장소 추천 검증 코드 |
+
 
 
