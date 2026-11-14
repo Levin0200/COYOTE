@@ -199,8 +199,23 @@ Caddy·Spring Boot·MariaDB는 단일 EC2의 Docker Compose 컨테이너 3개로
 
 참여자의 응답과 확정 결과를 분리해 저장하며, 회원 호스트와 비회원 게스트의 참여를 함께 지원합니다.
 
-- **관계 개요:** 주요 키와 외래키 관계
-- **영역별 상세:** 전체 컬럼·자료형·NULL 허용 여부
+- **전체 ERD:** 테이블·컬럼·관계를 담은 원본 PNG
+- **상세 보기:** 주요 키의 관계 개요와 영역별 컬럼·자료형·NULL 허용 여부
+
+<p align="center">
+  <a href="https://github.com/Levin0200/COYOTE/blob/main/docs/assets/readme/erd.png">
+    <img src="docs/assets/readme/erd.png" alt="모여ON 전체 ERD 원본 PNG: 회원·인증·모임·참여자·응답·최종 결과를 구성하는 10개 테이블의 컬럼과 관계" width="2048">
+  </a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/Levin0200/COYOTE/blob/main/docs/assets/readme/erd.png">원본 PNG 보기 · 2048 × 936 ↗</a>
+  &nbsp; · &nbsp; <a href="sql/coyote_backend_mj_schema.sql">전체 SQL 스키마</a>
+  &nbsp; · &nbsp; <a href="sql/README.md">스키마 적용·변경 안내</a>
+</p>
+
+<details>
+<summary><strong>주요 키·관계 개요 펼쳐보기</strong></summary>
 
 <p align="center">
   <a href="https://github.com/Levin0200/COYOTE/blob/main/docs/assets/readme/erd-overview.svg">
@@ -208,21 +223,7 @@ Caddy·Spring Boot·MariaDB는 단일 EC2의 Docker Compose 컨테이너 3개로
   </a>
 </p>
 
-<p align="center">
-  <a href="https://github.com/Levin0200/COYOTE/blob/main/docs/assets/readme/erd-overview.svg">관계 개요 크게 보기 ↗</a>
-  &nbsp; · &nbsp; <a href="https://github.com/Levin0200/COYOTE/blob/main/docs/assets/readme/erd.png">원본 PNG 보기</a>
-  &nbsp; · &nbsp; <a href="sql/coyote_backend_mj_schema.sql">전체 SQL 스키마</a>
-  &nbsp; · &nbsp; <a href="sql/README.md">스키마 적용·변경 안내</a>
-</p>
-
-<details>
-<summary>ERD 원본 PNG 펼쳐보기</summary>
-
-<p align="center">
-  <img src="docs/assets/readme/erd.png" alt="프로젝트 ERD 원본 PNG: 전체 테이블과 컬럼 및 관계" width="731">
-</p>
-
-[ERD 원본 PNG 파일 열기](https://github.com/Levin0200/COYOTE/blob/main/docs/assets/readme/erd.png)
+[관계 개요 SVG 보기](https://github.com/Levin0200/COYOTE/blob/main/docs/assets/readme/erd-overview.svg)
 
 </details>
 
@@ -513,4 +514,5 @@ Windows PowerShell의 백엔드 테스트 명령은 `./gradlew.bat test`입니�
 | [장소 데이터](backend/docs/PLACE_DATA.md) | 데이터 출처, 검증 범위, 병렬 조회와 캐시 설정 |
 | [DB 스키마](sql/README.md) | 새 DB 생성과 기존 DB 변경 절차 |
 | [백엔드 테스트](backend/src/test/java/com/coyote/moyeon/) | 인증, 참여, 투표, 결과와 장소 추천 검증 코드 |
+
 
