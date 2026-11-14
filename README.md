@@ -23,13 +23,7 @@
 **모여ON은 참여자의 날짜와 장소 의견을 모아, 모임의 최종 약속을 함께 정하는 웹 서비스입니다.**
 
 <p align="center">
-  <a href="https://coyote-meeting.namse-coyote.workers.dev/">
-    <img src="docs/assets/readme/landing-full.jpg" alt="실제 배포된 모여ON 랜딩페이지 전체 화면" width="1280">
-  </a>
-</p>
-
-<p align="center">
-  <sub>실제 배포된 모여ON 랜딩페이지 전체 화면입니다. 이미지를 클릭하면 서비스로 이동합니다.</sub>
+  <img src="docs/assets/readme/landing.png" alt="모여ON 서비스 랜딩페이지" width="846">
 </p>
 
 ### 왜 만들었나요?
