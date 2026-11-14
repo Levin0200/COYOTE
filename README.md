@@ -22,6 +22,16 @@
 
 **모여ON은 참여자의 날짜와 장소 의견을 모아, 모임의 최종 약속을 함께 정하는 웹 서비스입니다.**
 
+<p align="center">
+  <a href="https://coyote-meeting.namse-coyote.workers.dev/">
+    <img src="docs/assets/readme/landing-full.jpg" alt="실제 배포된 모여ON 랜딩페이지 전체 화면" width="1280">
+  </a>
+</p>
+
+<p align="center">
+  <sub>실제 배포된 모여ON 랜딩페이지 전체 화면입니다. 이미지를 클릭하면 서비스로 이동합니다.</sub>
+</p>
+
 ### 왜 만들었나요?
 
 단체 채팅방에서 약속을 잡을 때는 가능한 날짜를 반복해서 묻고, 여러 메시지에 흩어진 응답을 다시 정리해야 합니다.
@@ -47,18 +57,6 @@ COYOTE 팀은 **날짜와 장소를 정하는 과정이 따로 떨어져 있다�
 | **3. 날짜·장소 응답** | 가능한 날짜와 장소 의견을 제출하고, 마감 전까지 수정합니다. |
 | **4. 집계·확정** | 날짜 집계와 장소 조율 결과를 확인합니다. 추가 선택이 필요한 경우 호스트가 장소를 정합니다. |
 | **5. 결과 확인** | 확정된 일정·장소·주소를 확인합니다. 회원은 캘린더와 지도에서 자신의 모임을 살펴봅니다. |
-
-### 서비스 랜딩 페이지
-
-<p align="center">
-  <a href="https://coyote-meeting.namse-coyote.workers.dev/">
-    <img src="docs/assets/readme/landing.jpg" alt="모여ON 서비스 랜딩 페이지" width="1280">
-  </a>
-</p>
-
-<p align="center">
-  <sub>이미지를 클릭하면 모여ON 서비스로 이동합니다.</sub>
-</p>
 
 <details>
 <summary>날짜 집계와 AI의 역할</summary>
