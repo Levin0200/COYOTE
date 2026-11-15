@@ -1,0 +1,23 @@
+# Local configuration and credentials
+.env
+.env.*
+!.env.example
+!**/.env.example
+app.env
+app.env.upload
+caddy.env
+credentials.json
+service-account*.json
+
+# Private keys and local database exports
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+id_rsa
+id_ed25519
+*backup*.sql
+*.sql.gz
+*.dump

@@ -22,7 +22,7 @@ import org.springframework.web.client.RestClient;
 
 class OpenRouterClientTest {
 
-	private static final String KEY = "sk-or-test-SECRET-1234567890";
+	private static final String KEY = "test-only-not-an-api-key";
 	private static final String BASE_URL = "https://openrouter.ai/api/v1";
 
 	private AiProperties properties;
@@ -51,7 +51,7 @@ class OpenRouterClientTest {
 	void sendsAChatCompletionWithTheKeyOnlyInTheAuthorizationHeader() {
 		server.expect(requestTo(BASE_URL + "/chat/completions"))
 				.andExpect(method(HttpMethod.POST))
-				.andExpect(requestTo(not(containsString("sk-or"))))
+				.andExpect(requestTo(not(containsString(KEY))))
 				.andExpect(header("Authorization", "Bearer " + KEY))
 				.andExpect(jsonPath("$.model").value("deepseek/deepseek-v4-flash-0731"))
 				.andExpect(jsonPath("$.max_completion_tokens").value(400))
